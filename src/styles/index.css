@@ -1,0 +1,14 @@
+/**
+ * The stylesheet entry point. Order matters:
+ *   reset  — strip browser defaults
+ *   tokens — define the design vocabulary
+ *   global — apply base styles using that vocabulary
+ *
+ * Imported once, by main.tsx. Component styles are colocated with their
+ * component as a CSS Module and import nothing from here — they reference
+ * tokens through custom properties, which are globally inherited.
+ */
+
+@import './reset.css';
+@import './tokens.css';
+@import './global.css';

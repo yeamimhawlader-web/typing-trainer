@@ -1,0 +1,40 @@
+/**
+ * Global base styles. Every value here comes from a semantic token —
+ * there are no literal colours, sizes or durations in this file, and there
+ * should never be any in a component file either.
+ */
+
+body {
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+}
+
+/**
+ * A single, consistent focus treatment. Keyboard users are this product's
+ * entire audience, so focus visibility is a core requirement, not a polish item.
+ */
+:focus-visible {
+  outline: var(--border-width-base) solid var(--color-accent-base);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+::selection {
+  background-color: var(--color-accent-subtle);
+}
+
+/* Visually hidden, but announced by screen readers. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

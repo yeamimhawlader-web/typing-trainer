@@ -1,0 +1,9 @@
+# Normalise line endings. Without this, Windows checkouts get CRLF while
+# Prettier writes LF, and every file looks modified on every commit.
+* text=auto eol=lf
+
+# Binary files git must not touch.
+*.png binary
+*.jpg binary
+*.woff binary
+*.woff2 binary

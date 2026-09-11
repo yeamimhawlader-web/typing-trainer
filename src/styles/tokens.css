@@ -1,0 +1,257 @@
+/**
+ * DESIGN TOKENS — the single source of truth for every visual value.
+ *
+ * Two layers, and the distinction matters:
+ *
+ *   1. PRIMITIVES (--palette-*)
+ *      Raw values. A ramp of numbers with no opinion about usage.
+ *      Components must NEVER reference these directly.
+ *
+ *   2. SEMANTIC (--color-*, --space-*, --font-*, ...)
+ *      Values with a job. "The colour of an incorrect character" rather than
+ *      "red 500". Components reference ONLY these.
+ *
+ * The payoff: re-theming means remapping the semantic layer, and no component
+ * file changes. The light theme below required exactly zero component edits.
+ *
+ * Colours are authored in OKLCH so a single lightness ramp stays perceptually
+ * even across hues — important when correct and incorrect characters must read
+ * as equally prominent to the eye at speed.
+ */
+
+:root {
+  /* ==================================================================
+     LAYER 1 — PRIMITIVES
+     ================================================================== */
+
+  /* Neutral ramp — 0 is darkest, 1000 is lightest */
+  --palette-neutral-0: oklch(15% 0.008 265);
+  --palette-neutral-50: oklch(19% 0.009 265);
+  --palette-neutral-100: oklch(23% 0.01 265);
+  --palette-neutral-200: oklch(28% 0.011 265);
+  --palette-neutral-300: oklch(36% 0.012 265);
+  --palette-neutral-400: oklch(46% 0.013 265);
+  --palette-neutral-500: oklch(56% 0.014 265);
+  --palette-neutral-600: oklch(66% 0.013 265);
+  --palette-neutral-700: oklch(76% 0.011 265);
+  --palette-neutral-800: oklch(86% 0.008 265);
+  --palette-neutral-900: oklch(94% 0.005 265);
+  --palette-neutral-1000: oklch(99% 0.002 265);
+
+  /* Accent — the application's primary hue */
+  --palette-accent-300: oklch(52% 0.13 235);
+  --palette-accent-400: oklch(62% 0.15 235);
+  --palette-accent-500: oklch(72% 0.16 235);
+  --palette-accent-600: oklch(80% 0.13 235);
+
+  /* Status hues */
+  --palette-success-400: oklch(62% 0.15 150);
+  --palette-success-500: oklch(72% 0.16 150);
+  --palette-warning-400: oklch(70% 0.14 75);
+  --palette-warning-500: oklch(80% 0.15 75);
+  --palette-danger-400: oklch(58% 0.18 25);
+  --palette-danger-500: oklch(66% 0.19 25);
+
+  /* ==================================================================
+     LAYER 2 — SEMANTIC
+     ================================================================== */
+
+  color-scheme: dark;
+
+  /* --- Surfaces --------------------------------------------------- */
+  --color-bg-base: var(--palette-neutral-0);
+  --color-bg-raised: var(--palette-neutral-50);
+  --color-bg-inset: var(--palette-neutral-100);
+  --color-bg-hover: var(--palette-neutral-200);
+  --color-bg-overlay: oklch(10% 0.008 265 / 0.72);
+
+  /* --- Text ------------------------------------------------------- */
+  --color-text-primary: var(--palette-neutral-900);
+  --color-text-secondary: var(--palette-neutral-700);
+  --color-text-tertiary: var(--palette-neutral-500);
+  --color-text-on-accent: var(--palette-neutral-0);
+
+  /* --- Borders ---------------------------------------------------- */
+  --color-border-subtle: var(--palette-neutral-100);
+  --color-border-default: var(--palette-neutral-200);
+  --color-border-strong: var(--palette-neutral-400);
+
+  /* --- Accent ----------------------------------------------------- */
+  --color-accent-base: var(--palette-accent-500);
+  --color-accent-hover: var(--palette-accent-600);
+  --color-accent-active: var(--palette-accent-400);
+  --color-accent-subtle: oklch(72% 0.16 235 / 0.14);
+
+  /* --- Status ----------------------------------------------------- */
+  --color-status-success: var(--palette-success-500);
+  --color-status-warning: var(--palette-warning-500);
+  --color-status-danger: var(--palette-danger-500);
+
+  /* --- Typing domain ---------------------------------------------- */
+  /* The most important colours in the product. Characters are read
+     peripherally at speed, so the contrast gap between states must be large
+     and the hue difference unambiguous. */
+  --color-char-pending: var(--palette-neutral-400);
+  --color-char-correct: var(--palette-neutral-900);
+  --color-char-incorrect: var(--palette-danger-500);
+  --color-char-incorrect-bg: oklch(66% 0.19 25 / 0.16);
+  --color-char-corrected: var(--palette-warning-500);
+  --color-caret: var(--palette-accent-500);
+
+  /* --- Typography ------------------------------------------------- */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Inter, Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono:
+    ui-monospace, 'SF Mono', 'Cascadia Mono', 'JetBrains Mono', Menlo, Consolas,
+    'Liberation Mono', monospace;
+
+  /* Modular scale, ratio 1.25, base 16px */
+  --font-size-2xs: 0.694rem;
+  --font-size-xs: 0.781rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.563rem;
+  --font-size-2xl: 1.953rem;
+  --font-size-3xl: 2.441rem;
+  --font-size-4xl: 3.052rem;
+
+  /* The typing surface gets its own tokens: tuned for legibility at a fixed
+     reading distance, not for the document scale above. */
+  --font-size-typing: 1.75rem;
+  --line-height-typing: 1.75;
+  --letter-spacing-typing: 0.01em;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.15;
+  --line-height-snug: 1.35;
+  --line-height-normal: 1.55;
+  --line-height-relaxed: 1.75;
+
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.04em;
+
+  /* --- Spacing — 4px base grid ------------------------------------ */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* --- Borders ---------------------------------------------------- */
+  --border-width-thin: 1px;
+  --border-width-base: 2px;
+  --border-width-thick: 3px;
+
+  /* --- Radii ------------------------------------------------------ */
+  --radius-none: 0;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* --- Shadows ---------------------------------------------------- */
+  --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.24);
+  --shadow-sm: 0 2px 4px oklch(0% 0 0 / 0.26);
+  --shadow-md: 0 4px 12px oklch(0% 0 0 / 0.3);
+  --shadow-lg: 0 12px 28px oklch(0% 0 0 / 0.36);
+  --shadow-focus-ring:
+    0 0 0 2px var(--color-bg-base), 0 0 0 4px var(--color-accent-base);
+
+  /* --- Motion ----------------------------------------------------- */
+  /* Deliberately short. Animation that lags behind a 130 WPM typist reads as
+     input latency, which is worse than no animation at all. */
+  --duration-instant: 60ms;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+  --ease-entrance: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  /* --- Elevation order -------------------------------------------- */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-overlay: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+
+  /* --- Layout ----------------------------------------------------- */
+  --layout-max-width: 68rem;
+  --layout-reading-width: 46rem;
+  --layout-gutter: var(--space-6);
+}
+
+/**
+ * LIGHT THEME — remaps the semantic layer only.
+ * No primitive and no component rule is touched.
+ */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --color-bg-base: var(--palette-neutral-1000);
+  --color-bg-raised: var(--palette-neutral-900);
+  --color-bg-inset: var(--palette-neutral-800);
+  --color-bg-hover: var(--palette-neutral-800);
+  --color-bg-overlay: oklch(20% 0.008 265 / 0.4);
+
+  --color-text-primary: var(--palette-neutral-50);
+  --color-text-secondary: var(--palette-neutral-300);
+  --color-text-tertiary: var(--palette-neutral-400);
+  --color-text-on-accent: var(--palette-neutral-1000);
+
+  --color-border-subtle: var(--palette-neutral-800);
+  --color-border-default: var(--palette-neutral-700);
+  --color-border-strong: var(--palette-neutral-500);
+
+  --color-accent-base: var(--palette-accent-300);
+  --color-accent-hover: var(--palette-accent-400);
+  --color-accent-active: var(--palette-accent-300);
+  --color-accent-subtle: oklch(52% 0.13 235 / 0.12);
+
+  --color-status-success: var(--palette-success-400);
+  --color-status-warning: var(--palette-warning-400);
+  --color-status-danger: var(--palette-danger-400);
+
+  --color-char-pending: var(--palette-neutral-600);
+  --color-char-correct: var(--palette-neutral-50);
+  --color-char-incorrect: var(--palette-danger-400);
+  --color-char-incorrect-bg: oklch(58% 0.18 25 / 0.14);
+  --color-char-corrected: var(--palette-warning-400);
+  --color-caret: var(--palette-accent-300);
+
+  --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.08);
+  --shadow-sm: 0 2px 4px oklch(0% 0 0 / 0.1);
+  --shadow-md: 0 4px 12px oklch(0% 0 0 / 0.12);
+  --shadow-lg: 0 12px 28px oklch(0% 0 0 / 0.16);
+}
+
+/**
+ * Collapse motion for users who ask the OS for it. Durations are neutralised
+ * at the token level so every consumer inherits the preference automatically.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 1ms;
+    --duration-fast: 1ms;
+    --duration-base: 1ms;
+    --duration-slow: 1ms;
+  }
+}

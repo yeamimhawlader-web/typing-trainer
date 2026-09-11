@@ -1,0 +1,29 @@
+/* `fieldset` and `legend` are the correct semantics for a group of related
+   controls, but they carry browser chrome the design system does not own.
+   Stripped here rather than in the reset, since this is the only place the
+   elements are used. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: var(--layout-reading-width);
+  padding: 0;
+  border: none;
+}
+
+.legend {
+  padding: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.options {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}

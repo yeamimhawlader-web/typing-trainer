@@ -1,0 +1,50 @@
+.surface {
+  padding: var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-raised);
+}
+
+/* The typing surface's own typography. Fixed-width so that characters do not
+   shift horizontally as their state changes — movement under the eye at speed
+   is the single most disruptive thing a typing UI can do. */
+.specimen {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-typing);
+  line-height: var(--line-height-typing);
+  letter-spacing: var(--letter-spacing-typing);
+}
+
+.correct {
+  color: var(--color-char-correct);
+}
+
+.incorrect {
+  color: var(--color-char-incorrect);
+  background-color: var(--color-char-incorrect-bg);
+  border-radius: var(--radius-xs);
+}
+
+.corrected {
+  color: var(--color-char-corrected);
+}
+
+.pending {
+  color: var(--color-char-pending);
+}
+
+.caret {
+  border-left: var(--border-width-base) solid var(--color-caret);
+  margin-left: -1px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
