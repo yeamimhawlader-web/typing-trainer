@@ -54,6 +54,28 @@ const isEditableTarget = (event: KeyboardEvent): boolean => {
   )
 }
 
+/**
+ * True when a control has focus and the key would normally operate it.
+ *
+ * Space and Enter activate a focused button or link. Swallowing them to feed
+ * the typing test would break the one thing a keyboard user relies on, so those
+ * two keys are left alone whenever a control is what is focused. Every other
+ * character still reaches the test, so typing from anywhere keeps working.
+ */
+const isControlActivation = (event: KeyboardEvent): boolean => {
+  if (event.key !== ' ' && event.key !== 'Enter') return false
+
+  const target = event.target
+  if (!(target instanceof HTMLElement)) return false
+
+  return (
+    target.tagName === 'BUTTON' ||
+    target.tagName === 'A' ||
+    target.tagName === 'SELECT' ||
+    target.getAttribute('role') === 'button'
+  )
+}
+
 /** Whether the finished test made it to storage. */
 export type SaveState = 'idle' | 'saving' | 'saved' | 'failed'
 
@@ -120,21 +142,40 @@ export const useTypingSession = (
       const status = engine.getSnapshot().status
 
       /**
-       * Tab restarts — but only while there is a test to restart.
+       * Tab abandons a test in progress and starts a fresh one.
        *
-       * Swallowing Tab unconditionally made the page a keyboard trap: the nav
-       * links and the configuration controls became unreachable, with no way
-       * out for someone navigating by keyboard. Letting it through when the
-       * screen is idle keeps the fast restart exactly where a typist wants it
-       * (mid-test and on the results) while guaranteeing an escape: Tab once to
-       * reset, Tab again to move on.
+       * Only while actually typing. Once a test finishes there are results on
+       * screen with their own controls, and swallowing Tab there would make
+       * them unreachable — the same keyboard trap that taking Tab on the idle
+       * screen used to create.
        */
       if (event.key === 'Tab') {
-        if (status === 'idle') return
+        if (status !== 'running') return
         event.preventDefault()
         restart()
         return
       }
+
+      /**
+       * Enter starts the next test from the results.
+       *
+       * Enter does nothing on an empty page, so claiming it costs the browser
+       * no behaviour — unlike Tab, which is how people move around. It keeps
+       * the repeat loop to a single key while leaving the results navigable.
+       */
+      if (event.key === 'Enter') {
+        if (status !== 'completed' || isControlActivation(event)) return
+        event.preventDefault()
+        restart()
+        return
+      }
+
+      // Once a test is over the keyboard belongs to the browser again, so
+      // nothing below runs — including the preventDefault that would otherwise
+      // stop Space from operating a focused button on the results.
+      if (status !== 'idle' && status !== 'running') return
+
+      if (isControlActivation(event)) return
 
       const isBackspace = event.key === BACKSPACE
       const isCharacter = Array.from(event.key).length === 1
@@ -149,10 +190,6 @@ export const useTypingSession = (
         // First keystroke starts the test — no button to press first.
         if (isBackspace) return
         engine.start(target, at)
-      } else if (status !== 'running') {
-        // A finished test is left alone; Tab starts a new one. Otherwise a
-        // stray key would silently throw away the result just produced.
-        return
       }
 
       engine.input(event.key, at)

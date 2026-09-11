@@ -153,6 +153,41 @@ the test you just typed because saving it went wrong is not acceptable.
 Migrations are still not built. `schemaVersion` in `app.config.ts` namespaces
 every key, so the hook for them exists.
 
+### One result, shown in three places
+
+A finished test appears on the practice screen, in the history table, and on its
+own detail page. All three render the same stored `TypingSession`:
+
+```
+engine → SessionMetrics → TypingSession → results panel
+                                        → history row
+                                        → session detail
+```
+
+`SessionMetrics` is computed once, by the engine, and carried unchanged.
+`SessionSummary` and the formatters in `@features/results` decide how a number
+is _written_; nothing outside the engine decides what it _is_. The one piece of
+arithmetic in the presentation layer turns stored counts into the width of a bar
+segment, which is a fact about the picture rather than about the test.
+
+The results panel renders the very object that was handed to storage, so the
+screen and the history cannot disagree even in principle.
+
+**The panel sits below the text rather than replacing it.** Hiding the text to
+show the numbers would trade one kind of context for another: the moment a test
+ends is exactly when a typist reads back which characters they got wrong.
+
+**A missing session is an ordinary outcome.** A mistyped id, a record deleted in
+another tab, and a record an older build wrote that no longer parses all reach
+the detail page the same way — as "not found", with a way back. None of them is
+a reason to show a broken page.
+
+**Cross-feature imports go through a barrel.** `@features/results` is imported
+by both the typing screen and the history table. That is the exception to
+features being self-contained, and it is deliberate: the alternative is each
+screen formatting a session its own way, which is how two screens start
+disagreeing about the same test.
+
 ### Branded domain types
 
 `Wpm`, `Accuracy`, `Milliseconds` and `Timestamp` are branded, so passing a
@@ -251,13 +286,24 @@ the edge of vision is exactly what a fast typist notices.
 
 ### Tab restarts, but never traps
 
-Tab restarts the test, which is the convention typists expect. Swallowing it
-unconditionally turned the page into a keyboard trap: seven focusable controls,
-none of them reachable, with no way out for anyone navigating by keyboard.
+Tab abandons a test in progress and starts a fresh one, which is the convention
+typists expect. Swallowing it unconditionally turned the page into a keyboard
+trap: focusable controls that no keyboard user could reach.
 
-It is now intercepted only while there is a test to restart. Idle, it moves
-focus as normal — so there is always an exit: Tab once to reset, Tab again to
-leave.
+It is now intercepted **only while a test is actually running**. Idle, and on
+the results, it moves focus as normal.
+
+**Enter is what repeats a test.** Once results are on screen they carry their
+own controls, so Tab has to be left alone there — but making the repeat loop
+cost two keys would tax the thing a daily user does twenty times in a row.
+Enter does nothing on an empty page, so claiming it takes no behaviour away,
+and it keeps the loop to one key.
+
+Both are given up the moment a control has focus: Enter on a focused link and
+Space on a focused button belong to that control, and the handler checks the
+event's target before taking either. Nothing below that check runs once a test
+is over, which is what stops a stray `preventDefault` from disabling the
+results' own buttons.
 
 ### Live speed is withheld for the first second
 

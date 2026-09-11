@@ -1,0 +1,166 @@
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: var(--layout-reading-width);
+}
+
+/* --- Headline: one number that matters, two that qualify it -------------- */
+
+.headline {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.primary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.primaryValue {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.primaryUnit {
+  font-size: var(--font-size-sm);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.secondary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-6);
+  margin: 0;
+}
+
+.secondaryItem {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.secondaryValue {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.label {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* --- Composition bar ----------------------------------------------------- */
+
+/* A single bar showing what the text was made of. It reuses the character
+   colours from the typing surface, so it reads as a summary of the text the
+   typist has just been looking at rather than a new chart to learn. */
+.bar {
+  display: flex;
+  width: 100%;
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background-color: var(--color-bg-inset);
+}
+
+.segment {
+  height: 100%;
+}
+
+.segmentCorrect {
+  background-color: var(--color-char-correct);
+}
+
+.segmentCorrected {
+  background-color: var(--color-char-corrected);
+}
+
+.segmentIncorrect {
+  background-color: var(--color-char-incorrect);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.swatch {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-xs);
+}
+
+.legendValue {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+/* --- Detail grid --------------------------------------------------------- */
+
+.details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-4) var(--space-6);
+  margin: 0;
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.detailValue {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+
+  /* Long values wrap rather than being truncated. Clipping was the first
+     instinct — it keeps the grid tidy — but it cut the completion timestamp
+     to "Sep 12, 2026, 12..", which is the one field where the tail carries
+     the information. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .headline {
+    gap: var(--space-4);
+  }
+
+  .secondary {
+    gap: var(--space-4);
+  }
+}

@@ -10,7 +10,12 @@ import {
 } from '@core/sessions'
 import { accuracy, milliseconds, sessionId, timestamp, wpm } from '@core/types'
 
-import { formatAccuracy, formatDuration, formatMode, formatWpm } from './format.ts'
+import {
+  formatAccuracy,
+  formatDuration,
+  formatMode,
+  formatWpm,
+} from '@features/results'
 import { createHistoryStore } from './state/history.store.ts'
 
 const makeSession = (index: number): TypingSession => ({

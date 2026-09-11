@@ -10,9 +10,10 @@
 
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
+import { ROUTES } from '@app/routes.ts'
 import { createMemoryAdapter } from '@core/persistence'
 import {
   createSessionRepository,
@@ -249,7 +250,9 @@ describe('typing screen', () => {
 
     await user.keyboard(renderedText())
 
-    expect(await screen.findByText(/test complete/i)).toBeInTheDocument()
+    expect(
+      await screen.findByRole('region', { name: 'Test result' }),
+    ).toBeInTheDocument()
   })
 
   it('ignores stray keys after completion so the result survives', async () => {
@@ -260,7 +263,7 @@ describe('typing screen', () => {
 
     await user.keyboard('xxxx')
 
-    expect(screen.getByText(/test complete/i)).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Test result' })).toBeInTheDocument()
   })
 
   it('leaves browser shortcuts alone', async () => {
@@ -293,7 +296,9 @@ describe('recording a finished test', () => {
   const completeATest = async (user: ReturnType<typeof userEvent.setup>) => {
     await user.click(screen.getByRole('button', { name: '15' }))
     await user.keyboard(renderedText())
-    expect(await screen.findByText(/test complete/i)).toBeInTheDocument()
+    expect(
+      await screen.findByRole('region', { name: 'Test result' }),
+    ).toBeInTheDocument()
   }
 
   it('records exactly one session per completed test', async () => {
@@ -355,7 +360,7 @@ describe('recording a finished test', () => {
     const text = renderedText()
 
     await user.keyboard(text)
-    await screen.findByText(/test complete/i)
+    await screen.findByRole('region', { name: 'Test result' })
 
     await waitFor(async () => {
       const [session] = await service.getAll()
@@ -407,5 +412,166 @@ describe('recording a finished test', () => {
     expect(
       await screen.findByRole('link', { name: /view history/i }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('the results panel', () => {
+  const createService = (): SessionService =>
+    createSessionService(createSessionRepository(createMemoryAdapter()))
+
+  const renderWithRoutes = (service: SessionService) =>
+    render(
+      <MemoryRouter initialEntries={[ROUTES.practice]}>
+        <Routes>
+          <Route path={ROUTES.practice} element={<TypingTest service={service} />} />
+          <Route path={ROUTES.history} element={<div>History page</div>} />
+          <Route path={ROUTES.sessionDetail} element={<div>Detail page</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+  const complete = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole('button', { name: '15' }))
+    await user.keyboard(renderedText())
+    return screen.findByRole('region', { name: 'Test result' })
+  }
+
+  it('shows no result until a test is finished', () => {
+    renderTest()
+
+    expect(
+      screen.queryByRole('region', { name: 'Test result' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows exactly one result for one completed test', async () => {
+    const user = userEvent.setup()
+    const service = createService()
+    renderWithRoutes(service)
+
+    await complete(user)
+
+    expect(screen.getAllByRole('region', { name: 'Test result' })).toHaveLength(1)
+    await waitFor(async () => {
+      expect(await service.getAll()).toHaveLength(1)
+    })
+  })
+
+  it('shows the figures from the session that was stored', async () => {
+    const user = userEvent.setup()
+    const service = createService()
+    renderWithRoutes(service)
+    await complete(user)
+
+    const [session] = await waitFor(async () => {
+      const all = await service.getAll()
+      expect(all).toHaveLength(1)
+      return all
+    })
+
+    const result = screen.getByRole('region', { name: 'Test result' })
+    // Read off the record rather than recomputed here: if the screen derived
+    // its own figures, these would drift apart.
+    //
+    // `getAllByText` because a flawless test types every character correctly,
+    // so net and raw speed are the same number and both are on screen.
+    expect(
+      within(result).getAllByText(String(Math.round(session!.metrics.netWpm))).length,
+    ).toBeGreaterThan(0)
+    expect(
+      within(result).getByText(`${Math.round(session!.metrics.accuracy * 100)}%`),
+    ).toBeInTheDocument()
+    expect(
+      within(result).getAllByText(String(session!.metrics.totalCharacters)).length,
+    ).toBeGreaterThan(0)
+  })
+
+  it('clears the result when the next test starts', async () => {
+    const user = userEvent.setup()
+    renderWithRoutes(createService())
+    await complete(user)
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+    expect(
+      screen.queryByRole('region', { name: 'Test result' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText(/start typing to begin/i)).toBeInTheDocument()
+  })
+
+  it('starts the next test from the keyboard alone', async () => {
+    const user = userEvent.setup()
+    renderWithRoutes(createService())
+    await complete(user)
+
+    await user.keyboard('{Enter}')
+
+    expect(
+      screen.queryByRole('region', { name: 'Test result' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('navigates from the result to the history', async () => {
+    const user = userEvent.setup()
+    renderWithRoutes(createService())
+    await complete(user)
+
+    await user.click(screen.getByRole('link', { name: /view history/i }))
+
+    expect(await screen.findByText('History page')).toBeInTheDocument()
+  })
+
+  it('navigates from the result to the full session detail', async () => {
+    const user = userEvent.setup()
+    renderWithRoutes(createService())
+    await complete(user)
+
+    const details = await screen.findByRole('link', { name: /view details/i })
+    await user.click(details)
+
+    expect(await screen.findByText('Detail page')).toBeInTheDocument()
+  })
+
+  it('does not offer a detail link for a test that was never stored', async () => {
+    const user = userEvent.setup()
+    const failing: SessionService = {
+      ...createService(),
+      save: () => Promise.reject(new Error('quota exceeded')),
+    }
+    renderWithRoutes(failing)
+
+    await complete(user)
+
+    // A link to a record that does not exist would only lead to "not found".
+    expect(
+      screen.queryByRole('link', { name: /view details/i }),
+    ).not.toBeInTheDocument()
+    expect(await screen.findByText(/could not be saved/i)).toBeInTheDocument()
+  })
+
+  it('leaves Tab free to reach the result controls', async () => {
+    const user = userEvent.setup()
+    renderWithRoutes(createService())
+    await complete(user)
+
+    await user.keyboard('{Tab}')
+
+    // Tab must move focus here. Taking it to restart, as it does mid-test,
+    // would leave every control on the results unreachable by keyboard.
+    expect(screen.getByRole('region', { name: 'Test result' })).toBeInTheDocument()
+    expect(document.activeElement).not.toBe(document.body)
+  })
+
+  it('lets Space operate a focused control instead of swallowing it', async () => {
+    const user = userEvent.setup()
+    renderWithRoutes(createService())
+    await complete(user)
+
+    screen.getByRole('button', { name: 'Try again' }).focus()
+    await user.keyboard(' ')
+
+    expect(
+      screen.queryByRole('region', { name: 'Test result' }),
+    ).not.toBeInTheDocument()
   })
 })

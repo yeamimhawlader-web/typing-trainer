@@ -1,0 +1,44 @@
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.text {
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-raised);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+
+  /* The practice text can be long; it wraps rather than stretching the page. */
+  overflow-wrap: anywhere;
+  max-width: var(--layout-reading-width);
+}
+
+.textLabel {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.missing {
+  max-width: var(--layout-reading-width);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+.danger:hover {
+  color: var(--color-status-danger);
+}

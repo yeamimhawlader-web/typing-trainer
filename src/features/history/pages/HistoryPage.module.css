@@ -77,3 +77,15 @@
   width: 100%;
   overflow-x: auto;
 }
+
+/* The date is a link into the full result. Underlined on hover only, so a
+   column of dates does not read as a column of links. */
+.rowLink {
+  color: var(--color-text-secondary);
+  text-underline-offset: 0.2em;
+}
+
+.rowLink:hover {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+}

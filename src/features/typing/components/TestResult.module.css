@@ -1,0 +1,49 @@
+/**
+ * The results panel shown when a test finishes.
+ *
+ * It sits below the text rather than replacing it: the moment a test ends is
+ * exactly when a typist reads back which characters they got wrong, and hiding
+ * the text to show the numbers would trade one kind of context for another.
+ */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: var(--layout-reading-width);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-default);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.shortcut {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.key {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  padding: 0 var(--space-1);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-secondary);
+}
+
+.warning {
+  font-size: var(--font-size-sm);
+  color: var(--color-status-warning);
+}
+
+@media (max-width: 640px) {
+  .shortcut {
+    margin-left: 0;
+  }
+}

@@ -2,15 +2,13 @@
  * The typing test screen.
  *
  * This component renders once per test, not once per keystroke. It holds only
- * the target text and the word count — things that change when a test is
- * loaded — while everything that moves as you type is subscribed to further
- * down the tree, close to the pixels it affects.
+ * the target text, the word count and the finished session — things that change
+ * when a test is loaded or completed — while everything that moves as you type
+ * is subscribed to further down the tree, close to the pixels it affects.
  */
 
 import { useMemo } from 'react'
-import { Link } from 'react-router'
 
-import { ROUTES } from '@app/routes.ts'
 import { toCharacters, type TypingEngine } from '@core/engine'
 import type { SessionService } from '@core/sessions'
 import { createCommonWordsProvider, type TextProvider } from '@core/text'
@@ -18,36 +16,20 @@ import { createCommonWordsProvider, type TextProvider } from '@core/text'
 import { LiveStats } from './components/LiveStats.tsx'
 import { ProgressBar } from './components/ProgressBar.tsx'
 import { TestConfig } from './components/TestConfig.tsx'
+import { TestResult } from './components/TestResult.tsx'
 import { TypingSurface } from './components/TypingSurface.tsx'
 import { useEngineValue } from './hooks/useEngineValue.ts'
-import { useTypingSession, type SaveState } from './hooks/useTypingSession.ts'
+import { useTypingSession } from './hooks/useTypingSession.ts'
 
 import styles from './TypingTest.module.css'
 
-interface SessionHintProps {
-  readonly engine: TypingEngine
-  readonly saveState: SaveState
-}
-
 /** Subscribes to status alone, so the hint line does not hold up the tree. */
-const SessionHint = ({ engine, saveState }: SessionHintProps) => {
+const SessionHint = ({ engine }: { engine: TypingEngine }) => {
   const status = useEngineValue(engine, (snapshot) => snapshot.status)
 
-  if (status === 'completed') {
-    return (
-      <p className={styles.hint}>
-        <span className={styles.complete}>Test complete.</span>{' '}
-        <kbd className={styles.key}>Tab</kbd> for a new test.{' '}
-        {saveState === 'failed' ? (
-          <span className={styles.warning}>Could not be saved.</span>
-        ) : (
-          <Link to={ROUTES.history} className={styles.link}>
-            View history
-          </Link>
-        )}
-      </p>
-    )
-  }
+  // Once a test is finished the results panel carries the instructions, so this
+  // line gets out of the way rather than repeating them.
+  if (status === 'completed') return null
 
   if (status === 'running') {
     return (
@@ -73,7 +55,7 @@ export const TypingTest = ({ provider, service }: TypingTestProps = {}) => {
   // One provider for the life of the screen. Swapping in quotes or pasted text
   // later is a change here and nowhere else.
   const fallbackProvider = useMemo(() => createCommonWordsProvider(), [])
-  const { engine, target, wordCount, setWordCount, restart, saveState } =
+  const { engine, target, wordCount, setWordCount, restart, lastSession, saveState } =
     useTypingSession(provider ?? fallbackProvider, service)
 
   const characters = useMemo(() => toCharacters(target.text), [target])
@@ -93,7 +75,11 @@ export const TypingTest = ({ provider, service }: TypingTestProps = {}) => {
 
       <TypingSurface engine={engine} characters={characters} />
 
-      <SessionHint engine={engine} saveState={saveState} />
+      <SessionHint engine={engine} />
+
+      {lastSession !== null && (
+        <TestResult session={lastSession} saveState={saveState} onTryAgain={restart} />
+      )}
     </section>
   )
 }

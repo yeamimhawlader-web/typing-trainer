@@ -54,6 +54,8 @@ These fail the build, so they are not up for negotiation in review:
   even in code that never runs. `npm run typecheck:engine` compiles them without
   the DOM type library.
 - `src/shared/**` may not import `@app/**` or `@features/**`.
+- A feature may import another feature only through its public barrel
+  (`@features/results`), never a file inside it.
 - No unused locals or parameters, no implicit `any`, no unchecked index access.
 
 ## Conventions
@@ -93,6 +95,12 @@ adapter via `describe.each`.
 
 **Naming.** Components `PascalCase.tsx`, everything else `camelCase.ts`, stores
 `<name>.store.ts`, adapters `<name>.adapter.ts`.
+
+**Showing a stored figure.** Format it through `@features/results`; never
+recompute it. Speed, accuracy and character counts are decided once, by the
+engine, and everything downstream only decides how to write them down. A page
+that needs a number nobody stores wants a new field on `SessionMetrics`, not a
+formula of its own.
 
 ## Working on the typing engine
 

@@ -1,8 +1,14 @@
 /**
- * Display formatting for session history.
+ * Display formatting for a stored session.
  *
- * Kept out of the components so the rules are testable on their own, and so
- * "how a duration is written" is decided in one place rather than per row.
+ * Every screen that shows a result — the panel after a test, the history table,
+ * the detail page — formats through these functions, so a duration is written
+ * the same way everywhere.
+ *
+ * Note what is *not* here: no speed, accuracy or character count is calculated.
+ * Those arrive already computed on `session.metrics`, and this file only decides
+ * how to write them down. Recomputing any of them here would create the second
+ * source of truth the architecture exists to avoid.
  */
 
 import type { TypingSession } from '@core/sessions'
@@ -45,3 +51,13 @@ const MODE_LABELS: Record<TypingSession['context']['mode'], string> = {
 
 export const formatMode = (session: TypingSession): string =>
   MODE_LABELS[session.context.mode]
+
+const SOURCE_LABELS: Record<string, string> = {
+  'common-words': 'Common words',
+}
+
+/** Falls back to the raw id so a source added later still reads sensibly. */
+export const formatSource = (session: TypingSession): string =>
+  SOURCE_LABELS[session.textSourceId] ?? session.textSourceId
+
+export const formatCount = (value: number): string => String(value)

@@ -9,9 +9,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router'
 
-import { ROUTES } from '@app/routes.ts'
-import { Button, Page } from '@shared/ui'
-
+import { ROUTES, sessionDetailPath } from '@app/routes.ts'
 import {
   formatAccuracy,
   formatCompletedAt,
@@ -19,7 +17,9 @@ import {
   formatMode,
   formatWpm,
   toIsoString,
-} from '../format.ts'
+} from '@features/results'
+import { Button, Page } from '@shared/ui'
+
 import { useHistoryStore } from '../state/history.store.ts'
 
 import styles from './HistoryPage.module.css'
@@ -108,9 +108,14 @@ export const HistoryPage = () => {
             {sessions.map((session) => (
               <tr key={session.id}>
                 <td>
-                  <time dateTime={toIsoString(session)}>
-                    {formatCompletedAt(session)}
-                  </time>
+                  {/* The date doubles as the way in to the full result, so the
+                      list stays a list rather than growing a column of
+                      buttons. */}
+                  <Link to={sessionDetailPath(session.id)} className={styles.rowLink}>
+                    <time dateTime={toIsoString(session)}>
+                      {formatCompletedAt(session)}
+                    </time>
+                  </Link>
                 </td>
                 <td className={`${styles.numeric} ${styles.wpm}`}>
                   {formatWpm(session.metrics.netWpm)}
