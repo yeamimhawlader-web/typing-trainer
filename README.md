@@ -7,11 +7,13 @@ live speed, accuracy, timer and progress, keyboard-first — see a full result
 when it finishes, find every past test on the History page with its own detail
 view, and track speed, accuracy and activity over time on the Statistics page.
 Finished tests also record keystroke-level telemetry — timings, word positions
-and corrections. The first analysis of it appears as a footnote to the result:
-the slowest character transitions of the test just typed, ranked only where a
-sequence was seen often enough to mean anything. That is an experiment rather
-than a training system — one test turns out to be a thin sample for the
-question. Training modes are not built yet.
+and corrections — and two experiments read it. The result screen shows the
+slowest character transitions of the test just typed. The statistics page asks
+the harder question: which transitions are consistently slower than your own
+baseline across recent sessions, with the evidence for each one beside it. Both
+are experiments rather than a training system, and both say so; one test turns
+out to be far too thin a sample, which is why the second exists. Nothing
+recommends what to practise, and training modes are not built yet.
 
 ## Getting started
 

@@ -35,6 +35,8 @@ import {
   orDash,
 } from '../format.ts'
 import { ActivityChart } from '../components/ActivityChart.tsx'
+import { PersistentSequences } from '../components/PersistentSequences.tsx'
+import { usePersistentSequences } from '../hooks/usePersistentSequences.ts'
 import { TrendChart } from '../components/TrendChart.tsx'
 
 import styles from './StatisticsPage.module.css'
@@ -97,6 +99,13 @@ export const StatisticsPage = () => {
   )
 
   const { statistics, trends, range } = report
+
+  /**
+   * Cross-session sequence analysis, loaded alongside the figures above.
+   * Unconditional, because hooks are — the early returns below are all after
+   * this point.
+   */
+  const sequences = usePersistentSequences(sessions, range)
 
   const rangeControls = (
     <div className={styles.ranges} role="group" aria-label="Time range">
@@ -295,6 +304,8 @@ export const StatisticsPage = () => {
           left out of these figures.
         </p>
       )}
+
+      <PersistentSequences report={sequences} />
     </Page>
   )
 }

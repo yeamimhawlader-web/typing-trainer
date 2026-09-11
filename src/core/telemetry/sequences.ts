@@ -34,6 +34,7 @@
  * them weaknesses.
  */
 
+import { median } from './distribution.ts'
 import type { KeystrokeTelemetry, SessionTelemetry } from './types.ts'
 
 /**
@@ -114,15 +115,6 @@ const isCleanPair = (
   !isWhitespace(current.key) &&
   current.sincePreviousCharacterMs !== null
 
-const median = (values: readonly number[]): number => {
-  const sorted = [...values].sort((a, b) => a - b)
-  const middle = Math.floor(sorted.length / 2)
-
-  return sorted.length % 2 === 1
-    ? (sorted[middle] as number)
-    : ((sorted[middle - 1] as number) + (sorted[middle] as number)) / 2
-}
-
 /**
  * Ranks the session's slowest clean two-character transitions.
  *
@@ -130,12 +122,25 @@ const median = (values: readonly number[]): number => {
  * sequence was seen, then alphabetically. Two sequences with identical timings
  * never swap places between runs.
  */
-export const analyseSlowSequences = (
+/** Every clean transition of one session, grouped and pooled. */
+export interface CleanTransitions {
+  /** Digraph to its observed intervals, in the order typed. */
+  readonly bySequence: ReadonlyMap<string, readonly number[]>
+  /** The same intervals, ungrouped — the session's own transition baseline. */
+  readonly all: readonly number[]
+}
+
+/**
+ * Pulls the clean transitions out of one session.
+ *
+ * Exported because the cross-session analysis needs exactly this and must not
+ * re-implement it: the four cleanliness conditions are the entire reason these
+ * numbers mean anything, and two copies of them would eventually disagree.
+ */
+export const collectCleanTransitions = (
   telemetry: SessionTelemetry,
-  options: SequenceOptions = {},
-): SequenceReport => {
-  const minimumObservations = options.minimumObservations ?? MINIMUM_OBSERVATIONS
-  const timings = new Map<string, number[]>()
+): CleanTransitions => {
+  const bySequence = new Map<string, number[]>()
   const all: number[] = []
 
   for (let position = 1; position < telemetry.keystrokes.length; position += 1) {
@@ -146,12 +151,22 @@ export const analyseSlowSequences = (
     const interval = current.sincePreviousCharacterMs as number
     const sequence = `${previous.key}${current.key}`
 
-    const existing = timings.get(sequence)
-    if (existing === undefined) timings.set(sequence, [interval])
+    const existing = bySequence.get(sequence)
+    if (existing === undefined) bySequence.set(sequence, [interval])
     else existing.push(interval)
 
     all.push(interval)
   }
+
+  return { bySequence, all }
+}
+
+export const analyseSlowSequences = (
+  telemetry: SessionTelemetry,
+  options: SequenceOptions = {},
+): SequenceReport => {
+  const minimumObservations = options.minimumObservations ?? MINIMUM_OBSERVATIONS
+  const { bySequence: timings, all } = collectCleanTransitions(telemetry)
 
   const overallMedianMs = all.length === 0 ? null : median(all)
 

@@ -285,6 +285,70 @@ is thin. **One session can detect a large effect and cannot detect a real one.**
 That is a finding about the data, not a defect in the code, and the wording on
 screen — "slowest observed", never "weakest" — is sized to it.
 
+### Cross-session sequence analysis: the same question, asked of history
+
+```
+TypingSession[] → telemetry.getMany → analysePersistentSequences → statistics footnote
+```
+
+The single-session experiment above concluded that one test is too thin a
+sample. `@core/telemetry/persistent.ts` asks the same question of accumulated
+history. It is still an experiment and still says so on screen.
+
+**Aggregation — sessions weighted equally, not observations.** The obvious
+implementation pools every timing for a digraph and takes one median, and it is
+wrong here: a session where a digraph happens to appear twelve times would
+contribute twelve of the twenty numbers and decide the ranking alone. So each
+session gets one vote per digraph — its own median for it — and the reported
+figure is the median of those per-session medians. Pooled observations are kept
+only to report a count and a spread; they are never averaged as though keystroke
+intervals from one sitting were independent measurements. A unit test plants a
+long slow session against three short ordinary ones and asserts the reported
+median is 100 ms rather than the 200 ms pooling would give.
+
+**Baseline — the typist's own, over the same sessions.** Each session's baseline
+is the median of all its clean transitions; the report's baseline is the median
+of those. Both figures are computed the same way, so the delta shown on screen
+is exactly the difference of the two numbers beside it. There is no fixed
+"slower than 100 ms is bad" anywhere: a 130 WPM typist and a 40 WPM typist share
+no absolute scale, and one typist is slower when tired.
+
+**Stability — slow repeatedly, not slow once.** For every session a digraph
+appears in, its session median is compared against *that session's own*
+baseline. Doing the comparison inside the session removes day-to-day speed
+drift: a session where everything was slow moves everything together and proves
+nothing. `slowSessionRatio` is the fraction of sessions in which it came out
+slower.
+
+**Thresholds — experimental parameters, not constants.** 20 observations, 4
+sessions, and a 0.7 slow-session ratio. The first two are counts of evidence;
+the third is the one that was actually calibrated. Eight simulated sessions with
+a deliberate slowdown planted on one digraph produced the planted sequence at
++44 ms and slow in 8 of 8 — but at a 0.6 ratio two unrelated sequences also
+qualified, at +4 ms and +1 ms on 5 of 8. Five of eight happens by chance 36% of
+the time. Raising the bar to 0.7, which needs 6 of 8 at 14%, left only the
+planted sequence standing.
+
+**Known limitations, stated rather than buried.**
+
+- At the four-session minimum the stability rule can only ask for 3 of 4, which
+  chance supplies 31% of the time. The rule sharpens as history accumulates and
+  is weakest exactly where the data is thinnest.
+- It ranks timings; it does not diagnose. A sequence can be slow because the
+  movement is awkward, because it occurs in long or unfamiliar words, or because
+  it is where someone pauses to think. Nothing here separates those.
+- The built-in text is a common-word list, so digraph frequencies are not those
+  of English prose, and a digraph can miss the threshold for being rare in the
+  word list rather than rare in typing.
+- Telemetry is retained for 50 sessions and at most 30 are analysed, so this is
+  a window on recent practice, not a lifetime record.
+
+**It is not on the typing path.** The analysis runs when the statistics page
+loads or its range changes. The typing screen does not import it, and the hook
+that drives it keeps the result paired with the session set it came from, so
+changing range shows nothing rather than briefly showing the previous range's
+sequences as though they were the new one's.
+
 ### Statistics read history; they never rewrite it
 
 ```

@@ -6,3 +6,5 @@
  */
 
 export { StatisticsPage } from './pages/StatisticsPage.tsx'
+export { PersistentSequences } from './components/PersistentSequences.tsx'
+export { usePersistentSequences } from './hooks/usePersistentSequences.ts'

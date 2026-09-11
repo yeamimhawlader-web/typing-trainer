@@ -655,6 +655,7 @@ describe('telemetry capture', () => {
         return Promise.resolve()
       },
       getBySessionId: () => Promise.resolve(null),
+      getMany: () => Promise.resolve([]),
       remove: () => Promise.resolve(),
       clear: () => Promise.resolve(),
     }
@@ -680,6 +681,7 @@ describe('telemetry capture', () => {
       capture: (result) => encodeTelemetry(result.keystrokes),
       save: () => Promise.reject(new Error('quota exceeded')),
       getBySessionId: () => Promise.resolve(null),
+      getMany: () => Promise.resolve([]),
       remove: () => Promise.resolve(),
       clear: () => Promise.resolve(),
     }

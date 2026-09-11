@@ -1,0 +1,84 @@
+/**
+ * A small section under the charts, not a dashboard of its own.
+ *
+ * This is still an experiment. It reads as a closing note to the statistics
+ * above it — same restraint as the single-test version on the result screen.
+ */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.heading {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: var(--layout-reading-width);
+}
+
+/* Sequence and timing on the first line, the evidence for them underneath —
+   so the claim and the reason to believe it are never separated. */
+.row {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+}
+
+.sequence {
+  grid-row: span 2;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+
+  /* A faint ground so a two-character run reads as one unit, and a leading
+     space would still be visible. */
+  background-color: var(--color-bg-inset);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-2);
+  justify-self: start;
+}
+
+.timing {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+/* Stated as a number, never as colour alone. */
+.delta {
+  color: var(--color-text-tertiary);
+}
+
+.evidence {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+}
+
+.note,
+.caveat {
+  max-width: var(--layout-reading-width);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-tertiary);
+}
+
+.note {
+  font-size: var(--font-size-sm);
+}
