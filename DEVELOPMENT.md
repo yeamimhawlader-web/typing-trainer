@@ -7,7 +7,7 @@ for why it is shaped this way.
 
 ```bash
 npm run dev          # dev server at http://localhost:5173
-npm run verify       # typecheck + lint + tests — run before calling anything done
+npm run verify       # typecheck + engine purity + lint + tests — the gate
 npm run test:watch   # tests, re-running on change
 npm run build        # typecheck + production build
 npm run format       # prettier
@@ -50,6 +50,9 @@ These fail the build, so they are not up for negotiation in review:
 
 - `src/core/**` may not import React, `react-dom`, `@app/**`, `@features/**` or
   `@shared/**`.
+- `src/core/engine/**` and `src/core/types/**` may not name a DOM type at all,
+  even in code that never runs. `npm run typecheck:engine` compiles them without
+  the DOM type library.
 - `src/shared/**` may not import `@app/**` or `@features/**`.
 - No unused locals or parameters, no implicit `any`, no unchecked index access.
 
@@ -96,14 +99,22 @@ adapter via `describe.each`.
 The engine is the one place where the rules matter most.
 
 - It lives in `src/core/engine/` and stays plain TypeScript. No React, no DOM,
-  no `setInterval` owned internally.
+  no `setInterval` owned internally. Reach a platform API through a locally
+  declared interface rather than an ambient browser type, as `engine.ts` does
+  for `crypto.randomUUID`.
 - **Time is a parameter.** Every method takes a `Timestamp` from its caller.
   Never call `Date.now()` or `performance.now()` inside the engine — that is
   what keeps sessions replayable and tests exact.
 - It exposes an immutable snapshot and a `subscribe` callback. React binds via
   `useSyncExternalStore`; no other adapter layer is needed.
 - Test it by feeding a keystroke list and asserting on the snapshot and result.
-  If a test needs a rendered component, the logic is in the wrong place.
+  If a test needs a rendered component, the logic is in the wrong place. Engine
+  tests run in the `domain` project, which has no DOM.
+
+**Adding a training mode** does not mean changing the engine. Pass an
+`isComplete(snapshot)` predicate to `createTypingEngine`. If a mode cannot be
+expressed that way, say so before widening the engine — the predicate covers
+timed, word-count and stop-on-error modes today.
 
 ## Adding a design token
 

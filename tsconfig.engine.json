@@ -1,0 +1,20 @@
+{
+  // PURITY CHECK — the strongest guarantee in this repo.
+  //
+  // Compiles the typing engine and the domain types with the DOM type library
+  // removed. If anything in here so much as *names* a browser type — window,
+  // document, HTMLElement, Crypto, a DOM event — this fails to compile, even
+  // if the code is never executed. Runtime tests cannot catch a dead reference;
+  // this does.
+  //
+  // Run by `npm run typecheck:engine`, and part of `npm run verify`.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.engine.tsbuildinfo",
+    "lib": ["ES2023"],
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["src/core/engine", "src/core/types"],
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
+}

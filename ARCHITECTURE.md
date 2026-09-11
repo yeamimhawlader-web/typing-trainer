@@ -108,10 +108,53 @@ to be within 0..1 everywhere it appears, so nothing downstream re-checks it.
 
 ### Time is passed in, never read inside
 
-The engine contract takes a `Timestamp` on every input rather than calling
+The engine takes a `Timestamp` on every input rather than calling
 `performance.now()` internally. This makes a session replayable from its stored
 keystrokes, which is what allows historical results to be recomputed if a metric
-definition changes later. It also makes engine tests exact rather than timing-dependent.
+definition changes later. It also makes engine tests exact rather than
+timing-dependent — there is not a single fake timer or `await` in the suite.
+
+### The typing engine
+
+Errors **do not block**: a wrong character is marked wrong and the cursor moves
+on, rather than refusing to advance. This is what fast typists expect, and it is
+the only model that measures how someone actually types instead of imposing a
+correction rhythm. Backspace is how mistakes get fixed.
+
+A fixed mistake still happened. Retyping a character correctly after a backspace
+marks it `corrected`: it counts toward speed (the text is right) and permanently
+against accuracy (the error occurred). The metric definitions are stated in
+`metrics.ts` and tested independently of the engine:
+
+```
+raw WPM  = every character typed      / 5 / minutes
+net WPM  = characters currently right / 5 / minutes
+accuracy = correct character attempts / all character attempts
+```
+
+Backspaces are recorded for replay but are not character attempts, so they
+appear in neither metric — the elapsed clock already charges the typist for the
+time they cost.
+
+Training modes plug in through a single `isComplete(snapshot)` predicate. A
+timed mode passes `(s) => s.elapsedMs >= 60_000`, a word-count mode counts
+finished words. Neither requires a change inside the engine, and both are tested.
+
+### Engine purity is proven, not asserted
+
+Three independent checks, each verified by planting a deliberate violation:
+
+| Leak                                                                  | Caught by                                         |
+| --------------------------------------------------------------------- | ------------------------------------------------- |
+| `import ... from 'react'`, or any `@app`/`@features`/`@shared` import | `no-restricted-imports` in lint                   |
+| Naming any DOM type, **even in code that never runs**                 | `npm run typecheck:engine`                        |
+| Executing DOM access at module load                                   | the `domain` test project, which runs with no DOM |
+
+`tsconfig.engine.json` compiles the engine and domain types with the DOM type
+library removed, so `window`, `document` or `HTMLElement` fail to compile even
+as dead references. Runtime tests cannot catch those; the compiler can. This is
+why `crypto.randomUUID` is reached through a locally declared interface rather
+than the ambient `Crypto` type.
 
 ### Configuration vs preferences
 
@@ -142,10 +185,18 @@ Recorded honestly rather than hidden:
    lint rule catches `@features/...` imports from core but not a deep relative
    path like `../../features/x`. In practice the alias is what people write.
 
-4. **No engine implementation exists yet.** The contract in `@core/engine` is a
-   first draft written before its implementation, and first drafts of interfaces
-   are usually wrong in small ways. Expect to adjust it while building the
-   engine; that is cheaper than guessing more now.
+4. **Snapshots are copied, not frozen.** Each snapshot holds fresh arrays, so a
+   caller cannot corrupt engine state. They are not `Object.freeze`d: the
+   `readonly` types state the contract for every caller the compiler can see,
+   and freezing two arrays per keystroke to defend against code that
+   deliberately casts those types away is not worth the cost.
 
-5. **No CI pipeline and no git history.** `npm run verify` is the gate, but
-   nothing runs it automatically yet.
+5. **Counting is O(n) per snapshot.** Correct and incorrect characters are
+   counted by scanning the state array rather than maintained incrementally.
+   For a few hundred characters at ~13 keystrokes per second this is
+   immeasurable, and the scan is obviously correct where incremental counters
+   would need care around backspace and correction. Revisit only if a profile
+   says so.
+
+6. **No CI pipeline.** `npm run verify` is the gate, but nothing runs it
+   automatically yet.

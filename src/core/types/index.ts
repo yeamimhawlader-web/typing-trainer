@@ -20,6 +20,7 @@ export {
 export type {
   CharacterState,
   Keystroke,
+  KeystrokeKind,
   SessionResult,
   SessionStatus,
   SessionTarget,

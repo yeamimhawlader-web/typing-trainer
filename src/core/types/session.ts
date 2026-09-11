@@ -16,19 +16,32 @@ export type SessionStatus = 'idle' | 'running' | 'paused' | 'completed' | 'aband
 export type CharacterState = 'pending' | 'correct' | 'incorrect' | 'corrected'
 
 /**
+ * What kind of input an event was.
+ *
+ * Backspaces are recorded — a replay of the session needs them — but they are
+ * not attempts at a character, so they are excluded from speed and accuracy.
+ * Without this distinction a backspace would have to be stored as an
+ * "incorrect character", which would quietly corrupt both metrics.
+ */
+export type KeystrokeKind = 'character' | 'backspace'
+
+/**
  * A single input event.
  *
  * `at` is an offset from the session start, not a wall-clock time. Offsets are
  * immune to clock changes mid-session, compress well, and are what every
- * latency and rhythm metric actually needs.
+ * latency and rhythm metric actually needs. Paused time is excluded, so the
+ * offsets describe time spent typing.
  */
 export interface Keystroke {
+  readonly kind: KeystrokeKind
   /** The character produced, or the control key name (e.g. 'Backspace'). */
   readonly key: string
-  /** The character that was expected at this position, null past the end. */
+  /** The character expected at this position; null for a backspace. */
   readonly expected: string | null
-  /** Zero-based index into the target text. */
+  /** Zero-based index into the target text that this event acted on. */
   readonly index: number
+  /** Whether the key matched what was expected. Always false for a backspace. */
   readonly correct: boolean
   readonly at: Milliseconds
 }

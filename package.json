@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "verify": "npm run typecheck && npm run lint && npm run test"
+    "verify": "npm run typecheck && npm run typecheck:engine && npm run lint && npm run test",
+    "typecheck:engine": "tsc -p tsconfig.engine.json --noEmit"
   },
   "dependencies": {
     "react": "^19.2.8",
