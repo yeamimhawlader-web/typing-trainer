@@ -96,6 +96,12 @@ adapter via `describe.each`.
 **Naming.** Components `PascalCase.tsx`, everything else `camelCase.ts`, stores
 `<name>.store.ts`, adapters `<name>.adapter.ts`.
 
+**Adding a statistic.** It goes in `@core/statistics` as a pure function over a
+`readonly TypingSession[]`, with a name that says what it is (`average`,
+`median`, `best`, `total`) and `null` — never zero — when the sessions given
+cannot support it. Never sort the argument: copy first. Date boundaries use the
+local calendar helpers in `range.ts`, never `toISOString`.
+
 **Showing a stored figure.** Format it through `@features/results`; never
 recompute it. Speed, accuracy and character counts are decided once, by the
 engine, and everything downstream only decides how to write them down. A page

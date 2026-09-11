@@ -188,6 +188,54 @@ features being self-contained, and it is deliberate: the alternative is each
 screen formatting a session its own way, which is how two screens start
 disagreeing about the same test.
 
+### Statistics read history; they never rewrite it
+
+```
+TypingSession[] → statistics functions → derived statistics → UI
+```
+
+`@core/statistics` is plain functions over a `readonly TypingSession[]`. No
+React, no storage, no clock. Nothing in it writes, reorders or amends a session:
+stored sessions are historical facts, and every `sort` in the module copies
+first. Two tests assert exactly that, because the failure would be silent.
+
+**Every figure names what it is.** `average*` is the arithmetic mean, `median*`
+the middle value, `best*` the maximum, `total*` a sum. A figure that cannot be
+computed from the sessions given is `null` — never zero. Zero is a measurement;
+null is the absence of one, and a page that shows "0 wpm" for "no tests yet" is
+lying quietly.
+
+**Sessions are weighted equally.** The average of a 15-word test and a 60-word
+test is the mean of the two speeds. Weighting by characters is equally
+defensible; this is the choice that was made, and it is stated in a test.
+
+**Consistency is across sessions, not within one.** `1 - (standard deviation /
+mean)` of session speeds, clamped to 0..1, null below two sessions. Other typing
+sites show a within-test consistency computed from per-keystroke timings — which
+this application does not store, so computing it here would mean inventing it.
+
+**Ranges are local calendar days.** A test finished at 11pm on Monday belongs to
+Monday, not to Tuesday because UTC had already rolled over. Bounds come from
+local getters; day keys are built by hand from `getFullYear`/`getMonth`/
+`getDate`. `toISOString().slice(0, 10)` is the wrong tool and the easy mistake:
+it returns the UTC date, which is a different day for much of every day.
+
+Day arithmetic goes through `setDate`, which steps calendar days across
+daylight-saving changes; subtracting `n * 86_400_000` lands an hour out on the
+two days a year a local day is not 24 hours long. "Last 7 days" means the seven
+calendar days ending today, so it starts at local midnight six days ago.
+
+**Trend data is chart-agnostic.** Arrays of numbers and dates in chronological
+order, with no scales, pixels or colours decided. The statistics layer returns
+only days that _have_ sessions; filling the gaps is a decision about the
+picture, so the activity chart makes it — otherwise a day in August would be
+drawn next to a day in September and read as consecutive.
+
+`buildStatisticsReport(sessions, range)` filters and computes once per range
+rather than each figure walking the history again. It is a pure function of its
+arguments, so it can be memoised, cached per range, or replaced by an indexed
+query later without any caller changing.
+
 ### Branded domain types
 
 `Wpm`, `Accuracy`, `Milliseconds` and `Timestamp` are branded, so passing a

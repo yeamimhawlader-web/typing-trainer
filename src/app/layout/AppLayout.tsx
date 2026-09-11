@@ -15,6 +15,7 @@ import styles from './AppLayout.module.css'
 const NAV_ITEMS: ReadonlyArray<{ readonly to: string; readonly label: string }> = [
   { to: ROUTES.practice, label: 'Practice' },
   { to: ROUTES.history, label: 'History' },
+  { to: ROUTES.statistics, label: 'Statistics' },
   { to: ROUTES.settings, label: 'Settings' },
 ]
 

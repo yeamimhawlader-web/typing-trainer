@@ -9,6 +9,7 @@ export const ROUTES = {
   home: '/',
   practice: '/practice',
   history: '/history',
+  statistics: '/statistics',
   /** Pattern for the router; build real paths with `sessionDetailPath`. */
   sessionDetail: '/history/:sessionId',
   settings: '/settings',

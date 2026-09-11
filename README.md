@@ -2,10 +2,11 @@
 
 A typing-training platform built for daily deliberate practice.
 
-**Status: typing test with results and saved history.** Run a typing test —
+**Status: typing test, saved history and statistics.** Run a typing test —
 live speed, accuracy, timer and progress, keyboard-first — see a full result
-when it finishes, and find every past test on the History page with its own
-detail view. Statistics and training modes are not built yet.
+when it finishes, find every past test on the History page with its own detail
+view, and track speed, accuracy and activity over time on the Statistics page.
+Training modes and keystroke-level analytics are not built yet.
 
 ## Getting started
 

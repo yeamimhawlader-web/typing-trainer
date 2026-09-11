@@ -1,0 +1,78 @@
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.total {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.plot {
+  display: flex;
+  align-items: flex-end;
+
+  /* A 2px surface gap between adjacent bars, rather than a border drawn around
+     each one. */
+  gap: 2px;
+  height: var(--space-16);
+  width: 100%;
+}
+
+/* Capped so a range with only a few active days draws slim bars rather than
+   slabs the width of the panel. */
+.column {
+  flex: 1 1 0;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  min-width: 0;
+  max-width: var(--space-6);
+}
+
+.bar {
+  width: 100%;
+  min-height: 2px;
+  background-color: var(--color-accent-base);
+
+  /* Rounded at the data end only; the baseline end stays square so the bar
+     stays anchored to it. */
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.empty {
+  background-color: var(--color-border-subtle);
+  min-height: 2px;
+  border-radius: 0;
+}
+
+.axis {
+  height: 1px;
+  background-color: var(--color-border-subtle);
+}
+
+.bounds {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}

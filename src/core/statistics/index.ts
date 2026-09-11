@@ -1,0 +1,41 @@
+/**
+ * Statistics — public entry point.
+ *
+ * Pure functions over stored sessions. Nothing here touches React, storage or
+ * the clock, and nothing here modifies a session: history is a record of what
+ * happened, and statistics are read off it.
+ */
+
+export type {
+  DailyPoint,
+  SessionStatistics,
+  SessionTrends,
+  StatisticsReport,
+  TimeRange,
+  TimeRangeKey,
+  TrendPoint,
+} from './types.ts'
+
+export {
+  computeStatistics,
+  consistency,
+  isUsableSession,
+  maximum,
+  mean,
+  median,
+  standardDeviation,
+} from './aggregate.ts'
+
+export {
+  createTimeRange,
+  filterSessionsByRange,
+  shiftLocalDays,
+  startOfLocalDay,
+  TIME_RANGE_KEYS,
+  TIME_RANGE_LABELS,
+  toLocalDayKey,
+} from './range.ts'
+
+export { computeTrends } from './trends.ts'
+
+export { buildStatisticsReport } from './report.ts'

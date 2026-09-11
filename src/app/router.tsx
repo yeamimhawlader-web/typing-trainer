@@ -18,6 +18,7 @@ import { ROUTES } from '@app/routes.ts'
 import { HistoryPage } from '@features/history/pages/HistoryPage.tsx'
 import { HomePage } from '@features/home/pages/HomePage.tsx'
 import { SessionDetailPage } from '@features/results'
+import { StatisticsPage } from '@features/statistics'
 import { PracticePage } from '@features/practice/pages/PracticePage.tsx'
 import { SettingsPage } from '@features/settings/pages/SettingsPage.tsx'
 
@@ -30,6 +31,7 @@ export const routeConfig: RouteObject[] = [
       { path: ROUTES.practice, element: <PracticePage /> },
       { path: ROUTES.history, element: <HistoryPage /> },
       { path: ROUTES.sessionDetail, element: <SessionDetailPage /> },
+      { path: ROUTES.statistics, element: <StatisticsPage /> },
       { path: ROUTES.settings, element: <SettingsPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

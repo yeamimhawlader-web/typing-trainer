@@ -57,3 +57,26 @@
   margin-inline: auto;
   padding: var(--space-12) var(--layout-gutter);
 }
+
+/**
+ * Below this the header runs out of room.
+ *
+ * It held four items comfortably and a fifth pushed the last link off the
+ * right edge, taking the whole page into horizontal scroll with it. Wrapping
+ * costs a little vertical space on a narrow screen and nothing at all on a wide
+ * one, and it keeps working however many sections get added later.
+ */
+@media (max-width: 40rem) {
+  .header {
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .nav {
+    flex-wrap: wrap;
+  }
+
+  .navLink {
+    padding-inline: var(--space-2);
+  }
+}

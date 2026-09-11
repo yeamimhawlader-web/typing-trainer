@@ -1,0 +1,74 @@
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* The latest value, labelled directly rather than putting a number on every
+   point — the axis bounds and the hover titles carry the rest. */
+.latest {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.plot {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.line {
+  fill: none;
+  stroke: var(--color-accent-base);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.area {
+  fill: var(--color-accent-subtle);
+  stroke: none;
+}
+
+/* A surface-coloured ring separates the endpoint from the line beneath it,
+   rather than a border drawn around the mark. */
+.endpoint {
+  fill: var(--color-accent-base);
+  stroke: var(--color-bg-base);
+  stroke-width: 2;
+}
+
+/* Hairline, solid, one shade off the surface. Dashing would read as a
+   threshold when it is only a baseline. */
+.axis {
+  stroke: var(--color-border-subtle);
+  stroke-width: 1;
+}
+
+.bounds {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+}
