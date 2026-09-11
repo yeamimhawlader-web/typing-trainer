@@ -58,8 +58,16 @@ export const TypingTest = ({ provider, service, telemetry }: TypingTestProps = {
   // One provider for the life of the screen. Swapping in quotes or pasted text
   // later is a change here and nowhere else.
   const fallbackProvider = useMemo(() => createCommonWordsProvider(), [])
-  const { engine, target, wordCount, setWordCount, restart, lastSession, saveState } =
-    useTypingSession(provider ?? fallbackProvider, service, telemetry)
+  const {
+    engine,
+    target,
+    wordCount,
+    setWordCount,
+    restart,
+    lastSession,
+    saveState,
+    sequences,
+  } = useTypingSession(provider ?? fallbackProvider, service, telemetry)
 
   const characters = useMemo(() => toCharacters(target.text), [target])
 
@@ -81,7 +89,12 @@ export const TypingTest = ({ provider, service, telemetry }: TypingTestProps = {
       <SessionHint engine={engine} />
 
       {lastSession !== null && (
-        <TestResult session={lastSession} saveState={saveState} onTryAgain={restart} />
+        <TestResult
+          session={lastSession}
+          saveState={saveState}
+          onTryAgain={restart}
+          sequences={sequences}
+        />
       )}
     </section>
   )

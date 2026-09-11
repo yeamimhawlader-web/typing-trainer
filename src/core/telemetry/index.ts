@@ -26,6 +26,9 @@ export type {
 export { STORAGE_COST, TELEMETRY_VERSION } from './types.ts'
 
 export { deriveSessionTelemetry } from './derive.ts'
+
+export { analyseSlowSequences, MINIMUM_OBSERVATIONS } from './sequences.ts'
+export type { SequenceOptions, SequenceReport, SequenceTiming } from './sequences.ts'
 export { decodeTelemetry, encodeTelemetry, parseStoredTelemetry } from './encode.ts'
 
 export { createTelemetryRepository, RETENTION_LIMIT } from './repository.ts'

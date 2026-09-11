@@ -8,6 +8,7 @@
 
 import { ROUTES, sessionDetailPath } from '@app/routes.ts'
 import type { TypingSession } from '@core/sessions'
+import type { SequenceReport } from '@core/telemetry'
 import { SessionSummary } from '@features/results'
 import { Button, ButtonLink } from '@shared/ui'
 
@@ -19,11 +20,17 @@ export interface TestResultProps {
   readonly session: TypingSession
   readonly saveState: SaveState
   readonly onTryAgain: () => void
+  readonly sequences: SequenceReport | null
 }
 
-export const TestResult = ({ session, saveState, onTryAgain }: TestResultProps) => (
+export const TestResult = ({
+  session,
+  saveState,
+  onTryAgain,
+  sequences,
+}: TestResultProps) => (
   <div className={styles.panel}>
-    <SessionSummary session={session} />
+    <SessionSummary session={session} sequences={sequences} />
 
     <div className={styles.actions}>
       <Button

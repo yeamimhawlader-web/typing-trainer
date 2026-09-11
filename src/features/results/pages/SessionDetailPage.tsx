@@ -15,6 +15,12 @@ import { useNavigate, useParams } from 'react-router'
 
 import { ROUTES } from '@app/routes.ts'
 import { sessionService, type SessionService, type TypingSession } from '@core/sessions'
+import {
+  analyseSlowSequences,
+  telemetryService as defaultTelemetryService,
+  type SequenceReport,
+  type TelemetryService,
+} from '@core/telemetry'
 import { sessionId as toSessionId } from '@core/types'
 import { Button, ButtonLink, Page } from '@shared/ui'
 
@@ -30,10 +36,13 @@ type LookupState =
 export interface SessionDetailPageProps {
   /** Injectable for tests; defaults to the application's session service. */
   readonly service?: SessionService
+  /** Injectable for tests; defaults to the application's telemetry service. */
+  readonly telemetry?: TelemetryService
 }
 
 export const SessionDetailPage = ({
   service = sessionService,
+  telemetry = defaultTelemetryService,
 }: SessionDetailPageProps = {}) => {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
@@ -41,6 +50,12 @@ export const SessionDetailPage = ({
   // An absent id is knowable before any lookup, so it is the starting state
   // rather than something an effect sets on the way past. The route always
   // supplies one; this is the defensive branch.
+  /**
+   * Null for a session recorded before telemetry existed, or one whose
+   * keystroke detail has aged out of the retention window. Both are ordinary.
+   */
+  const [sequences, setSequences] = useState<SequenceReport | null>(null)
+
   const [state, setState] = useState<LookupState>(() =>
     sessionId === undefined || sessionId.length === 0
       ? { status: 'missing' }
@@ -56,9 +71,26 @@ export const SessionDetailPage = ({
       .getById(toSessionId(sessionId))
       .then((session) => {
         if (!active) return
-        setState(
-          session === null ? { status: 'missing' } : { status: 'found', session },
-        )
+
+        if (session === null) {
+          setState({ status: 'missing' })
+          return
+        }
+
+        setState({ status: 'found', session })
+
+        // Absent for a session recorded before telemetry existed, or one whose
+        // keystroke detail has aged out. Both are ordinary, and the section
+        // simply does not appear.
+        telemetry
+          .getBySessionId(session.id, session.text)
+          .then((captured) => {
+            if (!active || captured === null) return
+            setSequences(analyseSlowSequences(captured))
+          })
+          .catch((error: unknown) => {
+            console.warn('[results] failed to read telemetry', error)
+          })
       })
       .catch((error: unknown) => {
         // Storage being unreadable looks the same to the reader as the record
@@ -71,7 +103,7 @@ export const SessionDetailPage = ({
     return () => {
       active = false
     }
-  }, [sessionId, service])
+  }, [sessionId, service, telemetry])
 
   const handleDelete = useCallback(() => {
     if (state.status !== 'found') return
@@ -119,7 +151,7 @@ export const SessionDetailPage = ({
 
   return (
     <Page title="Session">
-      <SessionSummary session={session} label="Session result" />
+      <SessionSummary session={session} label="Session result" sequences={sequences} />
 
       <div>
         <span className={styles.textLabel}>Text</span>

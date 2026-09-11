@@ -1,0 +1,78 @@
+/**
+ * Subordinate to the result above it, deliberately.
+ *
+ * This is an experiment in whether the telemetry says anything useful. It reads
+ * as a footnote to the speed and accuracy, not as a second headline.
+ */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.heading {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-width: 26rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr auto;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.sequence {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+
+  /* Rendered against a faint ground so a two-character run reads as one unit
+     and a leading space would still be visible. */
+  background-color: var(--color-bg-inset);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-2);
+  justify-self: start;
+}
+
+.timing {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+/* Slower than this typist's own typical transition. Stated as a number, never
+   as colour alone. */
+.delta {
+  color: var(--color-text-tertiary);
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+  text-align: right;
+}
+
+.caveat {
+  max-width: var(--layout-reading-width);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-tertiary);
+}

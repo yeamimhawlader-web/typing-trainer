@@ -255,6 +255,36 @@ Deleting a session deletes its telemetry, and clearing history clears it:
 leaving it behind would keep a record of what someone typed after they asked for
 it to be gone.
 
+### The first analysis of telemetry is an experiment, and says so
+
+```
+SessionTelemetry → analyseSlowSequences → SequenceReport → result footnote
+```
+
+`@core/telemetry/sequences.ts` ranks the slowest two-character transitions of
+one session. It defines no new timing: an observation is the second keystroke's
+existing `sincePreviousCharacterMs`, counted only for a **clean** pair — adjacent
+in the keystroke log, on consecutive positions, both correct, neither
+whitespace. Those four conditions are what stop a backspace, a retype or a
+word-gap from quietly inflating a number.
+
+A sequence is ranked only at five or more observations, and the report keeps
+**measurement separate from presentation**. `ranked` is every sequence over that
+line. `slowerThanTypical` is the subset actually slower than the typist's own
+median transition, and that is what the screen shows — because sorting always
+produces a top entry, and a list of one will happily present a fast sequence as
+the slowest. A real run did exactly that: 71 ms crowned "slowest" against an
+85 ms median.
+
+What the browser then showed is the honest result of the experiment. A 60-word
+test at 130 WPM yields ~180 clean transitions over ~100 distinct sequences, of
+which two to eight clear the threshold, and the survivors sit within about 7 ms
+of typical — inside the run-to-run jitter. A deliberately planted 90 ms penalty
+was recovered cleanly at +87 ms, so the arithmetic works; it is the sample that
+is thin. **One session can detect a large effect and cannot detect a real one.**
+That is a finding about the data, not a defect in the code, and the wording on
+screen — "slowest observed", never "weakest" — is sized to it.
+
 ### Statistics read history; they never rewrite it
 
 ```

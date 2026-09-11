@@ -7,8 +7,11 @@ live speed, accuracy, timer and progress, keyboard-first — see a full result
 when it finishes, find every past test on the History page with its own detail
 view, and track speed, accuracy and activity over time on the Statistics page.
 Finished tests also record keystroke-level telemetry — timings, word positions
-and corrections — as the foundation for future training modes. Analysis of that
-data, and the training modes themselves, are not built yet.
+and corrections. The first analysis of it appears as a footnote to the result:
+the slowest character transitions of the test just typed, ranked only where a
+sequence was seen often enough to mean anything. That is an experiment rather
+than a training system — one test turns out to be a thin sample for the
+question. Training modes are not built yet.
 
 ## Getting started
 

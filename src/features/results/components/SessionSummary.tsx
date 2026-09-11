@@ -11,6 +11,7 @@
  */
 
 import type { TypingSession } from '@core/sessions'
+import type { SequenceReport } from '@core/telemetry'
 
 import {
   formatAccuracy,
@@ -22,6 +23,8 @@ import {
   formatWpm,
   toIsoString,
 } from '../format.ts'
+
+import { SlowSequences } from './SlowSequences.tsx'
 
 import styles from './SessionSummary.module.css'
 
@@ -122,11 +125,17 @@ export interface SessionSummaryProps {
   readonly session: TypingSession
   /** Labels the region for assistive technology. */
   readonly label?: string
+  /**
+   * Slowest transitions of this test, when telemetry was kept for it. Absent
+   * for sessions recorded before telemetry existed.
+   */
+  readonly sequences?: SequenceReport | null
 }
 
 export const SessionSummary = ({
   session,
   label = 'Test result',
+  sequences = null,
 }: SessionSummaryProps) => {
   const { metrics } = session
 
@@ -167,6 +176,8 @@ export const SessionSummary = ({
           <time dateTime={toIsoString(session)}>{formatCompletedAt(session)}</time>
         </Detail>
       </dl>
+
+      <SlowSequences report={sequences} />
     </section>
   )
 }

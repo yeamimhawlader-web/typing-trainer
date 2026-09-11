@@ -19,7 +19,10 @@ import {
   type TypingSession,
 } from '@core/sessions'
 import {
+  analyseSlowSequences,
+  deriveSessionTelemetry,
   telemetryService as defaultTelemetryService,
+  type SequenceReport,
   type TelemetryService,
 } from '@core/telemetry'
 import type { TextProvider } from '@core/text'
@@ -95,6 +98,11 @@ export interface TypingSessionController {
    */
   readonly lastSession: TypingSession | null
   readonly saveState: SaveState
+  /**
+   * Slowest transitions of the finished test. Derived once, after the last
+   * character, from telemetry already in hand — never during typing.
+   */
+  readonly sequences: SequenceReport | null
 }
 
 export const useTypingSession = (
@@ -105,6 +113,7 @@ export const useTypingSession = (
   const engine = useMemo(() => createTypingEngine(), [])
   const [lastSession, setLastSession] = useState<TypingSession | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
+  const [sequences, setSequences] = useState<SequenceReport | null>(null)
   const [wordCount, setWordCountState] = useState<WordCount>(DEFAULT_WORD_COUNT)
   const [target, setTarget] = useState<SessionTarget>(() =>
     provider.provide({ wordCount: DEFAULT_WORD_COUNT }),
@@ -116,6 +125,7 @@ export const useTypingSession = (
       setTarget(provider.provide({ wordCount: count }))
       setLastSession(null)
       setSaveState('idle')
+      setSequences(null)
     },
     [engine, provider],
   )
@@ -289,6 +299,14 @@ export const useTypingSession = (
       telemetry.save(session.id, packed).catch((error: unknown) => {
         console.warn('[telemetry] failed to save keystroke detail', error)
       })
+
+      // Read straight from the keystrokes in hand rather than from storage, so
+      // the slowest sequences appear with the result even if the save failed.
+      setSequences(
+        analyseSlowSequences(
+          deriveSessionTelemetry(event.result.keystrokes, event.result.target.text),
+        ),
+      )
     })
 
     return unsubscribe
@@ -302,5 +320,6 @@ export const useTypingSession = (
     restart,
     lastSession,
     saveState,
+    sequences,
   }
 }
