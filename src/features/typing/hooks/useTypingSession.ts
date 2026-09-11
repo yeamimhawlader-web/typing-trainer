@@ -83,6 +83,26 @@ const isControlActivation = (event: KeyboardEvent): boolean => {
   )
 }
 
+/**
+ * True when the event asks for the previous word to be deleted.
+ *
+ * Ctrl+Backspace is the Windows and Linux binding, Alt+Backspace the macOS one;
+ * a browser app gets both, because it has no idea which keyboard is in front of
+ * it. Nobody typing at speed deletes a mistake one character at a time, so
+ * without this the only way back is holding Backspace and watching.
+ *
+ * Cmd is deliberately excluded rather than folded in. On macOS Cmd+Backspace
+ * means "delete to the start of the line", which here would throw away the
+ * whole test — a different and much more destructive request that this does not
+ * claim to implement.
+ *
+ * This is the *only* modified chord the typing screen takes. Everything else
+ * with Ctrl, Alt or Cmd held falls through to the browser, so Ctrl+R, Ctrl+T,
+ * Ctrl+W and the rest keep working exactly as they did.
+ */
+const isWordDelete = (event: KeyboardEvent): boolean =>
+  event.key === BACKSPACE && (event.ctrlKey || event.altKey) && !event.metaKey
+
 /** Whether the finished test made it to storage. */
 export type SaveState = 'idle' | 'saving' | 'saved' | 'failed'
 
@@ -150,9 +170,27 @@ export const useTypingSession = (
    */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
-      // Leave browser and OS shortcuts alone.
-      if (event.ctrlKey || event.metaKey || event.altKey) return
+      // A real text field owns its own keys, modifiers included.
       if (isEditableTarget(event)) return
+
+      /**
+       * Ctrl+Backspace and Alt+Backspace delete the previous word.
+       *
+       * Checked before the modifier bail-out below, because that line exists to
+       * leave browser and OS chords alone and this is the single exception to
+       * it. Only while actually typing: on the results there is nothing to
+       * delete, and swallowing the key there would take it from the browser
+       * for no reason.
+       */
+      if (isWordDelete(event)) {
+        if (engine.getSnapshot().status !== 'running') return
+        event.preventDefault()
+        engine.deleteWord(resolveEventTime(event))
+        return
+      }
+
+      // Leave every other browser and OS shortcut alone.
+      if (event.ctrlKey || event.metaKey || event.altKey) return
 
       const status = engine.getSnapshot().status
 

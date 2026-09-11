@@ -696,3 +696,125 @@ describe('telemetry capture', () => {
     expect(screen.queryByText(/could not be saved/i)).not.toBeInTheDocument()
   })
 })
+
+describe('deleting a word from the keyboard', () => {
+  it('clears the word being typed on Ctrl+Backspace', async () => {
+    const user = userEvent.setup()
+    renderTest()
+
+    const word = firstWord()
+    await user.keyboard(word)
+    expect(classesAt(0)).toMatch(/correct/)
+
+    await user.keyboard('{Control>}{Backspace}{/Control}')
+
+    // The whole word goes back to untyped, and the cursor with it.
+    for (let index = 0; index < word.length; index += 1) {
+      expect(classesAt(index)).not.toMatch(/correct|incorrect/)
+    }
+    expect(classesAt(0)).toMatch(/cursor/)
+  })
+
+  it('clears the word on Alt+Backspace too', async () => {
+    const user = userEvent.setup()
+    renderTest()
+
+    const word = firstWord()
+    await user.keyboard(word)
+
+    await user.keyboard('{Alt>}{Backspace}{/Alt}')
+
+    expect(classesAt(0)).not.toMatch(/correct|incorrect/)
+    expect(classesAt(0)).toMatch(/cursor/)
+  })
+
+  it('takes the trailing space and the word before it together', async () => {
+    const user = userEvent.setup()
+    renderTest()
+
+    const word = firstWord()
+    await user.keyboard(`${word} `)
+
+    await user.keyboard('{Control>}{Backspace}{/Control}')
+
+    expect(classesAt(0)).not.toMatch(/correct|incorrect/)
+    expect(classesAt(word.length)).not.toMatch(/correct|incorrect/)
+  })
+
+  it('leaves an earlier word alone', async () => {
+    const user = userEvent.setup()
+    renderTest()
+
+    const [first = '', second = ''] = renderedText().split(' ')
+    await user.keyboard(`${first} ${second.slice(0, 2)}`)
+
+    await user.keyboard('{Control>}{Backspace}{/Control}')
+
+    // The first word and its space survive; only the partial second word goes.
+    expect(classesAt(0)).toMatch(/correct/)
+    expect(classesAt(first.length - 1)).toMatch(/correct/)
+    expect(classesAt(first.length + 1)).not.toMatch(/correct|incorrect/)
+  })
+
+  it('does nothing before anything has been typed', async () => {
+    const user = userEvent.setup()
+    renderTest()
+
+    await user.keyboard('{Control>}{Backspace}{/Control}')
+
+    // Still idle: a deletion must not start a test.
+    expect(screen.getByText(/start typing to begin/i)).toBeInTheDocument()
+  })
+
+  it('leaves every other Ctrl chord to the browser', async () => {
+    const user = userEvent.setup()
+    renderTest()
+    await user.keyboard(firstWord().slice(0, 2))
+
+    const prevented: string[] = []
+    const record = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) prevented.push(event.key)
+    }
+    window.addEventListener('keydown', record)
+
+    // Reload, new tab, close tab, address bar, find, print, select all.
+    await user.keyboard(
+      '{Control>}r{/Control}{Control>}t{/Control}{Control>}w{/Control}' +
+        '{Control>}l{/Control}{Control>}f{/Control}{Control>}p{/Control}' +
+        '{Control>}a{/Control}',
+    )
+
+    window.removeEventListener('keydown', record)
+
+    // Claiming these would break the browser on the one screen a typist lives
+    // on. Only Backspace is taken with a modifier held.
+    expect(prevented).toEqual([])
+  })
+
+  it('does not claim Cmd+Backspace, which means something else on a Mac', async () => {
+    const user = userEvent.setup()
+    renderTest()
+
+    const word = firstWord()
+    await user.keyboard(word)
+
+    await user.keyboard('{Meta>}{Backspace}{/Meta}')
+
+    // "Delete to start of line" would throw away the whole test, so it is left
+    // unimplemented rather than quietly mapped onto something else.
+    expect(classesAt(0)).toMatch(/correct/)
+  })
+
+  it('does not count the deletion as an accuracy attempt', async () => {
+    const user = userEvent.setup()
+    renderTest()
+
+    const word = firstWord()
+    await user.keyboard(word)
+    await user.keyboard('{Control>}{Backspace}{/Control}')
+    await user.keyboard(word)
+
+    // Everything typed was correct, both times round.
+    expect(screen.getByText('100%')).toBeInTheDocument()
+  })
+})

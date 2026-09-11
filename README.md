@@ -15,6 +15,38 @@ are experiments rather than a training system, and both say so; one test turns
 out to be far too thin a sample, which is why the second exists. Nothing
 recommends what to practise, and training modes are not built yet.
 
+## Keyboard
+
+The typing screen is keyboard-first: nothing needs to be clicked before typing,
+and there is no text field to focus.
+
+| Key | What it does | When |
+| --- | --- | --- |
+| any character | Starts the test and types | Idle or running |
+| `Backspace` | Deletes one character | While typing |
+| `Ctrl`+`Backspace` | Deletes back to the start of the previous word | While typing |
+| `Alt`+`Backspace` | The same — the macOS binding for it | While typing |
+| `Tab` | Abandons the test and loads fresh text | While typing |
+| `Enter` | Starts the next test | On the results |
+
+A word delete takes any whitespace behind the cursor first, so from just after a
+finished word the space and the word go together in one press rather than two.
+Pressing it repeatedly walks back a word at a time and stops at the start.
+
+Deleting never un-makes a mistake: accuracy is measured over attempts made, so
+removing the evidence of an error does not remove the error. That is the same
+rule a single `Backspace` has always followed.
+
+`Ctrl`+`Backspace` and `Alt`+`Backspace` are the **only** modified chords the
+screen claims. Every other combination with `Ctrl`, `Alt` or `Cmd` held goes
+straight to the browser, so reload, new tab, close tab, find and the rest keep
+working. `Cmd`+`Backspace` is deliberately not claimed: on macOS it means
+"delete to the start of the line", which here would throw away the whole test.
+
+`Tab` is only taken while a test is actually running. On the idle screen and on
+the results it moves focus normally, because taking it everywhere would trap a
+keyboard user on the page.
+
 ## Getting started
 
 ```bash

@@ -56,6 +56,34 @@ export const computeWordRanges = (
 }
 
 /**
+ * Where a word-wise delete should leave the cursor.
+ *
+ * Walks back over any whitespace, then back over the run of non-whitespace
+ * before it — what Ctrl+Backspace does in every text editor, and the reason a
+ * space and the word in front of it go together rather than taking two presses.
+ *
+ * From the end of "hello wor" that is the start of "wor". From just after
+ * "hello " it is 0, because the trailing space is consumed first and the word
+ * before it then goes with it. Already at 0, it stays at 0: nothing to delete
+ * is not an error, just nothing.
+ *
+ * Boundaries come from the **target** text rather than from what was typed. The
+ * typist is reproducing this text, so its word structure is the one they are
+ * working in — and a mistyped character does not move a word boundary.
+ */
+export const findWordDeleteIndex = (
+  characters: readonly string[],
+  cursorIndex: number,
+): number => {
+  let index = Math.max(0, Math.min(cursorIndex, characters.length))
+
+  while (index > 0 && isWhitespace(characters[index - 1] as string)) index -= 1
+  while (index > 0 && !isWhitespace(characters[index - 1] as string)) index -= 1
+
+  return index
+}
+
+/**
  * The word the cursor is working on.
  *
  * Inside a word, that word. On the whitespace between two words, the word about

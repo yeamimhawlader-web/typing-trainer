@@ -19,6 +19,7 @@ import { sessionId, timestamp, type Keystroke, type SessionTarget } from '@core/
 import { deriveSessionTelemetry } from './derive.ts'
 import { decodeTelemetry, encodeTelemetry, parseStoredTelemetry } from './encode.ts'
 import { createTelemetryRepository } from './repository.ts'
+import { analyseSlowSequences } from './sequences.ts'
 import { createTelemetryService } from './service.ts'
 import { STORAGE_COST, TELEMETRY_VERSION } from './types.ts'
 
@@ -710,5 +711,140 @@ describe('character coverage', () => {
     expect(telemetry.keystrokes.map((k) => k.key).join('')).toBe(text)
     expect(telemetry.keystrokes.map((k) => k.expected).join('')).toBe(text)
     expect(characters(text)).toHaveLength(telemetry.keystrokes.length)
+  })
+})
+
+describe('word-wise deletion', () => {
+  /**
+   * Types a script in which 'CtrlBackspace' means a word-wise delete, at the
+   * same fixed pace as `run` above, so every latency below is checkable by hand.
+   */
+  const runWithWordDelete = (text: string, script: readonly string[], step = 100) => {
+    const engine = createTypingEngine()
+    engine.start(target(text), timestamp(0))
+
+    script.forEach((key, index) => {
+      const at = timestamp((index + 1) * step)
+      if (key === 'CtrlBackspace') engine.deleteWord(at)
+      else engine.input(key, at)
+    })
+
+    return deriveSessionTelemetry(engine.getSnapshot().keystrokes, text)
+  }
+
+  it('credits the deletion to every position it cleared', () => {
+    // "hello wxr", then one Ctrl+Backspace clearing w, x and r together.
+    const telemetry = runWithWordDelete('hello world', [
+      'h', 'e', 'l', 'l', 'o', ' ', 'w', 'x', 'r', 'CtrlBackspace',
+    ])
+
+    const [error] = telemetry.corrections
+    expect(telemetry.corrections).toHaveLength(1)
+    expect(error?.index).toBe(7)
+
+    // The error sat inside the span, not at the index the deletion landed on.
+    // Counting only that index would leave this at zero and never-noticed.
+    expect(error?.backspaces).toBe(1)
+    expect(error?.firstBackspaceAt).toBe(1000)
+    expect(error?.detectionLatencyMs).toBe(200)
+  })
+
+  it('leaves a single backspace behaving exactly as before', () => {
+    // The generalisation must not change the one-character case: the same
+    // script through a plain backspace gives the same figures.
+    const telemetry = runWithWordDelete('hello world', [
+      'h', 'e', 'l', 'l', 'o', ' ', 'x', 'Backspace',
+    ])
+
+    const [error] = telemetry.corrections
+    expect(error?.index).toBe(6)
+    expect(error?.backspaces).toBe(1)
+    expect(error?.firstBackspaceAt).toBe(800)
+    expect(error?.detectionLatencyMs).toBe(100)
+  })
+
+  it('does not credit positions the deletion never reached', () => {
+    // Two errors, one inside the deleted word and one in an earlier word that
+    // the deletion stopped short of.
+    const telemetry = runWithWordDelete('hello world', [
+      'h', 'e', 'l', 'x', 'o', ' ', 'w', 'x', 'r', 'CtrlBackspace',
+    ])
+
+    const earlier = telemetry.corrections.find((entry) => entry.index === 3)
+    const inside = telemetry.corrections.find((entry) => entry.index === 7)
+
+    expect(earlier?.backspaces).toBe(0)
+    expect(earlier?.firstBackspaceAt).toBeNull()
+    expect(inside?.backspaces).toBe(1)
+  })
+
+  it('counts one backspace, not one per character removed', () => {
+    const telemetry = runWithWordDelete('hello world', [
+      'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'CtrlBackspace',
+    ])
+
+    // Nine characters and one deletion. Recording three would overstate both
+    // this count and the correction counts that read from it.
+    expect(telemetry.summary.backspaceCount).toBe(1)
+    expect(telemetry.summary.characterKeystrokes).toBe(9)
+    expect(telemetry.summary.keystrokeCount).toBe(10)
+  })
+
+  it('leaves no zero-millisecond gaps in the rhythm', () => {
+    const telemetry = runWithWordDelete('hello world', [
+      'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'CtrlBackspace', 'w',
+    ])
+
+    const gaps = telemetry.keystrokes
+      .map((keystroke) => keystroke.interKeystrokeMs)
+      .filter((gap): gap is number => gap !== null)
+
+    // The whole argument for one event per key press: synthetic events sharing
+    // a timestamp would show up here as a run of zeros.
+    expect(gaps).not.toContain(0)
+    expect(gaps.every((gap) => gap === 100)).toBe(true)
+  })
+
+  it('survives the round trip through storage unchanged', () => {
+    const script = ['h', 'e', 'l', 'l', 'o', ' ', 'w', 'x', 'r', 'CtrlBackspace', 'w']
+    const engine = createTypingEngine()
+    engine.start(target('hello world'), timestamp(0))
+    script.forEach((key, index) => {
+      const at = timestamp((index + 1) * 100)
+      if (key === 'CtrlBackspace') engine.deleteWord(at)
+      else engine.input(key, at)
+    })
+
+    const live = engine.getSnapshot().keystrokes
+    const restored = decodeTelemetry(encodeTelemetry(live), 'hello world')
+
+    // The stored form keeps the index the deletion landed on, which is all the
+    // span needs — so no format change and no version bump.
+    expect(restored).toEqual(live)
+    expect(deriveSessionTelemetry(restored, 'hello world').corrections).toEqual(
+      deriveSessionTelemetry(live, 'hello world').corrections,
+    )
+  })
+
+  it('does not let a deleted pair count as a clean transition', () => {
+    const telemetry = runWithWordDelete('hello world', [
+      'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'CtrlBackspace', 'w', 'o',
+    ])
+
+    const sequences = analyseSlowSequences(telemetry, { minimumObservations: 1 })
+    const counted = sequences.ranked.map((entry) => entry.sequence)
+
+    // Nothing spans the deletion. The last character before it was 'r' at 8 and
+    // the first after it 'w' at 6, which is neither adjacent in the log nor a
+    // consecutive position, so no phantom transition is invented across it.
+    expect(counted).not.toContain('rw')
+    expect(counted).not.toContain('ow')
+
+    // The retyped 'wo' does count a second time, and should: the typist really
+    // did make that movement twice, and the interval between the two keys was
+    // really measured. Re-typing known text may well be faster than typing it
+    // cold, which is a confound this shares with every correction — and a
+    // reason the single-session ranking was never trustworthy on its own.
+    expect(sequences.ranked.find((entry) => entry.sequence === 'wo')?.observations).toBe(2)
   })
 })

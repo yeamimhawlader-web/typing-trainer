@@ -80,15 +80,31 @@ const deriveCorrections = (
     })
   }
 
+  /**
+   * Where the cursor stood before the event being read.
+   *
+   * Needed because a deletion can clear more than one position: Ctrl+Backspace
+   * is recorded as a single event at the index it landed on, so the span it
+   * cleared is everything from there up to wherever the cursor had been. A
+   * plain backspace is simply the case where that span is one character wide,
+   * which is why this generalises the old equality test rather than replacing
+   * it with something different.
+   */
+  let cursor = 0
+
   for (const keystroke of keystrokes) {
     if (keystroke.kind === 'backspace') {
       for (const error of open) {
-        if (error.index !== keystroke.index) continue
+        // Every position the deletion actually cleared, not just its last.
+        if (error.index < keystroke.index || error.index >= cursor) continue
         error.backspaces += 1
         error.firstBackspaceAt ??= keystroke.at
       }
+      cursor = keystroke.index
       continue
     }
+
+    cursor = keystroke.index + 1
 
     if (keystroke.correct) {
       // Close every outstanding error on this position.

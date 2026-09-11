@@ -146,6 +146,19 @@ export interface TypingEngine {
   input(key: string, at: Timestamp): void
 
   /**
+   * Deletes back to the start of the previous word — Ctrl+Backspace.
+   *
+   * Whitespace immediately behind the cursor is consumed first, so from just
+   * after a finished word the space and the word go together, as they do in a
+   * text editor. At the very start there is nothing to delete, which is not an
+   * error and records nothing.
+   *
+   * Recorded as one keystroke however many characters it removes. The span is
+   * still recoverable from the log, because the index is where the cursor
+   * landed and the event before it says where the cursor was.
+   */
+  deleteWord(at: Timestamp): void
+  /**
    * Advances the clock without any input.
    *
    * The engine owns no timer, so a mode that ends on elapsed time needs the

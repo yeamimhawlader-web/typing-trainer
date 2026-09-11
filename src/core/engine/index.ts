@@ -22,7 +22,11 @@ export type {
 
 export { calculateAccuracy, calculateWpm } from './metrics.ts'
 
-export { computeWordRanges, findCurrentWordIndex } from './words.ts'
+export {
+  computeWordRanges,
+  findCurrentWordIndex,
+  findWordDeleteIndex,
+} from './words.ts'
 export type { WordRange } from './words.ts'
 
 export { toCharacters } from './characters.ts'

@@ -223,6 +223,44 @@ it. Timing precision is whatever the browser gives — `performance.now()` is
 deliberately coarsened — so these are milliseconds with sub-millisecond noise,
 not microsecond measurements.
 
+### A word delete is one keystroke, not five
+
+`Ctrl`+`Backspace` removes a whole word, and the engine records **one** event for
+it however many characters went. The alternative — emitting one synthetic
+backspace per character, all sharing a timestamp — is the obvious
+implementation and it would quietly corrupt the thing this codebase exists to
+measure: `interKeystrokeMs` is documented as "the raw rhythm of the hands", and
+a run of zero-millisecond gaps that no hand produced is not that. A test asserts
+there are no zero gaps in a session containing a word delete.
+
+Recording one event loses nothing, because the span is already in the log. The
+event's `index` is where the cursor landed, and the cursor before it is one past
+the index of the event before, so "how many characters did this remove" is a
+subtraction rather than a field. That is what let this ship **without a storage
+format change or a version bump**: `StoredKeystroke` still stores
+`[deltaMs, index, key]`, every telemetry record already on disk still decodes
+identically, and a round-trip test asserts it.
+
+One consumer did have to generalise. `deriveCorrections` credited a backspace to
+an error only at exactly its index, which is correct when a deletion is one
+character wide and wrong when it is five — errors inside the cleared span would
+never be marked as noticed, leaving `detectionLatencyMs` null. It now credits
+every position in `[index, cursorBefore)`. For a single backspace that range is
+exactly one position, so the old behaviour is a special case of the new one
+rather than a replacement for it; mutating it back to the equality test fails
+two tests.
+
+Word boundaries come from the **target** text, not from what was typed. The
+typist is reproducing that text, so its structure is the one they are working
+in, and a mistyped character does not move a word boundary.
+
+The chord itself is claimed in the typing screen, not the engine — the engine is
+given `deleteWord(at)` and knows nothing about modifier keys. It is the only
+modified chord the screen takes; a test dispatches `Ctrl`+`R`, `T`, `W`, `L`,
+`F`, `P` and `A` and asserts none of them were prevented, because claiming a
+browser shortcut on the one screen a typist lives on would be a genuinely bad
+thing to get wrong.
+
 ### Telemetry is stored apart from sessions
 
 A session record is about 400 bytes. Its telemetry is about **12 kB per thousand

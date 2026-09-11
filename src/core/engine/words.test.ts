@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { toCharacters } from './characters.ts'
-import { computeWordRanges, findCurrentWordIndex } from './words.ts'
+import {
+  computeWordRanges,
+  findCurrentWordIndex,
+  findWordDeleteIndex,
+} from './words.ts'
 
 const wordsOf = (text: string) => computeWordRanges(toCharacters(text))
 
@@ -76,5 +80,55 @@ describe('findCurrentWordIndex', () => {
 
   it('reports -1 when there are no words', () => {
     expect(findCurrentWordIndex([], 0)).toBe(-1)
+  })
+})
+
+describe('findWordDeleteIndex', () => {
+  const deleteFrom = (text: string, cursorIndex: number) =>
+    findWordDeleteIndex(toCharacters(text), cursorIndex)
+
+  it('deletes back to the start of the word being typed', () => {
+    // "hello wor|" → "hello "
+    expect(deleteFrom('hello world', 9)).toBe(6)
+  })
+
+  it('takes the trailing space and the word before it together', () => {
+    // "hello |" → "". One press, not two: the space alone would be a wasted key.
+    expect(deleteFrom('hello world', 6)).toBe(0)
+  })
+
+  it('clears a single word from its end', () => {
+    expect(deleteFrom('hello', 5)).toBe(0)
+  })
+
+  it('stops at the previous word rather than clearing everything', () => {
+    // "one two thr|" leaves "one two ".
+    expect(deleteFrom('one two three', 11)).toBe(8)
+  })
+
+  it('does nothing at the very start', () => {
+    expect(deleteFrom('hello world', 0)).toBe(0)
+  })
+
+  it('crosses a run of several spaces in one press', () => {
+    expect(deleteFrom('a    b', 5)).toBe(0)
+  })
+
+  it('leaves a word intact when the cursor is at its end', () => {
+    expect(deleteFrom('a    b', 6)).toBe(5)
+  })
+
+  it('clears whitespace-only text to the start', () => {
+    expect(deleteFrom('   ', 3)).toBe(0)
+  })
+
+  it('clamps a cursor past the end of the text', () => {
+    expect(deleteFrom('hello', 99)).toBe(0)
+  })
+
+  it('counts code points, not UTF-16 units', () => {
+    // 'née 👍' is five code points; the thumbs-up is one character, not two
+    // halves, so deleting it must land on 4 rather than inside it.
+    expect(deleteFrom('née 👍', 5)).toBe(4)
   })
 })

@@ -49,7 +49,9 @@ import {
   type TypingEngineOptions,
   type Unsubscribe,
 } from './types.ts'
-import { computeWordRanges, findCurrentWordIndex, type WordRange } from './words.ts'
+import { computeWordRanges, findCurrentWordIndex, type WordRange,
+  findWordDeleteIndex,
+} from './words.ts'
 
 /** Ends the session once the last character has been typed. */
 const defaultIsComplete: CompletionPolicy = (snapshot) =>
@@ -333,6 +335,49 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
     )
   }
 
+  /**
+   * Deletes back to the start of the previous word.
+   *
+   * Recorded as **one** keystroke, not one per character removed. That is what
+   * happened — a single key — and it is the difference between measuring the
+   * typist and measuring the implementation: five synthetic events sharing a
+   * timestamp would put a run of zero-millisecond gaps into the very rhythm
+   * data this engine exists to produce.
+   *
+   * How much it removed is not lost by recording one event. The index is where
+   * the cursor landed, and the cursor before it is known from the event before,
+   * so the span is recoverable from the log — which is how the telemetry layer
+   * attributes it to every position it cleared.
+   */
+  const handleWordDelete = (at: Timestamp): void => {
+    if (state.cursorIndex <= 0) return
+
+    const index = findWordDeleteIndex(state.characters, state.cursorIndex)
+    if (index >= state.cursorIndex) return
+
+    for (let position = index; position < state.cursorIndex; position += 1) {
+      state.characterStates[position] = 'pending'
+    }
+
+    state.cursorIndex = index
+    invalidate()
+
+    // As with a single backspace, `typedCount` and `correctKeystrokes` do not
+    // move. Accuracy is over attempts made, and deleting an attempt does not
+    // unmake it.
+    recordKeystroke(
+      {
+        kind: 'backspace',
+        key: BACKSPACE,
+        expected: null,
+        index,
+        correct: false,
+        at: toMilliseconds(elapsed()),
+      },
+      at,
+    )
+  }
+
   return {
     start: (target, at) => {
       if (toCharacters(target.text).length === 0) {
@@ -365,6 +410,15 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
       if (backspace) handleBackspace(at)
       else handleCharacter(key, at)
 
+      checkCompletion(at)
+      notify()
+    },
+
+    deleteWord: (at) => {
+      if (state.status !== 'running') return
+
+      advanceClock(at)
+      handleWordDelete(at)
       checkCompletion(at)
       notify()
     },

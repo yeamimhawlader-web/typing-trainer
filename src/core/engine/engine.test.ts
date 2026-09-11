@@ -49,6 +49,10 @@ const createHarness = (text: string, options?: TypingEngineOptions) => {
     start,
     press,
     typeText,
+    deleteWord: (stepMs = 100) => {
+      now += stepMs
+      engine.deleteWord(timestamp(now))
+    },
     advanceTo: (ms: number) => {
       now = ms
       engine.tick(timestamp(ms))
@@ -1085,5 +1089,156 @@ describe('snapshot isolation', () => {
     typeText('e')
 
     expect(engine.getSnapshot().keystrokes).toHaveLength(2)
+  })
+})
+
+describe('deleting a word', () => {
+  it('returns the cursor to the start of the word being typed', () => {
+    const harness = createHarness('hello world')
+    harness.start()
+    harness.typeText('hello wor')
+
+    harness.deleteWord()
+
+    expect(harness.engine.getSnapshot().cursorIndex).toBe(6)
+  })
+
+  it('clears the state of every character it removed', () => {
+    const harness = createHarness('hello world')
+    harness.start()
+    harness.typeText('hello wor')
+
+    harness.deleteWord()
+
+    const states = harness.engine.getSnapshot().characterStates
+    // "hello " stands; "wor" is back to untyped.
+    expect(states.slice(0, 6)).toEqual<CharacterState[]>([
+      'correct',
+      'correct',
+      'correct',
+      'correct',
+      'correct',
+      'correct',
+    ])
+    expect(states.slice(6, 9)).toEqual<CharacterState[]>([
+      'pending',
+      'pending',
+      'pending',
+    ])
+  })
+
+  it('takes the space and the word before it in one press', () => {
+    const harness = createHarness('hello world')
+    harness.start()
+    harness.typeText('hello ')
+
+    harness.deleteWord()
+
+    expect(harness.engine.getSnapshot().cursorIndex).toBe(0)
+  })
+
+  it('records one keystroke however many characters it removed', () => {
+    const harness = createHarness('hello world')
+    harness.start()
+    harness.typeText('hello wor')
+
+    harness.deleteWord()
+
+    const { keystrokes } = harness.engine.getSnapshot()
+    const deletions = keystrokes.filter((keystroke) => keystroke.kind === 'backspace')
+
+    // One key was pressed, so one event exists — not the three characters it
+    // cleared. Anything else would put invented zero-gap events into the
+    // rhythm data.
+    expect(deletions).toHaveLength(1)
+    expect(deletions[0]?.index).toBe(6)
+    expect(keystrokes).toHaveLength(10)
+  })
+
+  it('leaves the span recoverable from the log alone', () => {
+    const harness = createHarness('hello world')
+    harness.start()
+    harness.typeText('hello wor')
+    harness.deleteWord()
+
+    const { keystrokes } = harness.engine.getSnapshot()
+    const deletion = keystrokes[keystrokes.length - 1] as Keystroke
+    const previous = keystrokes[keystrokes.length - 2] as Keystroke
+
+    // Cursor before the deletion is one past the character event before it, so
+    // the number of characters removed is a subtraction rather than a field.
+    expect(previous.index + 1 - deletion.index).toBe(3)
+  })
+
+  it('does not unmake the attempts it deleted', () => {
+    const harness = createHarness('hello world')
+    harness.start()
+    harness.typeText('hello wxr')
+
+    const before = harness.engine.getSnapshot()
+    harness.deleteWord()
+    const after = harness.engine.getSnapshot()
+
+    // Accuracy is over attempts made. Deleting the evidence does not undo the
+    // mistake, exactly as a single backspace does not.
+    expect(after.typedCount).toBe(before.typedCount)
+    expect(after.errorCount).toBe(before.errorCount)
+    expect(after.errorCount).toBe(1)
+  })
+
+  it('does nothing at the very start of a test', () => {
+    const harness = createHarness('hello world')
+    harness.start()
+
+    harness.deleteWord()
+
+    const snapshot = harness.engine.getSnapshot()
+    expect(snapshot.cursorIndex).toBe(0)
+    // Nothing to delete is not an error, and records nothing.
+    expect(snapshot.keystrokes).toHaveLength(0)
+  })
+
+  it('is ignored unless a session is running', () => {
+    const engine = createTypingEngine()
+
+    // Before a session exists.
+    engine.deleteWord(timestamp(0))
+    expect(engine.getSnapshot().keystrokes).toHaveLength(0)
+
+    engine.start(target('hi there'), timestamp(0))
+    engine.input('h', timestamp(10))
+    engine.input('i', timestamp(20))
+    engine.finish(timestamp(30), 'abandoned')
+
+    engine.deleteWord(timestamp(40))
+    expect(engine.getSnapshot().keystrokes).toHaveLength(2)
+  })
+
+  it('lets the test be finished normally after retyping', () => {
+    const harness = createHarness('hello world')
+    harness.start()
+    // Stopping short of the last character: reaching it would complete the
+    // test, and a finished test has nothing left to delete.
+    harness.typeText('hello wxr')
+
+    harness.deleteWord()
+    harness.typeText('world')
+
+    const snapshot = harness.engine.getSnapshot()
+    expect(snapshot.status).toBe('completed')
+    expect(snapshot.correctCount).toBe(11)
+    // The mistake still happened, so raw and net speed still differ.
+    expect(snapshot.errorCount).toBe(1)
+  })
+
+  it('advances the clock like any other input', () => {
+    const harness = createHarness('hello world')
+    harness.start()
+    harness.typeText('hello wor')
+
+    harness.deleteWord(500)
+
+    // A pause before reaching for Ctrl+Backspace is time spent on the test.
+    expect(harness.engine.getSnapshot().elapsedMs).toBe(1400)
   })
 })
