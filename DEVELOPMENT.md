@@ -96,6 +96,15 @@ adapter via `describe.each`.
 **Naming.** Components `PascalCase.tsx`, everything else `camelCase.ts`, stores
 `<name>.store.ts`, adapters `<name>.adapter.ts`.
 
+**Adding telemetry.** Ask first whether it is derivable. Almost everything is:
+the engine records what was pressed, what was expected, where, whether it
+matched and when, and word positions and every latency fall out of those plus
+the target text. Derive it in `@core/telemetry`, after the session ends. Nothing
+new goes into the typing path, and nothing derivable goes into storage.
+
+Name latencies for what they measure. A field called `latency` on a keystroke
+has at least two meanings, and the wrong one is silently wrong.
+
 **Adding a statistic.** It goes in `@core/statistics` as a pure function over a
 `readonly TypingSession[]`, with a name that says what it is (`average`,
 `median`, `best`, `total`) and `null` — never zero — when the sessions given

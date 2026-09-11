@@ -188,6 +188,73 @@ features being self-contained, and it is deliberate: the alternative is each
 screen formatting a session its own way, which is how two screens start
 disagreeing about the same test.
 
+### Telemetry costs the typist nothing
+
+```
+keyboard → engine → Keystroke[] → telemetry record → stored → analytics
+```
+
+The engine already records the irreducible facts about every input: what was
+pressed, what was expected there, which position it acted on, whether it
+matched, and when. **Everything else is derived from those plus the target
+text** — word index, position within the word, every latency, and which errors
+were later put right.
+
+That is the whole performance story, and it is why the engine did not change.
+Telemetry adds nothing to the typing path: no extra work per keystroke, no extra
+allocation, no storage write. The derivation runs once, after the last
+character, over data the engine had collected anyway. Measured in the browser:
+**zero storage writes across 291 keystrokes**, four after completion, and
+input-to-DOM latency unchanged at 0.3 ms median. At a paced 140 WPM: no dropped
+keystrokes, monotonic timestamps, median inter-key interval of 86 ms against a
+target of 86.
+
+**Latencies are named, never just "latency".** `interKeystrokeMs` is the gap
+since the previous event of any kind; `sincePreviousCharacterMs` skips
+backspaces. After a correction those differ by the whole time spent correcting,
+so a digraph timing built from the wrong one would be quietly wrong. Corrections
+carry `detectionLatencyMs` (error to first backspace — how long it went
+unnoticed) and `correctionLatencyMs` (error to retype — what the mistake cost in
+total). Words carry `pauseBeforeMs` and `pauseAfterMs`.
+
+**Nothing is inferred that cannot be measured.** No finger, hand or key
+geometry: the browser reports which character arrived, not which finger produced
+it. Timing precision is whatever the browser gives — `performance.now()` is
+deliberately coarsened — so these are milliseconds with sub-millisecond noise,
+not microsecond measurements.
+
+### Telemetry is stored apart from sessions
+
+A session record is about 400 bytes. Its telemetry is about **12 kB per thousand
+characters** — measured at 11.7 bytes per event. A 60-word test is roughly ten
+times the record it belongs to; twenty tests a day is about 30 MB a year against
+the roughly 5 MB `localStorage` allows.
+
+So telemetry is not a field on `TypingSession`. If it were, the history would
+cost ten times as much, `getAll()` would deserialise every keystroke of every
+session to draw a list of dates, and a quota failure while saving telemetry
+would take the session record down with it — losing the result over data that is
+merely nice to have.
+
+Instead it lives in its own repository, keyed by session id. **`TypingSession`
+is untouched**, so every session already on disk stays valid and loads exactly as
+before: a session either has telemetry or does not, and older ones do not. That
+is the truth rather than a fabricated empty record.
+
+Retention is capped at the most recent 50 sessions, which bounds storage at a
+few hundred kilobytes whatever the history does. The cap is the honest
+expression of what `localStorage` can hold, not a judgement about what is worth
+keeping.
+
+**Moving to IndexedDB is a change to that one layer.** Either an IndexedDB
+`StorageAdapter` passes the existing contract suite, or a native implementation
+satisfies `TelemetryRepository` directly. Neither touches the engine, the session
+repository, or any screen — which is the point of putting the interface there.
+
+Deleting a session deletes its telemetry, and clearing history clears it:
+leaving it behind would keep a record of what someone typed after they asked for
+it to be gone.
+
 ### Statistics read history; they never rewrite it
 
 ```

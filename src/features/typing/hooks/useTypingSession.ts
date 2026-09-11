@@ -18,6 +18,10 @@ import {
   type SessionService,
   type TypingSession,
 } from '@core/sessions'
+import {
+  telemetryService as defaultTelemetryService,
+  type TelemetryService,
+} from '@core/telemetry'
 import type { TextProvider } from '@core/text'
 import { timestamp, type SessionTarget, type Timestamp } from '@core/types'
 
@@ -96,6 +100,7 @@ export interface TypingSessionController {
 export const useTypingSession = (
   provider: TextProvider,
   service: SessionService = defaultSessionService,
+  telemetry: TelemetryService = defaultTelemetryService,
 ): TypingSessionController => {
   const engine = useMemo(() => createTypingEngine(), [])
   const [lastSession, setLastSession] = useState<TypingSession | null>(null)
@@ -273,10 +278,21 @@ export const useTypingSession = (
           console.warn('[sessions] failed to save a finished test', error)
           setSaveState('failed')
         })
+
+      /**
+       * Keystroke detail is packed and stored separately, and separately
+       * allowed to fail: its absence costs a future analysis, while the result
+       * itself is already safe either way. Neither write is awaited, and both
+       * happen after the last character rather than during any of them.
+       */
+      const packed = telemetry.capture(event.result)
+      telemetry.save(session.id, packed).catch((error: unknown) => {
+        console.warn('[telemetry] failed to save keystroke detail', error)
+      })
     })
 
     return unsubscribe
-  }, [engine, service])
+  }, [engine, service, telemetry])
 
   return {
     engine,

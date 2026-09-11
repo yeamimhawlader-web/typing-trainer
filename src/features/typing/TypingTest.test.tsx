@@ -20,6 +20,12 @@ import {
   createSessionService,
   type SessionService,
 } from '@core/sessions'
+import {
+  createTelemetryRepository,
+  createTelemetryService,
+  encodeTelemetry,
+  type TelemetryService,
+} from '@core/telemetry'
 
 import { TypingTest, type TypingTestProps } from './TypingTest.tsx'
 
@@ -573,5 +579,118 @@ describe('the results panel', () => {
     expect(
       screen.queryByRole('region', { name: 'Test result' }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('telemetry capture', () => {
+  const createServices = () => {
+    const service = createSessionService(createSessionRepository(createMemoryAdapter()))
+    const telemetry = createTelemetryService(
+      createTelemetryRepository(createMemoryAdapter()),
+    )
+    return { service, telemetry }
+  }
+
+  const complete = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole('button', { name: '15' }))
+    await user.keyboard(renderedText())
+    return screen.findByRole('region', { name: 'Test result' })
+  }
+
+  it('records keystroke detail for a completed test', async () => {
+    const user = userEvent.setup()
+    const { service, telemetry } = createServices()
+    renderTest({ service, telemetry })
+    // Read the text *after* choosing the length, or this compares against the
+    // default test rather than the one that gets typed.
+    await user.click(screen.getByRole('button', { name: '15' }))
+    const text = renderedText()
+
+    await user.keyboard(text)
+    await screen.findByRole('region', { name: 'Test result' })
+
+    await waitFor(async () => {
+      const [session] = await service.getAll()
+      const captured = await telemetry.getBySessionId(session!.id, session!.text)
+      expect(captured).not.toBeNull()
+      // One event per character of the text that was typed.
+      expect(captured?.summary.characterKeystrokes).toBe(Array.from(text).length)
+      expect(captured?.summary.backspaceCount).toBe(0)
+    })
+  })
+
+  it('records corrections made while typing', async () => {
+    const user = userEvent.setup()
+    const { service, telemetry } = createServices()
+    renderTest({ service, telemetry })
+    await user.click(screen.getByRole('button', { name: '15' }))
+    const text = renderedText()
+    const wrong = text[0] === 'z' ? 'q' : 'z'
+
+    await user.keyboard(wrong)
+    await user.keyboard('{Backspace}')
+    await user.keyboard(text)
+    await screen.findByRole('region', { name: 'Test result' })
+
+    await waitFor(async () => {
+      const [session] = await service.getAll()
+      const captured = await telemetry.getBySessionId(session!.id, session!.text)
+      expect(captured?.summary.backspaceCount).toBe(1)
+      expect(captured?.corrections[0]).toMatchObject({
+        index: 0,
+        typedKey: wrong,
+        outcome: 'corrected',
+      })
+    })
+  })
+
+  it('stores nothing at all while typing', async () => {
+    const user = userEvent.setup()
+    const { service } = createServices()
+    let writes = 0
+    const counting: TelemetryService = {
+      capture: (result) => encodeTelemetry(result.keystrokes),
+      save: () => {
+        writes += 1
+        return Promise.resolve()
+      },
+      getBySessionId: () => Promise.resolve(null),
+      remove: () => Promise.resolve(),
+      clear: () => Promise.resolve(),
+    }
+    renderTest({ service, telemetry: counting })
+    await user.click(screen.getByRole('button', { name: '15' }))
+    const text = renderedText()
+
+    await user.keyboard(text.slice(0, -1))
+    expect(writes).toBe(0) // nothing written across a whole test's worth of keys
+
+    await user.keyboard(text.slice(-1))
+    await screen.findByRole('region', { name: 'Test result' })
+
+    await waitFor(() => {
+      expect(writes).toBe(1) // exactly once, after the last character
+    })
+  })
+
+  it('keeps the result when telemetry cannot be stored', async () => {
+    const user = userEvent.setup()
+    const { service } = createServices()
+    const failing: TelemetryService = {
+      capture: (result) => encodeTelemetry(result.keystrokes),
+      save: () => Promise.reject(new Error('quota exceeded')),
+      getBySessionId: () => Promise.resolve(null),
+      remove: () => Promise.resolve(),
+      clear: () => Promise.resolve(),
+    }
+    renderTest({ service, telemetry: failing })
+
+    await complete(user)
+
+    // Losing keystroke detail must not cost the session itself.
+    await waitFor(async () => {
+      expect(await service.getAll()).toHaveLength(1)
+    })
+    expect(screen.queryByText(/could not be saved/i)).not.toBeInTheDocument()
   })
 })

@@ -6,7 +6,9 @@ A typing-training platform built for daily deliberate practice.
 live speed, accuracy, timer and progress, keyboard-first — see a full result
 when it finishes, find every past test on the History page with its own detail
 view, and track speed, accuracy and activity over time on the Statistics page.
-Training modes and keystroke-level analytics are not built yet.
+Finished tests also record keystroke-level telemetry — timings, word positions
+and corrections — as the foundation for future training modes. Analysis of that
+data, and the training modes themselves, are not built yet.
 
 ## Getting started
 

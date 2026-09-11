@@ -11,6 +11,7 @@ import { useMemo } from 'react'
 
 import { toCharacters, type TypingEngine } from '@core/engine'
 import type { SessionService } from '@core/sessions'
+import type { TelemetryService } from '@core/telemetry'
 import { createCommonWordsProvider, type TextProvider } from '@core/text'
 
 import { LiveStats } from './components/LiveStats.tsx'
@@ -49,14 +50,16 @@ export interface TypingTestProps {
   readonly provider?: TextProvider
   /** Injectable for tests; defaults to the application's session service. */
   readonly service?: SessionService
+  /** Injectable for tests; defaults to the application's telemetry service. */
+  readonly telemetry?: TelemetryService
 }
 
-export const TypingTest = ({ provider, service }: TypingTestProps = {}) => {
+export const TypingTest = ({ provider, service, telemetry }: TypingTestProps = {}) => {
   // One provider for the life of the screen. Swapping in quotes or pasted text
   // later is a change here and nowhere else.
   const fallbackProvider = useMemo(() => createCommonWordsProvider(), [])
   const { engine, target, wordCount, setWordCount, restart, lastSession, saveState } =
-    useTypingSession(provider ?? fallbackProvider, service)
+    useTypingSession(provider ?? fallbackProvider, service, telemetry)
 
   const characters = useMemo(() => toCharacters(target.text), [target])
 

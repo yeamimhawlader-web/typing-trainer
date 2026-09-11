@@ -13,6 +13,7 @@ import { useStore } from 'zustand'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 
 import { sessionService, type SessionService, type TypingSession } from '@core/sessions'
+import { telemetryService, type TelemetryService } from '@core/telemetry'
 import type { SessionId } from '@core/types'
 
 export type HistoryStatus = 'idle' | 'loading' | 'ready' | 'failed'
@@ -25,7 +26,17 @@ export interface HistoryState {
   readonly clear: () => Promise<void>
 }
 
-export const createHistoryStore = (service: SessionService): StoreApi<HistoryState> =>
+/**
+ * Deleting a session deletes its keystroke detail too.
+ *
+ * Telemetry is stored apart from sessions, so nothing removes it automatically.
+ * Leaving it behind would keep a record of what someone typed after they asked
+ * for it to be gone — and orphan it, since nothing could ever reach it again.
+ */
+export const createHistoryStore = (
+  service: SessionService,
+  telemetry: TelemetryService = telemetryService,
+): StoreApi<HistoryState> =>
   createStore<HistoryState>()((set, get) => ({
     sessions: [],
     status: 'idle',
@@ -50,6 +61,7 @@ export const createHistoryStore = (service: SessionService): StoreApi<HistorySta
 
       try {
         await service.remove(id)
+        await telemetry.remove(id)
       } catch (error) {
         console.warn('[history] failed to delete a session', error)
         await get().load()
@@ -61,6 +73,7 @@ export const createHistoryStore = (service: SessionService): StoreApi<HistorySta
 
       try {
         await service.clear()
+        await telemetry.clear()
       } catch (error) {
         console.warn('[history] failed to clear history', error)
         await get().load()
