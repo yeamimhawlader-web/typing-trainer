@@ -94,7 +94,20 @@ export const useTypingSession = (provider: TextProvider): TypingSession => {
       if (event.ctrlKey || event.metaKey || event.altKey) return
       if (isEditableTarget(event)) return
 
+      const status = engine.getSnapshot().status
+
+      /**
+       * Tab restarts — but only while there is a test to restart.
+       *
+       * Swallowing Tab unconditionally made the page a keyboard trap: the nav
+       * links and the configuration controls became unreachable, with no way
+       * out for someone navigating by keyboard. Letting it through when the
+       * screen is idle keeps the fast restart exactly where a typist wants it
+       * (mid-test and on the results) while guaranteeing an escape: Tab once to
+       * reset, Tab again to move on.
+       */
       if (event.key === 'Tab') {
+        if (status === 'idle') return
         event.preventDefault()
         restart()
         return
@@ -107,7 +120,6 @@ export const useTypingSession = (provider: TextProvider): TypingSession => {
       // Space would scroll the page and Backspace can navigate back.
       event.preventDefault()
 
-      const status = engine.getSnapshot().status
       const at = resolveEventTime(event)
 
       if (status === 'idle') {

@@ -159,14 +159,51 @@ slowdown:
 - **Selectors return the value as displayed.** The timer selects whole seconds,
   not milliseconds, so it re-renders once a second rather than ten times.
 
-Measured in the browser with 312 characters on screen: **1.5 DOM mutations per
-keystroke**, median keystroke cost **0 ms**, p99 **0.3 ms**, worst **0.5 ms**,
-against a budget of 92 ms per keystroke at 130 WPM.
+Measured in the browser with ~300 characters on screen: **1.5 DOM mutations per
+keystroke**, and **input-to-DOM latency of 0.3 ms median, 0.8 ms worst** across
+a run including mistakes and backspaces. The budget is 92 ms per keystroke at
+130 WPM, 80 ms at 150.
+
+A note on how _not_ to measure this. Timing the `dispatchEvent` call alone
+reports near-zero, because React coalesces external-store updates rather than
+flushing them synchronously — the render happens after the timed section and is
+never counted. The figures above come from waiting on the `MutationObserver`
+record that each keystroke produces, which measures through to the DOM actually
+changing. Timer-paced measurement also needs the page to be _visible_: browsers
+clamp `setTimeout` to about one second in a hidden tab.
 
 The caret is drawn as a pseudo-element on the character it precedes, so moving
 it is a class change rather than measuring the DOM and repositioning an element.
 Character colours have no transition: a colour that fades in over 120 ms is a
 colour that is wrong for 120 ms, and at speed the trail reads as lag.
+
+### The reading area outranks the metrics
+
+Two decisions that came out of measuring the screen rather than looking at it.
+
+**Untyped text is sized for reading ahead.** At speed the typist is reading one
+or two words in front of the caret, so the _upcoming_ text is the working
+surface. It measured 2.76:1 against the background — below the 3:1 floor for
+large text — while already-typed text sat at 16.5:1. The hierarchy was
+backwards: the most legible thing in the reading area was the part already
+finished with. Untyped text is now 4.25:1 and still clearly distinct from typed
+text at 3.88:1.
+
+**Numbers hold still.** The live figures are smaller than the typing text, and
+each sits in a box wide enough for its widest value with tabular figures inside
+it. Without the reserved width the row shuffled sideways every time a figure
+gained or lost a digit — 15 px as accuracy went from 100% to 75%. Movement at
+the edge of vision is exactly what a fast typist notices.
+
+### Tab restarts, but never traps
+
+Tab restarts the test, which is the convention typists expect. Swallowing it
+unconditionally turned the page into a keyboard trap: seven focusable controls,
+none of them reachable, with no way out for anyone navigating by keyboard.
+
+It is now intercepted only while there is a test to restart. Idle, it moves
+focus as normal — so there is always an exit: Tab once to reset, Tab again to
+leave.
 
 ### Live speed is withheld for the first second
 

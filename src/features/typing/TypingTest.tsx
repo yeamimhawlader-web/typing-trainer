@@ -42,11 +42,9 @@ const SessionHint = ({ engine }: { engine: TypingEngine }) => {
     )
   }
 
-  return (
-    <p className={styles.hint}>
-      Start typing to begin. <kbd className={styles.key}>Tab</kbd> to restart.
-    </p>
-  )
+  // No Tab hint here: while idle there is nothing to restart, and Tab is left
+  // to move focus so the page stays navigable by keyboard.
+  return <p className={styles.hint}>Start typing to begin.</p>
 }
 
 export const TypingTest = () => {

@@ -170,6 +170,28 @@ describe('typing screen', () => {
     expect(screen.getByText(/start typing to begin/i)).toBeInTheDocument()
   })
 
+  it('lets Tab move focus when there is no test to restart', async () => {
+    const user = userEvent.setup()
+    render(<TypingTest />)
+
+    await user.keyboard('{Tab}')
+
+    // Swallowing Tab unconditionally would trap a keyboard user on this screen.
+    expect(document.body).not.toBe(document.activeElement)
+    expect(screen.getByText(/start typing to begin/i)).toBeInTheDocument()
+  })
+
+  it('still restarts on Tab once a test is under way', async () => {
+    const user = userEvent.setup()
+    render(<TypingTest />)
+    await user.keyboard(firstWord().slice(0, 3))
+
+    await user.keyboard('{Tab}')
+
+    expect(classesAt(0)).not.toMatch(/correct|incorrect/)
+    expect(screen.getByText(/start typing to begin/i)).toBeInTheDocument()
+  })
+
   it('restarts from the restart control', async () => {
     const user = userEvent.setup()
     render(<TypingTest />)

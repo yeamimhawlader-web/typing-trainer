@@ -91,7 +91,12 @@
   /* The most important colours in the product. Characters are read
      peripherally at speed, so the contrast gap between states must be large
      and the hue difference unambiguous. */
-  --color-char-pending: var(--palette-neutral-400);
+  /* Untyped text is what the typist is reading ahead into, so it has to be
+     comfortably legible — not merely present. neutral-400 measured 2.76:1
+     against the background, below the 3:1 floor for large text; neutral-500
+     gives 4.21:1 while still reading as clearly "not yet typed" (3.92:1
+     against the colour of typed characters). */
+  --color-char-pending: var(--palette-neutral-500);
   --color-char-correct: var(--palette-neutral-900);
   --color-char-incorrect: var(--palette-danger-500);
   --color-char-incorrect-bg: oklch(66% 0.19 25 / 0.16);
@@ -230,7 +235,8 @@
   --color-status-warning: var(--palette-warning-400);
   --color-status-danger: var(--palette-danger-400);
 
-  --color-char-pending: var(--palette-neutral-600);
+  /* Same reasoning as the dark theme: neutral-600 measured 3.04:1 here. */
+  --color-char-pending: var(--palette-neutral-500);
   --color-char-correct: var(--palette-neutral-50);
   --color-char-incorrect: var(--palette-danger-400);
   --color-char-incorrect-bg: oklch(58% 0.18 25 / 0.14);

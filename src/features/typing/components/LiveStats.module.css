@@ -1,7 +1,7 @@
 .stats {
   display: flex;
   align-items: baseline;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
 .stat {
@@ -12,14 +12,28 @@
 
 .value {
   font-family: var(--font-mono);
-  font-size: var(--font-size-xl);
+
+  /* Smaller than the typing text on purpose. These numbers sit in peripheral
+     vision while the typist reads the text; at the same weight and size they
+     compete with it for the centre of attention. */
+  font-size: var(--font-size-lg);
   font-weight: var(--font-weight-medium);
   line-height: var(--line-height-tight);
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
 
-  /* Digits of equal width. Without this the numbers jitter sideways as they
-     change, which is very visible when they update several times a second. */
+  /* Digits of equal width, in a box wide enough for the widest value this stat
+     can hold, right-aligned inside it.
+     Without both, the row shuffles sideways every time a figure gains or loses
+     a digit — measured at 15px as accuracy went from 100% to 75%. Movement in
+     the corner of the eye is precisely what a fast typist notices. */
   font-variant-numeric: tabular-nums;
+  min-width: var(--stat-width, 3ch);
+  text-align: right;
+}
+
+/* Speed is the number being trained, so it keeps full contrast. */
+.primary .value {
+  color: var(--color-text-primary);
 }
 
 .unit {
@@ -27,8 +41,4 @@
   letter-spacing: var(--letter-spacing-wide);
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-}
-
-.muted .value {
-  color: var(--color-text-secondary);
 }

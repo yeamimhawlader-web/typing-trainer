@@ -9,6 +9,8 @@
  * The container itself subscribes to nothing and never re-renders.
  */
 
+import type { CSSProperties } from 'react'
+
 import type { TypingEngine } from '@core/engine'
 import { cx } from '@shared/lib'
 
@@ -19,12 +21,19 @@ import styles from './LiveStats.module.css'
 interface StatProps {
   readonly value: string
   readonly unit: string
-  readonly muted?: boolean
+  /** Widest value this stat can hold, in characters. Reserves the space. */
+  readonly width: number
+  readonly primary?: boolean
 }
 
-const Stat = ({ value, unit, muted = false }: StatProps) => (
-  <div className={cx(styles.stat, muted && styles.muted)}>
-    <span className={styles.value}>{value}</span>
+const Stat = ({ value, unit, width, primary = false }: StatProps) => (
+  <div className={cx(styles.stat, primary && styles.primary)}>
+    <span
+      className={styles.value}
+      style={{ '--stat-width': `${width}ch` } as CSSProperties}
+    >
+      {value}
+    </span>
     <span className={styles.unit}>{unit}</span>
   </div>
 )
@@ -49,21 +58,21 @@ const WpmStat = ({ engine }: { engine: TypingEngine }) => {
     snapshot.elapsedMs < MIN_ELAPSED_FOR_WPM_MS ? null : Math.round(snapshot.netWpm),
   )
 
-  return <Stat value={wpm === null ? '—' : String(wpm)} unit="wpm" />
+  return <Stat value={wpm === null ? '—' : String(wpm)} unit="wpm" width={3} primary />
 }
 
 const AccuracyStat = ({ engine }: { engine: TypingEngine }) => {
   const percent = useEngineValue(engine, (snapshot) =>
     Math.round(snapshot.accuracy * 100),
   )
-  return <Stat value={`${percent}%`} unit="acc" muted />
+  return <Stat value={`${percent}%`} unit="acc" width={4} />
 }
 
 const TimerStat = ({ engine }: { engine: TypingEngine }) => {
   const seconds = useEngineValue(engine, (snapshot) =>
     Math.floor(snapshot.elapsedMs / 1000),
   )
-  return <Stat value={`${seconds}s`} unit="time" muted />
+  return <Stat value={`${seconds}s`} unit="time" width={4} />
 }
 
 export const LiveStats = ({ engine }: { engine: TypingEngine }) => (
