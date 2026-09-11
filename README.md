@@ -2,9 +2,9 @@
 
 A typing-training platform built for daily deliberate practice.
 
-**Status: foundation.** The architecture, design-token system, configuration and
-persistence layers are in place. The typing engine is defined as a contract and
-not yet implemented.
+**Status: engine complete, UI pending.** The architecture, design-token system,
+configuration and persistence layers are in place, and the typing engine is
+built and tested. What is missing is the typing surface that renders it.
 
 ## Getting started
 
