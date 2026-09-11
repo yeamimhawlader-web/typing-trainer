@@ -1,0 +1,104 @@
+.surface {
+  width: 100%;
+  max-width: var(--layout-reading-width);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-typing);
+  line-height: var(--line-height-typing);
+  letter-spacing: var(--letter-spacing-typing);
+  color: var(--color-char-pending);
+
+  /* Preserves the spaces between words as typeable characters, and allows
+     wrapping only at those spaces — never inside a word. */
+  white-space: pre-wrap;
+  overflow-wrap: normal;
+  word-break: normal;
+
+  /* Dragging a selection across the text while typing is never intentional. */
+  user-select: none;
+  cursor: default;
+}
+
+/**
+ * A finished test is not dimmed.
+ *
+ * Fading it out was the obvious way to say "this is over", but the moment a
+ * test ends is exactly when the typist reads back which characters they got
+ * wrong — and dimming fades the errors along with everything else. The caret
+ * disappearing, the full progress bar and the completion line say it instead,
+ * without hiding the one thing worth looking at.
+ */
+.surface[data-status='completed'] .cursor::before,
+.surface[data-status='abandoned'] .cursor::before {
+  display: none;
+}
+
+.character {
+  /* No transition. A colour that fades in over 120ms is a colour that is wrong
+     for 120ms, and at speed the trail of half-coloured characters reads as lag. */
+  color: var(--color-char-pending);
+}
+
+.correct {
+  color: var(--color-char-correct);
+}
+
+.incorrect {
+  color: var(--color-char-incorrect);
+  background-color: var(--color-char-incorrect-bg);
+  border-radius: var(--radius-xs);
+}
+
+.corrected {
+  color: var(--color-char-corrected);
+}
+
+/* The caret is drawn on the character it sits before, so moving it costs one
+   class change rather than measuring the DOM and repositioning an element. */
+.cursor {
+  position: relative;
+}
+
+.cursor::before {
+  content: '';
+  position: absolute;
+  left: -0.09em;
+  top: 0.18em;
+  width: 0.1em;
+  height: 1.15em;
+  border-radius: 1px;
+  background-color: var(--color-caret);
+  animation: caret-blink 1.1s steps(2, start) infinite;
+}
+
+/* A blinking caret while the typist is mid-word is just noise. It blinks only
+   when the test is waiting for them. */
+.surface[data-status='running'] .cursor::before {
+  animation: none;
+}
+
+.endCaret {
+  display: inline-block;
+  width: 0;
+}
+
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor::before {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .surface {
+    font-size: var(--font-size-lg);
+  }
+}

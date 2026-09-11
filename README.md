@@ -2,9 +2,9 @@
 
 A typing-training platform built for daily deliberate practice.
 
-**Status: engine complete, UI pending.** The architecture, design-token system,
-configuration and persistence layers are in place, and the typing engine is
-built and tested. What is missing is the typing surface that renders it.
+**Status: typing test working.** You can run a typing test — live speed,
+accuracy, timer and progress, keyboard-first. Statistics, history and training
+modes are not built yet.
 
 ## Getting started
 

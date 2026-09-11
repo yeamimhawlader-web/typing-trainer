@@ -15,6 +15,6 @@
     "types": [],
     "noEmit": true
   },
-  "include": ["src/core/engine", "src/core/types"],
+  "include": ["src/core/engine", "src/core/types", "src/core/text"],
   "exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }

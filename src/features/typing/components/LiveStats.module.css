@@ -1,0 +1,34 @@
+.stats {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8);
+}
+
+.stat {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.value {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+
+  /* Digits of equal width. Without this the numbers jitter sideways as they
+     change, which is very visible when they update several times a second. */
+  font-variant-numeric: tabular-nums;
+}
+
+.unit {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.muted .value {
+  color: var(--color-text-secondary);
+}

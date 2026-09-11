@@ -140,6 +140,55 @@ Training modes plug in through a single `isComplete(snapshot)` predicate. A
 timed mode passes `(s) => s.elapsedMs >= 60_000`, a word-count mode counts
 finished words. Neither requires a change inside the engine, and both are tested.
 
+### Rendering the typing surface
+
+The screen holds no per-keystroke state in React. Keystrokes go from a window
+listener straight into the engine, and components subscribe to the engine
+through `useSyncExternalStore`, each selecting only the value it displays.
+
+Every character is its own subscriber. A keystroke changes one character's state
+and moves the caret, so two components re-render and the other few hundred are
+untouched. Rendering the text from a parent that re-renders per keystroke would
+rebuild every element in it instead.
+
+Two rules make this work, and breaking either is the likely cause of any future
+slowdown:
+
+- **Selectors return primitives.** Returning a fresh object or array makes React
+  think the value changed on every read.
+- **Selectors return the value as displayed.** The timer selects whole seconds,
+  not milliseconds, so it re-renders once a second rather than ten times.
+
+Measured in the browser with 312 characters on screen: **1.5 DOM mutations per
+keystroke**, median keystroke cost **0 ms**, p99 **0.3 ms**, worst **0.5 ms**,
+against a budget of 92 ms per keystroke at 130 WPM.
+
+The caret is drawn as a pseudo-element on the character it precedes, so moving
+it is a class change rather than measuring the DOM and repositioning an element.
+Character colours have no transition: a colour that fades in over 120 ms is a
+colour that is wrong for 120 ms, and at speed the trail reads as lag.
+
+### Live speed is withheld for the first second
+
+The clock starts on the first keystroke, so after N characters only N-1
+intervals have been measured — the first character is free. A typist holding a
+steady 130 WPM sees 229 on their third keystroke, falling through 176 and 153
+before settling.
+
+Over a full test the same bias is worth about 0.3%, so the engine's definition
+is unchanged. The UI shows a dash until a second has elapsed, then a number that
+is accurate from the moment it appears.
+
+### Text comes from a provider
+
+The typing screen asks a `TextProvider` for a target and knows nothing about
+where the words came from. One provider exists — random common words. Quotes,
+pasted text, generated and adaptive material are additions behind the same call.
+
+`provide` is synchronous, unlike the persistence layer. A provider that needs to
+load a corpus loads it when constructed, which keeps the loading concern at the
+composition root rather than putting a spinner in front of every keystroke.
+
 ### Engine purity is proven, not asserted
 
 Three independent checks, each verified by planting a deliberate violation:

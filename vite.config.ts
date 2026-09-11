@@ -44,7 +44,11 @@ export default defineConfig({
         test: {
           name: 'domain',
           environment: 'node',
-          include: ['src/core/engine/**/*.test.ts', 'src/core/types/**/*.test.ts'],
+          include: [
+            'src/core/engine/**/*.test.ts',
+            'src/core/types/**/*.test.ts',
+            'src/core/text/**/*.test.ts',
+          ],
         },
       },
       {

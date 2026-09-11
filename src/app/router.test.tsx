@@ -29,9 +29,12 @@ describe('application routes', () => {
   it('renders the practice page', async () => {
     renderAt(ROUTES.practice)
 
+    // The heading is visually hidden: the typing text is the page, and a
+    // visible title above it would compete with what the typist is reading.
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Practice' }),
+      await screen.findByRole('heading', { level: 1, name: 'Typing practice' }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Typing test' })).toBeInTheDocument()
   })
 
   it('renders the settings page', async () => {

@@ -11,16 +11,14 @@ export const HomePage = () => (
     description="A practice environment built for deliberate, daily work on speed and accuracy."
   >
     <div className={styles.actions}>
-      {/* Reads "Start practising" once the typing surface exists. Promising a
-          session the app cannot yet run would just be a lie on the button. */}
       <Link to={ROUTES.practice} className={styles.cta}>
-        Open the practice page
+        Start practising
       </Link>
     </div>
 
     <p className={styles.note}>
-      The typing engine is built and tested. The typing surface that renders it is the
-      next piece to land, so practice sessions cannot be run yet.
+      Start typing to begin — no button to press first. Results are not saved yet, so
+      nothing is recorded between sessions.
     </p>
   </Page>
 )
