@@ -96,8 +96,62 @@ Two decisions inside it:
   `clear()` cannot wipe unrelated data on the origin, and a schema migration is
   a matter of reading the old prefix and writing the new one.
 
-Repositories, migrations and query APIs are **not** built yet. There is no
-session data to store, so there is nothing to design them against.
+### Session history
+
+Finished tests are stored. The chain is one direction, and each link knows only
+the next:
+
+```
+engine → SessionResult → sessionService → SessionRepository → StorageAdapter → localStorage
+```
+
+**The UI never touches storage.** It imports `sessionService` and the
+`TypingSession` type from `@core/sessions`, and nothing else. `localStorage`
+appears in exactly one file in the whole application.
+
+**Metrics are defined once.** `SessionMetrics` is a single type, carried
+unchanged from the engine's snapshot onto the result and then onto the stored
+record. The screen and the history page cannot disagree about a test, because
+there is no second place where speed or accuracy is worked out. A live run
+verified this: the screen read 127 wpm and the stored record held 126.97.
+
+**Why localStorage rather than IndexedDB.** A session record is a few hundred
+bytes without keystrokes, so a year of daily practice is a couple of megabytes —
+within the roughly 5 MB localStorage allows, but not comfortably beyond that.
+IndexedDB is the right home eventually. It is not needed yet, and the
+`StorageAdapter` contract already assumes asynchrony, so moving is a new adapter
+passing the existing contract suite rather than a rewrite. Choosing it now would
+buy schema versioning and transactions to hold data that fits in a text file.
+
+**Layout: one key per session, plus an index.** The alternative — a single array
+under one key — rewrites the entire history on every save and deserialises all
+of it to show ten rows. With an index, a save writes two small values and
+`getRecent(10)` reads eleven.
+
+The index is a cache of an ordering; records are authoritative. Where they
+disagree, the record wins and the stale entry is skipped, so a partial write
+degrades to a missing row rather than a broken page. `clear()` works from the
+keys actually present rather than the index, so a record the index lost track of
+is still removed — and it removes only session keys, leaving preferences and
+anything else on the origin alone.
+
+**Index updates are serialised.** Updating the index is read-modify-write, so
+two overlapping saves would each read the same starting point and write back
+their own version, losing one session from the listing while its record sat
+there unreferenced. Reachable from two tabs on the same origin, so the
+repository queues everything that rewrites the index.
+
+**Saving never touches the typing path.** The write is subscribed to the
+engine's `finished` event and started without being awaited. Measured in the
+browser: **zero storage writes across 146 keystrokes**, two writes total after
+completion, and input-to-DOM latency unchanged at 0.3 ms median.
+
+A failure to save is reported, not thrown: the screen says the test could not be
+stored and keeps the result on display. Losing a record is a nuisance; losing
+the test you just typed because saving it went wrong is not acceptable.
+
+Migrations are still not built. `schemaVersion` in `app.config.ts` namespaces
+every key, so the hook for them exists.
 
 ### Branded domain types
 

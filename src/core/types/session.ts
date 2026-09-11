@@ -54,8 +54,40 @@ export interface SessionTarget {
 }
 
 /**
- * The complete, immutable record of a finished session.
- * This is what gets persisted, and the only input analytics will consume.
+ * Everything measured about a session.
+ *
+ * Defined once and reused by both the engine's result and the persisted
+ * session record. That is deliberate: if these fields were listed separately in
+ * each place, the two would drift, and "what the screen showed" and "what was
+ * stored" would eventually disagree about the same test.
+ */
+export interface SessionMetrics {
+  /** Speed counting only characters that ended up correct. */
+  readonly netWpm: Wpm
+  /** Speed counting every character typed, right or wrong. */
+  readonly rawWpm: Wpm
+  readonly accuracy: Accuracy
+
+  /** Characters in the target text. */
+  readonly totalCharacters: number
+  /** Character attempts made, excluding backspaces. */
+  readonly typedCharacters: number
+  /** Characters correct at the end, including ones fixed after a mistake. */
+  readonly correctCharacters: number
+  /** Characters still wrong at the end. */
+  readonly incorrectCharacters: number
+  /** Characters that were wrong, then fixed. A subset of `correctCharacters`. */
+  readonly correctedCharacters: number
+  /** Mistakes ever made, including ones later corrected. */
+  readonly errorCount: number
+}
+
+/**
+ * The complete, immutable record of a finished session, as the engine sees it.
+ *
+ * Note that `startedAt` here is on the engine's clock, which the UI drives from
+ * `performance.now()` — milliseconds since the page loaded, not a wall-clock
+ * date. Turning a result into something dateable is the session factory's job.
  */
 export interface SessionResult {
   readonly id: SessionId
@@ -63,10 +95,6 @@ export interface SessionResult {
   readonly durationMs: Milliseconds
   readonly target: SessionTarget
   readonly keystrokes: readonly Keystroke[]
-  /** Raw speed, counting every character typed. */
-  readonly grossWpm: Wpm
-  /** Speed after an error penalty — the number worth training against. */
-  readonly netWpm: Wpm
-  readonly accuracy: Accuracy
+  readonly metrics: SessionMetrics
   readonly status: Extract<SessionStatus, 'completed' | 'abandoned'>
 }

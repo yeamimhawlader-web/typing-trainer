@@ -8,28 +8,43 @@
  */
 
 import { useMemo } from 'react'
+import { Link } from 'react-router'
 
+import { ROUTES } from '@app/routes.ts'
 import { toCharacters, type TypingEngine } from '@core/engine'
-import { createCommonWordsProvider } from '@core/text'
+import type { SessionService } from '@core/sessions'
+import { createCommonWordsProvider, type TextProvider } from '@core/text'
 
 import { LiveStats } from './components/LiveStats.tsx'
 import { ProgressBar } from './components/ProgressBar.tsx'
 import { TestConfig } from './components/TestConfig.tsx'
 import { TypingSurface } from './components/TypingSurface.tsx'
 import { useEngineValue } from './hooks/useEngineValue.ts'
-import { useTypingSession } from './hooks/useTypingSession.ts'
+import { useTypingSession, type SaveState } from './hooks/useTypingSession.ts'
 
 import styles from './TypingTest.module.css'
 
+interface SessionHintProps {
+  readonly engine: TypingEngine
+  readonly saveState: SaveState
+}
+
 /** Subscribes to status alone, so the hint line does not hold up the tree. */
-const SessionHint = ({ engine }: { engine: TypingEngine }) => {
+const SessionHint = ({ engine, saveState }: SessionHintProps) => {
   const status = useEngineValue(engine, (snapshot) => snapshot.status)
 
   if (status === 'completed') {
     return (
       <p className={styles.hint}>
         <span className={styles.complete}>Test complete.</span>{' '}
-        <kbd className={styles.key}>Tab</kbd> for a new test.
+        <kbd className={styles.key}>Tab</kbd> for a new test.{' '}
+        {saveState === 'failed' ? (
+          <span className={styles.warning}>Could not be saved.</span>
+        ) : (
+          <Link to={ROUTES.history} className={styles.link}>
+            View history
+          </Link>
+        )}
       </p>
     )
   }
@@ -47,12 +62,19 @@ const SessionHint = ({ engine }: { engine: TypingEngine }) => {
   return <p className={styles.hint}>Start typing to begin.</p>
 }
 
-export const TypingTest = () => {
+export interface TypingTestProps {
+  /** Injectable for tests; defaults to the built-in word provider. */
+  readonly provider?: TextProvider
+  /** Injectable for tests; defaults to the application's session service. */
+  readonly service?: SessionService
+}
+
+export const TypingTest = ({ provider, service }: TypingTestProps = {}) => {
   // One provider for the life of the screen. Swapping in quotes or pasted text
   // later is a change here and nowhere else.
-  const provider = useMemo(() => createCommonWordsProvider(), [])
-  const { engine, target, wordCount, setWordCount, restart } =
-    useTypingSession(provider)
+  const fallbackProvider = useMemo(() => createCommonWordsProvider(), [])
+  const { engine, target, wordCount, setWordCount, restart, saveState } =
+    useTypingSession(provider ?? fallbackProvider, service)
 
   const characters = useMemo(() => toCharacters(target.text), [target])
 
@@ -71,7 +93,7 @@ export const TypingTest = () => {
 
       <TypingSurface engine={engine} characters={characters} />
 
-      <SessionHint engine={engine} />
+      <SessionHint engine={engine} saveState={saveState} />
     </section>
   )
 }

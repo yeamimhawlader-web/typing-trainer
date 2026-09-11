@@ -21,6 +21,7 @@ export type {
   CharacterState,
   Keystroke,
   KeystrokeKind,
+  SessionMetrics,
   SessionResult,
   SessionStatus,
   SessionTarget,

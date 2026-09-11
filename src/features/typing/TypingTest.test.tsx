@@ -8,11 +8,27 @@
  * keyboard-first interactions work without anything being clicked first.
  */
 
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
-import { TypingTest } from './TypingTest.tsx'
+import { createMemoryAdapter } from '@core/persistence'
+import {
+  createSessionRepository,
+  createSessionService,
+  type SessionService,
+} from '@core/sessions'
+
+import { TypingTest, type TypingTestProps } from './TypingTest.tsx'
+
+/** The screen links to history when a test finishes, so it needs a router. */
+const renderTest = (props: TypingTestProps = {}) =>
+  render(
+    <MemoryRouter>
+      <TypingTest {...props} />
+    </MemoryRouter>,
+  )
 
 const surface = () => screen.getByRole('region', { name: 'Typing test' })
 
@@ -44,7 +60,7 @@ const classesAt = (index: number): string => characterSpans()[index]?.className 
 
 describe('typing screen', () => {
   it('shows practice text before anything is typed', () => {
-    render(<TypingTest />)
+    renderTest()
 
     expect(renderedText().length).toBeGreaterThan(0)
     expect(firstWord().length).toBeGreaterThan(0)
@@ -52,7 +68,7 @@ describe('typing screen', () => {
 
   it('starts the test on the first keystroke, with nothing clicked first', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
 
     expect(screen.getByText(/start typing to begin/i)).toBeInTheDocument()
 
@@ -63,7 +79,7 @@ describe('typing screen', () => {
 
   it('marks a correct character as correct', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     const expected = firstWord()[0] ?? 'a'
 
     await user.keyboard(expected)
@@ -73,7 +89,7 @@ describe('typing screen', () => {
 
   it('marks a wrong character as incorrect and keeps going', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     const wrong = firstWord()[0] === 'z' ? 'q' : 'z'
 
     await user.keyboard(wrong)
@@ -83,7 +99,7 @@ describe('typing screen', () => {
 
   it('moves the caret forward as characters are typed', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
 
     expect(classesAt(0)).toMatch(/cursor/)
 
@@ -95,7 +111,7 @@ describe('typing screen', () => {
 
   it('steps back on backspace', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
 
     await user.keyboard(firstWord().slice(0, 2))
     expect(classesAt(2)).toMatch(/cursor/)
@@ -108,7 +124,7 @@ describe('typing screen', () => {
 
   it('marks a character corrected after a mistake is fixed', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     const expected = firstWord()[0] ?? 'a'
     const wrong = expected === 'z' ? 'q' : 'z'
 
@@ -121,7 +137,7 @@ describe('typing screen', () => {
 
   it('does nothing on backspace at the very start', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
 
     await user.keyboard('{Backspace}')
 
@@ -131,7 +147,7 @@ describe('typing screen', () => {
 
   it('withholds live speed until it means something', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     const stats = screen.getByRole('status')
 
     expect(within(stats).getByText('—')).toBeInTheDocument()
@@ -145,7 +161,7 @@ describe('typing screen', () => {
 
   it('updates live speed and accuracy while typing', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     const word = firstWord()
     const wrong = word[0] === 'z' ? 'q' : 'z'
 
@@ -159,7 +175,7 @@ describe('typing screen', () => {
 
   it('restarts with fresh text on Tab', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     await user.keyboard(firstWord())
     expect(classesAt(0)).toMatch(/correct/)
 
@@ -172,7 +188,7 @@ describe('typing screen', () => {
 
   it('lets Tab move focus when there is no test to restart', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
 
     await user.keyboard('{Tab}')
 
@@ -183,7 +199,7 @@ describe('typing screen', () => {
 
   it('still restarts on Tab once a test is under way', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     await user.keyboard(firstWord().slice(0, 3))
 
     await user.keyboard('{Tab}')
@@ -194,7 +210,7 @@ describe('typing screen', () => {
 
   it('restarts from the restart control', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     await user.keyboard(firstWord())
 
     await user.click(screen.getByRole('button', { name: 'restart' }))
@@ -204,7 +220,7 @@ describe('typing screen', () => {
 
   it('changes the amount of text from the configuration control', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     const before = renderedText().trim().split(/\s+/u).length
 
     await user.click(screen.getByRole('button', { name: '60' }))
@@ -216,7 +232,7 @@ describe('typing screen', () => {
 
   it('reports the selected word count to assistive technology', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
 
     await user.click(screen.getByRole('button', { name: '15' }))
 
@@ -228,7 +244,7 @@ describe('typing screen', () => {
 
   it('completes the test when the whole text is typed', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     await user.click(screen.getByRole('button', { name: '15' }))
 
     await user.keyboard(renderedText())
@@ -238,7 +254,7 @@ describe('typing screen', () => {
 
   it('ignores stray keys after completion so the result survives', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     await user.click(screen.getByRole('button', { name: '15' }))
     await user.keyboard(renderedText())
 
@@ -249,7 +265,7 @@ describe('typing screen', () => {
 
   it('leaves browser shortcuts alone', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
 
     await user.keyboard('{Control>}a{/Control}')
 
@@ -259,12 +275,137 @@ describe('typing screen', () => {
 
   it('tracks progress through the text', async () => {
     const user = userEvent.setup()
-    render(<TypingTest />)
+    renderTest()
     const bar = screen.getByRole('progressbar')
     expect(bar).toHaveAttribute('aria-valuenow', '0')
 
     await user.keyboard(firstWord())
 
     expect(Number(bar.getAttribute('aria-valuenow'))).toBeGreaterThan(0)
+  })
+})
+
+describe('recording a finished test', () => {
+  const createService = (): SessionService =>
+    createSessionService(createSessionRepository(createMemoryAdapter()))
+
+  /** Types the whole of the current test at 15 words. */
+  const completeATest = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole('button', { name: '15' }))
+    await user.keyboard(renderedText())
+    expect(await screen.findByText(/test complete/i)).toBeInTheDocument()
+  }
+
+  it('records exactly one session per completed test', async () => {
+    const user = userEvent.setup()
+    const service = createService()
+    renderTest({ service })
+
+    await completeATest(user)
+
+    await waitFor(async () => {
+      expect(await service.getAll()).toHaveLength(1)
+    })
+  })
+
+  it('records nothing until a test is actually finished', async () => {
+    const user = userEvent.setup()
+    const service = createService()
+    renderTest({ service })
+
+    await user.keyboard(firstWord())
+
+    expect(await service.getAll()).toHaveLength(0)
+  })
+
+  it('records nothing when a test is abandoned and restarted', async () => {
+    const user = userEvent.setup()
+    const service = createService()
+    renderTest({ service })
+
+    await user.keyboard(firstWord())
+    await user.keyboard('{Tab}')
+
+    expect(await service.getAll()).toHaveLength(0)
+  })
+
+  it('records a second session for a second test', async () => {
+    const user = userEvent.setup()
+    const service = createService()
+    renderTest({ service })
+
+    await completeATest(user)
+    await waitFor(async () => {
+      expect(await service.getAll()).toHaveLength(1)
+    })
+
+    await user.keyboard('{Tab}')
+    await completeATest(user)
+
+    await waitFor(async () => {
+      expect(await service.getAll()).toHaveLength(2)
+    })
+  })
+
+  it('stores what was actually typed, not a second opinion of it', async () => {
+    const user = userEvent.setup()
+    const service = createService()
+    renderTest({ service })
+    await user.click(screen.getByRole('button', { name: '15' }))
+    const text = renderedText()
+
+    await user.keyboard(text)
+    await screen.findByText(/test complete/i)
+
+    await waitFor(async () => {
+      const [session] = await service.getAll()
+      expect(session?.text).toBe(text)
+      expect(session?.status).toBe('completed')
+      expect(session?.metrics.totalCharacters).toBe(text.length)
+      expect(session?.metrics.correctCharacters).toBe(text.length)
+      expect(session?.metrics.accuracy).toBe(1)
+    })
+  })
+
+  it('dates the session by wall clock so history can show it', async () => {
+    const user = userEvent.setup()
+    const service = createService()
+    const before = Date.now()
+    renderTest({ service })
+
+    await completeATest(user)
+
+    await waitFor(async () => {
+      const [session] = await service.getAll()
+      expect(session?.completedAt).toBeGreaterThanOrEqual(before)
+      expect(session?.completedAt).toBeLessThanOrEqual(Date.now())
+    })
+  })
+
+  it('keeps the typist going when saving fails', async () => {
+    const user = userEvent.setup()
+    const failing: SessionService = {
+      ...createService(),
+      save: () => Promise.reject(new Error('quota exceeded')),
+    }
+    renderTest({ service: failing })
+
+    await completeATest(user)
+
+    // The result is still on screen, and the failure is admitted rather than
+    // hidden behind a success message.
+    expect(await screen.findByText(/could not be saved/i)).toBeInTheDocument()
+    expect(screen.getByRole('status')).toBeInTheDocument()
+  })
+
+  it('offers a way to the history once a test is saved', async () => {
+    const user = userEvent.setup()
+    renderTest({ service: createService() })
+
+    await completeATest(user)
+
+    expect(
+      await screen.findByRole('link', { name: /view history/i }),
+    ).toBeInTheDocument()
   })
 })

@@ -132,7 +132,23 @@ Add an adapter by implementing `StorageAdapter` in
 if the suite needs weakening to accommodate it, the interface is wrong, not the
 test.
 
-Repositories belong on top of the adapter, not inside it. When session history
-lands, expect `SessionRepository` with domain methods (`save`, `listRecent`)
-built over `StorageAdapter` — and bump `schemaVersion` in `app.config.ts` when a
-stored shape changes incompatibly.
+Repositories belong on top of the adapter, not inside it. `SessionRepository` in
+`@core/sessions` is the worked example: domain methods over `StorageAdapter`,
+with the UI seeing neither.
+
+Bump `schemaVersion` in `app.config.ts` when a stored shape changes
+incompatibly — it prefixes every key, so old and new records cannot be confused.
+
+## Storing something new
+
+1. **Model it in `@core`.** If it is measured by the engine, reuse the type the
+   engine already produces rather than restating its fields.
+2. **Write a parser for it**, returning null on anything unexpected. Records
+   come off disk and are treated as hostile: an old build, another tab, a
+   half-finished write.
+3. **Put a repository over `StorageAdapter`**, and serialise anything that does
+   read-modify-write on shared state.
+4. **Expose it through a service**, and let the UI import only that. No
+   component may reference `localStorage`, `indexedDB` or any storage API.
+5. **Never write on a hot path.** Persist on a discrete event — a test
+   finishing — not on input.

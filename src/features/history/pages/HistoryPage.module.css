@@ -1,0 +1,79 @@
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.table th {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-width-thin) solid var(--color-border-default);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  text-align: left;
+}
+
+.table td {
+  padding: var(--space-3);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+}
+
+.table tr:hover td {
+  background-color: var(--color-bg-raised);
+}
+
+/* Figures are compared down the column, so they are monospaced, right-aligned
+   and equal-width — the eye can scan them without reading each one. */
+.numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.wpm {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.actions {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rowAction {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.rowAction:hover {
+  color: var(--color-status-danger);
+}
+
+.empty {
+  padding: var(--space-8) 0;
+  color: var(--color-text-tertiary);
+}
+
+.scroll {
+  width: 100%;
+  overflow-x: auto;
+}

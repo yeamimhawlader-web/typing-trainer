@@ -56,6 +56,43 @@ const createHarness = (text: string, options?: TypingEngineOptions) => {
   }
 }
 
+describe('independence from storage', () => {
+  /**
+   * These tests run in the `domain` project, which has no DOM. If the engine
+   * ever reached for browser storage — directly, or by importing something that
+   * does — this file would stop loading. The assertions below state that
+   * explicitly rather than leaving it as a property of the test setup.
+   */
+  it('runs with no browser storage available at all', () => {
+    const globals = globalThis as {
+      localStorage?: unknown
+      indexedDB?: unknown
+      window?: unknown
+    }
+
+    expect(globals.localStorage).toBeUndefined()
+    expect(globals.indexedDB).toBeUndefined()
+    expect(globals.window).toBeUndefined()
+
+    const { engine, start, typeText } = createHarness('hello world')
+    start()
+    typeText('hello world')
+
+    expect(engine.getSnapshot().status).toBe('completed')
+    expect(engine.toResult()?.metrics.netWpm).toBeCloseTo(120, 10)
+  })
+
+  it('hands out a result without persisting anything itself', () => {
+    const { engine, start, typeText } = createHarness('hi')
+    start()
+    typeText('hi')
+
+    // The engine's entire output is this value. Storing it is somebody else's
+    // job, which is what lets the same engine back a different store later.
+    expect(engine.toResult()).toMatchObject({ status: 'completed' })
+  })
+})
+
 describe('session lifecycle', () => {
   it('starts idle with nothing typed', () => {
     const engine = createTypingEngine()
@@ -728,8 +765,35 @@ describe('completion', () => {
     expect(result?.durationMs).toBe(1_100)
     expect(result?.target.text).toBe('hello world')
     expect(result?.keystrokes).toHaveLength(11)
-    expect(result?.accuracy).toBe(1)
-    expect(result?.netWpm).toBeCloseTo(120, 10)
+    expect(result?.metrics.accuracy).toBe(1)
+    expect(result?.metrics.netWpm).toBeCloseTo(120, 10)
+  })
+
+  it('carries the full metric set onto the result', () => {
+    const { engine, start, press } = createHarness('ab cd')
+    start()
+
+    press('a')
+    press('X') // wrong, then fixed
+    press(BACKSPACE)
+    press('b')
+    press(' ')
+    press('c')
+    press('Z') // wrong, left standing
+
+    const metrics = engine.toResult()?.metrics
+
+    expect(metrics).toEqual({
+      netWpm: expect.any(Number),
+      rawWpm: expect.any(Number),
+      accuracy: expect.closeTo(4 / 6, 10),
+      totalCharacters: 5,
+      typedCharacters: 6,
+      correctCharacters: 4,
+      incorrectCharacters: 1,
+      correctedCharacters: 1,
+      errorCount: 2,
+    })
   })
 
   it('uses the injected session id', () => {

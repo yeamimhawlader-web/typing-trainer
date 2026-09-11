@@ -174,11 +174,14 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
   const buildSnapshot = (): EngineSnapshot => {
     let correctCount = 0
     let incorrectCount = 0
+    let correctedCount = 0
 
     for (const characterState of state.characterStates) {
-      if (characterState === 'correct' || characterState === 'corrected')
+      if (characterState === 'correct') correctCount += 1
+      else if (characterState === 'corrected') {
         correctCount += 1
-      else if (characterState === 'incorrect') incorrectCount += 1
+        correctedCount += 1
+      } else if (characterState === 'incorrect') incorrectCount += 1
     }
 
     const elapsedMs = toMilliseconds(elapsed())
@@ -194,6 +197,7 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
       keystrokes: [...state.keystrokes],
       correctCount,
       incorrectCount,
+      correctedCount,
       typedCount: state.typedCount,
       errorCount: state.errorCount,
       elapsedMs,
@@ -217,9 +221,19 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
       durationMs: snapshot.elapsedMs,
       target: state.target,
       keystrokes: snapshot.keystrokes,
-      grossWpm: snapshot.rawWpm,
-      netWpm: snapshot.netWpm,
-      accuracy: snapshot.accuracy,
+      // Lifted straight off the snapshot rather than recomputed: the result and
+      // the screen are then guaranteed to be reporting the same test.
+      metrics: {
+        netWpm: snapshot.netWpm,
+        rawWpm: snapshot.rawWpm,
+        accuracy: snapshot.accuracy,
+        totalCharacters: snapshot.characters.length,
+        typedCharacters: snapshot.typedCount,
+        correctCharacters: snapshot.correctCount,
+        incorrectCharacters: snapshot.incorrectCount,
+        correctedCharacters: snapshot.correctedCount,
+        errorCount: snapshot.errorCount,
+      },
       status,
     }
   }

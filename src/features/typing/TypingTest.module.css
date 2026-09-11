@@ -36,6 +36,20 @@
   color: var(--color-text-secondary);
 }
 
+.link {
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.link:hover {
+  color: var(--color-text-primary);
+}
+
+.warning {
+  color: var(--color-status-warning);
+}
+
 @media (max-width: 640px) {
   .controls {
     flex-direction: column;

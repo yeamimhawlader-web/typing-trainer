@@ -66,6 +66,8 @@ export interface EngineSnapshot {
   readonly correctCount: number
   /** Characters currently wrong and not yet fixed. */
   readonly incorrectCount: number
+  /** Characters that were wrong and then fixed. A subset of `correctCount`. */
+  readonly correctedCount: number
   /** Character keystrokes attempted, excluding backspaces. */
   readonly typedCount: number
   /** Mistakes ever made, including ones later corrected. Never decreases. */

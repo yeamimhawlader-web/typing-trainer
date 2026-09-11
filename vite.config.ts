@@ -59,6 +59,7 @@ export default defineConfig({
           setupFiles: ['./src/test/setup.ts'],
           include: [
             'src/core/persistence/**/*.test.ts',
+            'src/core/sessions/**/*.test.ts',
             'src/app/**/*.test.{ts,tsx}',
             'src/features/**/*.test.{ts,tsx}',
             'src/shared/**/*.test.{ts,tsx}',

@@ -8,6 +8,7 @@
 export const ROUTES = {
   home: '/',
   practice: '/practice',
+  history: '/history',
   settings: '/settings',
 } as const
 

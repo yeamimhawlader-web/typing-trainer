@@ -11,6 +11,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { BACKSPACE, createTypingEngine, type TypingEngine } from '@core/engine'
+import {
+  createTypingSession,
+  DEFAULT_SESSION_CONTEXT,
+  sessionService as defaultSessionService,
+  type SessionService,
+  type TypingSession,
+} from '@core/sessions'
 import type { TextProvider } from '@core/text'
 import { timestamp, type SessionTarget, type Timestamp } from '@core/types'
 
@@ -47,16 +54,30 @@ const isEditableTarget = (event: KeyboardEvent): boolean => {
   )
 }
 
-export interface TypingSession {
+/** Whether the finished test made it to storage. */
+export type SaveState = 'idle' | 'saving' | 'saved' | 'failed'
+
+export interface TypingSessionController {
   readonly engine: TypingEngine
   readonly target: SessionTarget
   readonly wordCount: WordCount
   readonly setWordCount: (count: WordCount) => void
   readonly restart: () => void
+  /**
+   * The finished test, as it was recorded. The same object that went to
+   * storage, so the screen and the history page cannot disagree about a result.
+   */
+  readonly lastSession: TypingSession | null
+  readonly saveState: SaveState
 }
 
-export const useTypingSession = (provider: TextProvider): TypingSession => {
+export const useTypingSession = (
+  provider: TextProvider,
+  service: SessionService = defaultSessionService,
+): TypingSessionController => {
   const engine = useMemo(() => createTypingEngine(), [])
+  const [lastSession, setLastSession] = useState<TypingSession | null>(null)
+  const [saveState, setSaveState] = useState<SaveState>('idle')
   const [wordCount, setWordCountState] = useState<WordCount>(DEFAULT_WORD_COUNT)
   const [target, setTarget] = useState<SessionTarget>(() =>
     provider.provide({ wordCount: DEFAULT_WORD_COUNT }),
@@ -66,6 +87,8 @@ export const useTypingSession = (provider: TextProvider): TypingSession => {
     (count: WordCount) => {
       engine.reset()
       setTarget(provider.provide({ wordCount: count }))
+      setLastSession(null)
+      setSaveState('idle')
     },
     [engine, provider],
   )
@@ -182,5 +205,49 @@ export const useTypingSession = (provider: TextProvider): TypingSession => {
     }
   }, [engine])
 
-  return { engine, target, wordCount, setWordCount, restart }
+  /**
+   * Records a finished test.
+   *
+   * Nothing here runs while typing: it is subscribed to the engine's `finished`
+   * event, which fires exactly once per completed test. The write is started
+   * and not awaited, so a slow or broken store cannot delay the screen — the
+   * result is on display before storage has been asked about it.
+   *
+   * A failure is reported, not thrown. Losing a record is a nuisance; losing
+   * the session you just typed because saving it went wrong is not acceptable.
+   */
+  useEffect(() => {
+    const unsubscribe = engine.on((event) => {
+      if (event.type !== 'finished' || event.status !== 'completed') return
+
+      const session = createTypingSession({
+        result: event.result,
+        context: DEFAULT_SESSION_CONTEXT,
+        completedAt: timestamp(Date.now()),
+      })
+
+      setLastSession(session)
+      setSaveState('saving')
+
+      service
+        .save(session)
+        .then(() => setSaveState('saved'))
+        .catch((error: unknown) => {
+          console.warn('[sessions] failed to save a finished test', error)
+          setSaveState('failed')
+        })
+    })
+
+    return unsubscribe
+  }, [engine, service])
+
+  return {
+    engine,
+    target,
+    wordCount,
+    setWordCount,
+    restart,
+    lastSession,
+    saveState,
+  }
 }
