@@ -231,28 +231,20 @@ interface Accumulated {
   slowerSessions: number
 }
 
-/**
- * Ranks transitions that are consistently slower than the typist's own baseline.
- *
- * Pure: no storage, no clock, no React. The caller decides which sessions are in
- * scope and reads their telemetry; this only does the arithmetic.
- *
- * Ordering is total and reproducible — by how far above baseline, then how
- * consistently, then how often observed, then alphabetically — so the same
- * history always produces the same ranking and a reload cannot reshuffle it.
- */
-export const analysePersistentSequences = (
-  entries: readonly SessionTelemetryEntry[],
-  options: PersistentSequenceOptions = {},
-): PersistentSequenceReport => {
-  const thresholds: PersistentThresholds = {
-    minimumObservations:
-      options.minimumObservations ?? PERSISTENT_THRESHOLDS.minimumObservations,
-    minimumSessions: options.minimumSessions ?? PERSISTENT_THRESHOLDS.minimumSessions,
-    minimumSlowSessionRatio:
-      options.minimumSlowSessionRatio ?? PERSISTENT_THRESHOLDS.minimumSlowSessionRatio,
-  }
+interface Accumulation {
+  readonly accumulated: ReadonlyMap<string, Accumulated>
+  readonly sessionBaselines: readonly number[]
+}
 
+/**
+ * Walks the sessions once, gathering per-sequence evidence.
+ *
+ * Extracted so the ranking and a single-sequence lookup cannot drift apart:
+ * the number a drill shows as "your baseline for `in`" has to be the number
+ * the ranking used to call `in` slow, or the comparison on the drill screen
+ * would be against something the user was never shown.
+ */
+const accumulate = (entries: readonly SessionTelemetryEntry[]): Accumulation => {
   const accumulated = new Map<string, Accumulated>()
   const sessionBaselines: number[] = []
 
@@ -285,6 +277,71 @@ export const analysePersistentSequences = (
       if (sessionMedian > sessionBaseline) record.slowerSessions += 1
     }
   }
+
+  return { accumulated, sessionBaselines }
+}
+
+/** One sequence's history, whether or not it was ever ranked. */
+export interface SequenceBaseline {
+  readonly sequence: string
+  /** Median of the per-session medians — the same figure the ranking uses. */
+  readonly medianMs: number
+  readonly observations: number
+  readonly sessions: number
+  readonly slowerSessions: number
+  /** The typist's overall transition median across the same sessions. */
+  readonly overallMedianMs: number
+}
+
+/**
+ * One sequence's prior history, ignoring the evidence thresholds.
+ *
+ * The thresholds decide what is worth *ranking*; they are the wrong question
+ * for "what was this like before the drill". A drill reached directly by URL
+ * may be for a sequence that never qualified, and showing its real baseline is
+ * more honest than showing none. Null only when it was never seen at all.
+ */
+export const findSequenceBaseline = (
+  entries: readonly SessionTelemetryEntry[],
+  sequence: string,
+): SequenceBaseline | null => {
+  const { accumulated, sessionBaselines } = accumulate(entries)
+  const record = accumulated.get(sequence)
+
+  if (record === undefined || sessionBaselines.length === 0) return null
+
+  return {
+    sequence,
+    medianMs: median(record.perSessionMedians),
+    observations: record.pooled.length,
+    sessions: record.perSessionMedians.length,
+    slowerSessions: record.slowerSessions,
+    overallMedianMs: median(sessionBaselines),
+  }
+}
+/**
+ * Ranks transitions that are consistently slower than the typist's own baseline.
+ *
+ * Pure: no storage, no clock, no React. The caller decides which sessions are in
+ * scope and reads their telemetry; this only does the arithmetic.
+ *
+ * Ordering is total and reproducible — by how far above baseline, then how
+ * consistently, then how often observed, then alphabetically — so the same
+ * history always produces the same ranking and a reload cannot reshuffle it.
+ */
+export const analysePersistentSequences = (
+  entries: readonly SessionTelemetryEntry[],
+  options: PersistentSequenceOptions = {},
+): PersistentSequenceReport => {
+  const thresholds: PersistentThresholds = {
+    minimumObservations:
+      options.minimumObservations ?? PERSISTENT_THRESHOLDS.minimumObservations,
+    minimumSessions: options.minimumSessions ?? PERSISTENT_THRESHOLDS.minimumSessions,
+    minimumSlowSessionRatio:
+      options.minimumSlowSessionRatio ?? PERSISTENT_THRESHOLDS.minimumSlowSessionRatio,
+  }
+
+  const { accumulated, sessionBaselines } = accumulate(entries)
 
   const sessionsWithTelemetry = sessionBaselines.length
   const baselineMs = sessionsWithTelemetry === 0 ? null : median(sessionBaselines)

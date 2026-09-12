@@ -10,8 +10,12 @@
 import { useMemo } from 'react'
 
 import { toCharacters, type TypingEngine } from '@core/engine'
-import type { SessionService } from '@core/sessions'
-import type { TelemetryService } from '@core/telemetry'
+import {
+  DEFAULT_SESSION_CONTEXT,
+  type SessionContext,
+  type SessionService,
+} from '@core/sessions'
+import { compareToBaseline, type TelemetryService } from '@core/telemetry'
 import { createCommonWordsProvider, type TextProvider } from '@core/text'
 
 import { LiveStats } from './components/LiveStats.tsx'
@@ -45,6 +49,18 @@ const SessionHint = ({ engine }: { engine: TypingEngine }) => {
   return <p className={styles.hint}>Start typing to begin.</p>
 }
 
+/** What makes this test a drill rather than ordinary practice. */
+export interface DrillSettings {
+  readonly sequence: string
+  /**
+   * The typist's median for this sequence *before* the drill, or null when
+   * there is no earlier record. Captured by the caller when the page loads,
+   * not recomputed afterwards — once the drill is saved it would be part of
+   * its own baseline, and the comparison would be against itself.
+   */
+  readonly baselineMs: number | null
+}
+
 export interface TypingTestProps {
   /** Injectable for tests; defaults to the built-in word provider. */
   readonly provider?: TextProvider
@@ -52,12 +68,32 @@ export interface TypingTestProps {
   readonly service?: SessionService
   /** Injectable for tests; defaults to the application's telemetry service. */
   readonly telemetry?: TelemetryService
+  /** Present only when this screen is a targeted drill. */
+  readonly drill?: DrillSettings | null
 }
 
-export const TypingTest = ({ provider, service, telemetry }: TypingTestProps = {}) => {
+export const TypingTest = ({
+  provider,
+  service,
+  telemetry,
+  drill = null,
+}: TypingTestProps = {}) => {
   // One provider for the life of the screen. Swapping in quotes or pasted text
   // later is a change here and nowhere else.
   const fallbackProvider = useMemo(() => createCommonWordsProvider(), [])
+  /**
+   * Depends on the sequence rather than the `drill` object, so a caller that
+   * builds it inline does not hand over a new context on every render.
+   */
+  const sequence = drill?.sequence ?? null
+  const context = useMemo<SessionContext>(
+    () =>
+      sequence === null
+        ? DEFAULT_SESSION_CONTEXT
+        : { ...DEFAULT_SESSION_CONTEXT, mode: 'drill', targetSequence: sequence },
+    [sequence],
+  )
+
   const {
     engine,
     target,
@@ -67,7 +103,8 @@ export const TypingTest = ({ provider, service, telemetry }: TypingTestProps = {
     lastSession,
     saveState,
     sequences,
-  } = useTypingSession(provider ?? fallbackProvider, service, telemetry)
+    drillOutcome,
+  } = useTypingSession(provider ?? fallbackProvider, service, telemetry, context)
 
   const characters = useMemo(() => toCharacters(target.text), [target])
 
@@ -78,6 +115,7 @@ export const TypingTest = ({ provider, service, telemetry }: TypingTestProps = {
           wordCount={wordCount}
           onWordCountChange={setWordCount}
           onRestart={restart}
+          drillSequence={sequence}
         />
         <LiveStats engine={engine} />
       </div>
@@ -93,7 +131,18 @@ export const TypingTest = ({ provider, service, telemetry }: TypingTestProps = {
           session={lastSession}
           saveState={saveState}
           onTryAgain={restart}
-          sequences={sequences}
+          /* A drill's own slowest sequences are not a finding: the text was
+             built to be lopsided, so ranking it would report the drill's
+             design back as though it were a measurement of the typist. */
+          sequences={drill === null ? sequences : null}
+          drill={
+            drill !== null && drillOutcome !== null
+              ? {
+                  outcome: drillOutcome,
+                  comparison: compareToBaseline(drillOutcome, drill.baselineMs),
+                }
+              : null
+          }
         />
       )}
     </section>

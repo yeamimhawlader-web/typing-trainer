@@ -27,7 +27,7 @@ import type {
   TypingSession,
 } from './types.ts'
 
-const MODES: readonly SessionMode[] = ['words', 'time', 'quote']
+const MODES: readonly SessionMode[] = ['words', 'time', 'quote', 'drill']
 const DIFFICULTIES: readonly SessionDifficulty[] = ['normal', 'punctuation', 'numbers']
 const LAYOUTS: readonly KeyboardLayout[] = ['qwerty', 'dvorak', 'colemak']
 const STATUSES = ['completed', 'abandoned'] as const
@@ -75,6 +75,11 @@ const parseContext = (value: unknown): SessionContext | null => {
   if (!isOneOf(value['difficulty'], DIFFICULTIES)) return null
   if (!isOneOf(value['keyboardLayout'], LAYOUTS)) return null
   if (!isNonEmptyString(value['language'])) return null
+
+  // Absent on every session written before drills existed, which is not a
+  // defect in those records — only a present-but-wrong value is.
+  const target = value['targetSequence']
+  if (target !== undefined && !isNonEmptyString(target)) return null
 
   return value as unknown as SessionContext
 }

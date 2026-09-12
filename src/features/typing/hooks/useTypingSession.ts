@@ -8,20 +8,23 @@
  * thing to avoid.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { BACKSPACE, createTypingEngine, type TypingEngine } from '@core/engine'
 import {
   createTypingSession,
   DEFAULT_SESSION_CONTEXT,
   sessionService as defaultSessionService,
+  type SessionContext,
   type SessionService,
   type TypingSession,
 } from '@core/sessions'
 import {
   analyseSlowSequences,
   deriveSessionTelemetry,
+  measureDrill,
   telemetryService as defaultTelemetryService,
+  type DrillOutcome,
   type SequenceReport,
   type TelemetryService,
 } from '@core/telemetry'
@@ -123,17 +126,38 @@ export interface TypingSessionController {
    * character, from telemetry already in hand — never during typing.
    */
   readonly sequences: SequenceReport | null
+  /**
+   * How the target transition went, when the finished test was a drill.
+   * Null for ordinary practice, and null until a drill finishes.
+   */
+  readonly drillOutcome: DrillOutcome | null
 }
 
 export const useTypingSession = (
   provider: TextProvider,
   service: SessionService = defaultSessionService,
   telemetry: TelemetryService = defaultTelemetryService,
+  context: SessionContext = DEFAULT_SESSION_CONTEXT,
 ): TypingSessionController => {
   const engine = useMemo(() => createTypingEngine(), [])
+
+  /**
+   * Held in a ref rather than in the effect below's dependencies.
+   *
+   * A caller that builds its context inline would otherwise hand over a new
+   * object on every render, tearing down and re-subscribing the finished
+   * handler each time — and a resubscription that lands between the last
+   * keystroke and the finish event would lose the session. The ref is written
+   * in an effect, never during render.
+   */
+  const contextRef = useRef(context)
+  useEffect(() => {
+    contextRef.current = context
+  }, [context])
   const [lastSession, setLastSession] = useState<TypingSession | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [sequences, setSequences] = useState<SequenceReport | null>(null)
+  const [drillOutcome, setDrillOutcome] = useState<DrillOutcome | null>(null)
   const [wordCount, setWordCountState] = useState<WordCount>(DEFAULT_WORD_COUNT)
   const [target, setTarget] = useState<SessionTarget>(() =>
     provider.provide({ wordCount: DEFAULT_WORD_COUNT }),
@@ -146,6 +170,7 @@ export const useTypingSession = (
       setLastSession(null)
       setSaveState('idle')
       setSequences(null)
+      setDrillOutcome(null)
     },
     [engine, provider],
   )
@@ -312,7 +337,7 @@ export const useTypingSession = (
 
       const session = createTypingSession({
         result: event.result,
-        context: DEFAULT_SESSION_CONTEXT,
+        context: contextRef.current,
         completedAt: timestamp(Date.now()),
       })
 
@@ -339,11 +364,20 @@ export const useTypingSession = (
       })
 
       // Read straight from the keystrokes in hand rather than from storage, so
-      // the slowest sequences appear with the result even if the save failed.
-      setSequences(
-        analyseSlowSequences(
-          deriveSessionTelemetry(event.result.keystrokes, event.result.target.text),
-        ),
+      // the result appears even if the save failed. Derived once here and used
+      // for both readings, rather than walking the log twice.
+      const derived = deriveSessionTelemetry(
+        event.result.keystrokes,
+        event.result.target.text,
+      )
+
+      setSequences(analyseSlowSequences(derived))
+
+      const drillTarget = contextRef.current.targetSequence
+      setDrillOutcome(
+        contextRef.current.mode === 'drill' && drillTarget !== undefined
+          ? measureDrill(derived, event.result.target.text, drillTarget)
+          : null,
       )
     })
 
@@ -359,5 +393,6 @@ export const useTypingSession = (
     lastSession,
     saveState,
     sequences,
+    drillOutcome,
   }
 }

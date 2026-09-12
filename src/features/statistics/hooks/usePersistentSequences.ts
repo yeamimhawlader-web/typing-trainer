@@ -32,6 +32,17 @@ import {
  * it means changing the range shows nothing rather than briefly showing the
  * previous range's sequences as though they were the new one's.
  */
+/**
+ * The report for no sessions at all.
+ *
+ * Pure and constant, so it can be returned during render without state. It
+ * matters because a typist who has only ever done drills has sessions in
+ * history but none this analysis may look at — and the section explaining
+ * that it needs more ordinary typing is far more use than one that silently
+ * disappears.
+ */
+const NOTHING_TO_ANALYSE = analysePersistentSequences([])
+
 interface Analysed {
   readonly refs: readonly TelemetrySessionRef[]
   readonly report: PersistentSequenceReport
@@ -55,6 +66,13 @@ export const usePersistentSequences = (
     () =>
       filterSessionsByRange(sessions, range)
         .filter(isUsableSession)
+        // Drills are excluded. Their text is built to be lopsided — a quarter
+        // of its characters are one sequence — so a few of them would supply
+        // most of the observations for whatever was drilled and the ranking
+        // would end up describing the drills rather than the typing. The
+        // figures above do count them, which is a different question: a drill
+        // is real typing, and how fast you typed it is a fair thing to record.
+        .filter((session) => session.context.mode !== 'drill')
         .toSorted((a, b) => b.completedAt - a.completedAt)
         .slice(0, MAX_SESSIONS_ANALYSED)
         .map(({ id, text }) => ({ id, text })),
@@ -82,6 +100,8 @@ export const usePersistentSequences = (
       active = false
     }
   }, [refs, telemetry])
+
+  if (refs.length === 0) return NOTHING_TO_ANALYSE
 
   return analysed !== null && analysed.refs === refs ? analysed.report : null
 }

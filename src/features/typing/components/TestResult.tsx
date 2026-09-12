@@ -8,11 +8,12 @@
 
 import { ROUTES, sessionDetailPath } from '@app/routes.ts'
 import type { TypingSession } from '@core/sessions'
-import type { SequenceReport } from '@core/telemetry'
+import type { DrillComparison, DrillOutcome, SequenceReport } from '@core/telemetry'
 import { SessionSummary } from '@features/results'
 import { Button, ButtonLink } from '@shared/ui'
 
 import type { SaveState } from '../hooks/useTypingSession.ts'
+import { DrillResult } from './DrillResult.tsx'
 
 import styles from './TestResult.module.css'
 
@@ -21,6 +22,8 @@ export interface TestResultProps {
   readonly saveState: SaveState
   readonly onTryAgain: () => void
   readonly sequences: SequenceReport | null
+  /** Present only when the finished test was a targeted drill. */
+  readonly drill?: { readonly outcome: DrillOutcome; readonly comparison: DrillComparison } | null
 }
 
 export const TestResult = ({
@@ -28,9 +31,14 @@ export const TestResult = ({
   saveState,
   onTryAgain,
   sequences,
+  drill = null,
 }: TestResultProps) => (
   <div className={styles.panel}>
     <SessionSummary session={session} sequences={sequences} />
+
+    {drill !== null && (
+      <DrillResult outcome={drill.outcome} comparison={drill.comparison} />
+    )}
 
     <div className={styles.actions}>
       <Button
@@ -50,6 +58,12 @@ export const TestResult = ({
       {saveState === 'saved' && (
         <ButtonLink to={sessionDetailPath(session.id)} variant="secondary">
           View details
+        </ButtonLink>
+      )}
+
+      {drill !== null && (
+        <ButtonLink to={ROUTES.practice} variant="secondary">
+          Back to practice
         </ButtonLink>
       )}
 

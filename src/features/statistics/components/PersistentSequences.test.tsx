@@ -9,6 +9,7 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -18,6 +19,14 @@ import {
 } from '@core/telemetry'
 
 import { PersistentSequences } from './PersistentSequences.tsx'
+
+/** The rows carry a link to a drill, so the component needs a router. */
+const renderSection = (report: PersistentSequenceReport | null) =>
+  render(
+    <MemoryRouter>
+      <PersistentSequences report={report} />
+    </MemoryRouter>,
+  )
 
 const evidence = (over: Partial<SequenceEvidence> = {}): SequenceEvidence => ({
   sequence: 'th',
@@ -47,17 +56,13 @@ const report = (over: Partial<PersistentSequenceReport> = {}): PersistentSequenc
 
 describe('persistent sequences section', () => {
   it('shows nothing at all while the analysis is still loading', () => {
-    const { container } = render(<PersistentSequences report={null} />)
+    const { container } = renderSection(null)
 
     expect(container).toBeEmptyDOMElement()
   })
 
   it('says plainly when there is not enough history, and how much is needed', () => {
-    render(
-      <PersistentSequences
-        report={report({ hasEnoughHistory: false, sessionsWithTelemetry: 2 })}
-      />,
-    )
+    renderSection(report({ hasEnoughHistory: false, sessionsWithTelemetry: 2 }))
 
     expect(screen.getByText(/not enough history yet/i)).toBeInTheDocument()
     // Both halves of the comparison, so the reader knows how far off they are.
@@ -67,7 +72,7 @@ describe('persistent sequences section', () => {
   })
 
   it('says nothing stood out rather than showing an empty ranking', () => {
-    render(<PersistentSequences report={report({ candidates: [] })} />)
+    renderSection(report({ candidates: [] }))
 
     expect(screen.getByText(/nothing stood out across 11 tests/i)).toBeInTheDocument()
     // The count of sequences it was able to judge — so "nothing" reads as a
@@ -77,7 +82,7 @@ describe('persistent sequences section', () => {
   })
 
   it('shows the evidence behind every sequence it ranks', () => {
-    render(<PersistentSequences report={report({ candidates: [evidence()] })} />)
+    renderSection(report({ candidates: [evidence()] }))
 
     const row = screen.getByRole('listitem')
 
@@ -89,22 +94,35 @@ describe('persistent sequences section', () => {
   })
 
   it('states a delta that reconciles with the baseline it shows', () => {
-    render(<PersistentSequences report={report({ candidates: [evidence()] })} />)
+    renderSection(report({ candidates: [evidence()] }))
 
     // 118 − 94 = 24. A reader who subtracts must get the number on screen.
     expect(screen.getByRole('listitem')).toHaveTextContent('118 ms')
     expect(screen.getByText(/your own 94 ms typical transition/i)).toBeInTheDocument()
   })
 
-  it('never calls a sequence a weakness or suggests practising it', () => {
-    const { container } = render(
-      <PersistentSequences report={report({ candidates: [evidence()] })} />,
-    )
+  it('never calls a sequence a weakness, even while offering to train it', () => {
+    const { container } = renderSection(report({ candidates: [evidence()] }))
 
     const text = container.textContent ?? ''
-    expect(text).not.toMatch(/weak|practise these|train|drill|you should/i)
-    // And it says out loud what kind of measure this is.
+    // The row now carries a Train action, which is deliberate. What must not
+    // come with it is language claiming the sequence is a defect, or telling
+    // the reader what they ought to do about it.
+    expect(text).not.toMatch(/weak|you should|fix your|improve your/i)
     expect(text).toMatch(/heuristic measures, not a diagnosis/i)
+  })
+
+  it('offers a drill for each sequence it ranks', () => {
+    renderSection(report({ candidates: [evidence()] }))
+
+    const train = screen.getByRole('link', { name: 'Train' })
+    expect(train).toHaveAttribute('href', '/drill/th')
+  })
+
+  it('offers no drill when there is nothing ranked', () => {
+    renderSection(report({ candidates: [] }))
+
+    expect(screen.queryByRole('link', { name: 'Train' })).not.toBeInTheDocument()
   })
 
   it('caps the list rather than printing everything that qualified', () => {
@@ -112,19 +130,21 @@ describe('persistent sequences section', () => {
       evidence({ sequence: `s${index}`, deltaMs: 30 - index }),
     )
 
-    render(<PersistentSequences report={report({ candidates: many })} />)
+    renderSection(report({ candidates: many }))
 
     expect(screen.getAllByRole('listitem')).toHaveLength(5)
   })
 
   it('describes the thresholds that were actually applied', () => {
-    render(
-      <PersistentSequences
-        report={report({
-          candidates: [evidence()],
-          thresholds: { minimumObservations: 30, minimumSessions: 6, minimumSlowSessionRatio: 0.8 },
-        })}
-      />,
+    renderSection(
+      report({
+        candidates: [evidence()],
+        thresholds: {
+          minimumObservations: 30,
+          minimumSessions: 6,
+          minimumSlowSessionRatio: 0.8,
+        },
+      }),
     )
 
     expect(screen.getByText(/at least 30 observations across 6 tests/i)).toBeInTheDocument()

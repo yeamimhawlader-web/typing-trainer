@@ -17,4 +17,16 @@ export type { CommonWordsProviderOptions } from './providers/common-words.provid
 export { createWordText } from './generator.ts'
 export type { RandomSource, WordTextOptions } from './generator.ts'
 
+export {
+  countOccurrences,
+  createDrill,
+  createDrillProvider,
+  DRILL_PROVIDER_ID,
+  DRILL_WORD_COUNT,
+  findCarrierWords,
+  isDrillableSequence,
+  TARGET_DENSITY,
+} from './drill.ts'
+export type { DrillOptions, DrillPlan, DrillProvider } from './drill.ts'
+
 export { COMMON_WORDS } from './word-list.ts'

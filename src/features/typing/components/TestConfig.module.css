@@ -39,3 +39,15 @@
   height: var(--space-4);
   background-color: var(--color-border-default);
 }
+
+/* The sequence a drill is built around, sitting where the length options do in
+   ordinary practice. Same monospace treatment as everywhere else a raw
+   character sequence is shown, so it reads as text-to-type rather than a label. */
+.target {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-inset);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-2);
+}

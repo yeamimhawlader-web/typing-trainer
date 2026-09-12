@@ -30,16 +30,19 @@
 }
 
 /* Sequence and timing on the first line, the evidence for them underneath —
-   so the claim and the reason to believe it are never separated. */
+   so the claim and the reason to believe it are never separated. The action
+   sits to the side rather than under the evidence, so reading the case for a
+   sequence and acting on it are not the same downward motion. */
 .row {
   display: grid;
-  grid-template-columns: 3.5rem 1fr;
+  grid-template-columns: 3.5rem 1fr auto;
   align-items: baseline;
   gap: var(--space-1) var(--space-3);
 }
 
 .sequence {
-  grid-row: span 2;
+  grid-column: 1;
+  grid-row: 1 / span 2;
   font-family: var(--font-mono);
   font-size: var(--font-size-md);
   color: var(--color-text-primary);
@@ -53,6 +56,8 @@
 }
 
 .timing {
+  grid-column: 2;
+  grid-row: 1;
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
@@ -65,6 +70,8 @@
 }
 
 .evidence {
+  grid-column: 2;
+  grid-row: 2;
   font-size: var(--font-size-xs);
   line-height: var(--line-height-normal);
   font-variant-numeric: tabular-nums;
@@ -81,4 +88,29 @@
 
 .note {
   font-size: var(--font-size-sm);
+}
+
+/* Spans both rows so it is aligned to the sequence as a whole, not to one of
+   the two lines describing it. Quiet on purpose: this is an experiment the
+   reader may take up, not a call to action. */
+.train {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
+  justify-self: end;
+  white-space: nowrap;
+  font-size: var(--font-size-xs);
+  padding: var(--space-1) var(--space-3);
+}
+
+@media (max-width: 480px) {
+  .row {
+    grid-template-columns: 3.5rem 1fr;
+  }
+
+  .train {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: start;
+  }
 }

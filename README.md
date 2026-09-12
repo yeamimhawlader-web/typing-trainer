@@ -7,13 +7,19 @@ live speed, accuracy, timer and progress, keyboard-first — see a full result
 when it finishes, find every past test on the History page with its own detail
 view, and track speed, accuracy and activity over time on the Statistics page.
 Finished tests also record keystroke-level telemetry — timings, word positions
-and corrections — and two experiments read it. The result screen shows the
-slowest character transitions of the test just typed. The statistics page asks
-the harder question: which transitions are consistently slower than your own
-baseline across recent sessions, with the evidence for each one beside it. Both
-are experiments rather than a training system, and both say so; one test turns
-out to be far too thin a sample, which is why the second exists. Nothing
-recommends what to practise, and training modes are not built yet.
+and corrections — and the analysis built on it now leads somewhere. The result
+screen shows the slowest character transitions of the test just typed. The
+statistics page asks the harder question: which transitions are consistently
+slower than your own baseline across recent sessions, with the evidence for
+each one beside it. Any of those can be trained: **Train** builds a short drill
+from real words containing that transition, then reports how it went against
+your baseline.
+
+All of it is an experiment and says so. One test is far too thin a sample,
+which is why the cross-session analysis exists; and one drill cannot tell a
+lasting improvement from a good five minutes, which is why its result is two
+numbers and a difference rather than a verdict. Nothing tells you what to
+practise next.
 
 ## Keyboard
 
@@ -28,6 +34,10 @@ and there is no text field to focus.
 | `Alt`+`Backspace` | The same — the macOS binding for it | While typing |
 | `Tab` | Abandons the test and loads fresh text | While typing |
 | `Enter` | Starts the next test | On the results |
+
+A drill uses the same keys as ordinary practice. Restarting one re-types the
+same words, which is what makes doing it twice a comparison rather than two
+unrelated pieces of text.
 
 A word delete takes any whitespace behind the cursor first, so from just after a
 finished word the space and the word go together in one press rather than two.

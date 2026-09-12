@@ -20,7 +20,12 @@ import type { ButtonVariant } from './Button.tsx'
 
 export interface ButtonLinkProps extends Omit<LinkProps, 'className'> {
   readonly variant?: ButtonVariant
-  readonly className?: string
+  /**
+   * Explicitly accepts `undefined`: under `exactOptionalPropertyTypes` an
+   * optional property does not, and a CSS-module class is `string | undefined`,
+   * so every caller would otherwise need its own fallback.
+   */
+  readonly className?: string | undefined
   readonly children: ReactNode
 }
 

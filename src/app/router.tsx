@@ -15,6 +15,7 @@ import { createBrowserRouter, type RouteObject } from 'react-router'
 import { AppLayout } from '@app/layout/AppLayout.tsx'
 import { NotFoundPage } from '@app/layout/NotFoundPage.tsx'
 import { ROUTES } from '@app/routes.ts'
+import { DrillPage } from '@features/drill'
 import { HistoryPage } from '@features/history/pages/HistoryPage.tsx'
 import { HomePage } from '@features/home/pages/HomePage.tsx'
 import { SessionDetailPage } from '@features/results'
@@ -33,6 +34,7 @@ export const routeConfig: RouteObject[] = [
       { path: ROUTES.sessionDetail, element: <SessionDetailPage /> },
       { path: ROUTES.statistics, element: <StatisticsPage /> },
       { path: ROUTES.settings, element: <SettingsPage /> },
+      { path: ROUTES.drill, element: <DrillPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

@@ -16,20 +16,31 @@ export interface TestConfigProps {
   readonly wordCount: WordCount
   readonly onWordCountChange: (count: WordCount) => void
   readonly onRestart: () => void
+  /**
+   * Names the drill this test is, replacing the length control.
+   *
+   * A drill is a fixed piece of material, so a 15/30/60 choice would either
+   * do nothing or quietly generate different text — and different text is
+   * the one thing that would make the before-and-after comparison meaningless.
+   */
+  readonly drillSequence?: string | null
 }
 
 export const TestConfig = ({
   wordCount,
   onWordCountChange,
   onRestart,
+  drillSequence = null,
 }: TestConfigProps) => (
   <div className={styles.bar}>
     <span className={styles.label} id="word-count-label">
-      Words
+      {drillSequence === null ? 'Words' : 'Drill'}
     </span>
 
     <div className={styles.group} role="group" aria-labelledby="word-count-label">
-      {WORD_COUNT_OPTIONS.map((count) => (
+      {drillSequence !== null && <span className={styles.target}>{drillSequence}</span>}
+      {drillSequence === null &&
+        WORD_COUNT_OPTIONS.map((count) => (
         <button
           key={count}
           type="button"
@@ -41,10 +52,10 @@ export const TestConfig = ({
             event.currentTarget.blur()
             onWordCountChange(count)
           }}
-        >
-          {count}
-        </button>
-      ))}
+          >
+            {count}
+          </button>
+        ))}
     </div>
 
     <span className={styles.divider} aria-hidden />

@@ -47,10 +47,23 @@ const MODE_LABELS: Record<TypingSession['context']['mode'], string> = {
   words: 'Words',
   time: 'Time',
   quote: 'Quote',
+  drill: 'Drill',
 }
 
-export const formatMode = (session: TypingSession): string =>
-  MODE_LABELS[session.context.mode]
+/**
+ * How a session was run.
+ *
+ * A drill names the sequence it was built around, because "Drill" on its own
+ * tells a reader nothing about which one they did.
+ */
+export const formatMode = (session: TypingSession): string => {
+  const label = MODE_LABELS[session.context.mode]
+  const target = session.context.targetSequence
+
+  return session.context.mode === 'drill' && target !== undefined
+    ? `${label}: ${target}`
+    : label
+}
 
 const SOURCE_LABELS: Record<string, string> = {
   'common-words': 'Common words',

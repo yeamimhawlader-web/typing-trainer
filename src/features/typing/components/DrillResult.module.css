@@ -1,0 +1,81 @@
+/**
+ * Subordinate to the ordinary result above it.
+ *
+ * A drill is a typing test; speed and accuracy stay the headline and this is
+ * the part that says what happened to the one transition it was built around.
+ */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.heading {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.headline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.sequence {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xl);
+  color: var(--color-text-primary);
+
+  /* A faint ground so the two characters read as one unit, and a leading space
+     would still be visible. */
+  background-color: var(--color-bg-inset);
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-3);
+}
+
+.figures {
+  display: flex;
+  gap: var(--space-6);
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* The three figures are deliberately the same weight. Making the difference
+   larger or coloured would be scoring the drill, which is not what this is. */
+.value {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-lg);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.evidence {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.caveat {
+  max-width: var(--layout-reading-width);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-tertiary);
+}

@@ -39,8 +39,12 @@ export type {
   SequenceTiming,
 } from './sequences.ts'
 
+export { compareToBaseline, measureDrill } from './drill.ts'
+export type { DrillComparison, DrillOutcome } from './drill.ts'
+
 export {
   analysePersistentSequences,
+  findSequenceBaseline,
   MAX_SESSIONS_ANALYSED,
   PERSISTENT_THRESHOLDS,
 } from './persistent.ts'
@@ -48,6 +52,7 @@ export type {
   PersistentSequenceOptions,
   PersistentSequenceReport,
   PersistentThresholds,
+  SequenceBaseline,
   SequenceEvidence,
   SessionTelemetryEntry,
 } from './persistent.ts'

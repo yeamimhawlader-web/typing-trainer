@@ -438,6 +438,79 @@ that drives it keeps the result paired with the session set it came from, so
 changing range shows nothing rather than briefly showing the previous range's
 sequences as though they were the new one's.
 
+### The first intervention: a persistent slow transition becomes a drill
+
+```
+persistent analysis → [Train] → drill text → the ordinary typing screen → drill result
+```
+
+Everything before this measured. This acts on a measurement, and it is the
+smallest thing that could: one button on the ranked list, forty words built
+around one transition, and a result that says what happened without claiming
+what it means.
+
+**The text is real words from the existing corpus.** A drill for `in` is built
+from the corpus words that contain it — in, into, think, find, being, going,
+begin, bring and six more. Nothing is invented and no second corpus exists. A
+sequence no word contains produces no drill at all, and the screen says so: a
+page of invented syllables would train a movement the typist will never make.
+The `Train` action is only offered for sequences a drill can be built from.
+
+**It is not all target words, and that is the point.** Roughly two in three
+words carry the target and the rest are ordinary, so the hands keep changing
+what they do on either side of it. "in in in in in" trains a repetition that
+does not occur in real writing, and so does a page made only of `in` words. The
+same word never appears twice in a row. Measured on a real run: 40 words, **27
+occurrences of `in` across 13 distinct carrier words**, against about five
+occurrences in an ordinary 60-word test.
+
+**It is the same typing screen.** Same engine, same metrics, same telemetry,
+same persistence — the drill is a `TextProvider` and a `SessionContext`, and the
+typing screen does not know it is special. A drill records `mode: 'drill'` and
+the sequence it targeted, so it is distinguishable in history without a second
+format anywhere.
+
+**Where the target is recorded, and why there.** On `SessionContext`, which is
+the object describing how a session was configured. Not inside the telemetry
+blob: telemetry is keyed by session id, so a keystroke log is *joined* to its
+target rather than carrying a second copy that could disagree with the first.
+`StoredTelemetry` is unchanged and needs no version bump.
+
+**The baseline is captured before a key is pressed.** A drill is a session, so
+the moment it is saved it becomes part of the history a baseline is computed
+from; reading the baseline afterwards would compare the drill against a figure
+that already included it. The page holds the drill until the baseline has
+loaded, for exactly that reason.
+
+**Earlier drills never count towards a baseline** — and not towards the ranking
+on the statistics page either. Drill text is deliberately lopsided, so a few
+repetitions would supply most of the observations for whatever was drilled and
+drag its median towards drill performance. The comparison would quietly become
+drill-against-drill and the ranking would describe the drills rather than the
+typing that prompted them. The speed and accuracy figures *do* count drills,
+which is a different question: a drill is real typing, and how fast it was typed
+is a fair thing to record.
+
+**What the result says, and what it refuses to say.** The drill's median for the
+target, the typist's baseline, and the difference between them — three numbers
+of the same weight, no colour, no percentage. A percentage of a figure this
+noisy would read as precision that is not present. Two counts are shown rather
+than one, because the gap between them matters: 27 occurrences and 27 clean
+transitions is a different session from 27 and 18.
+
+The browser run that verified this is worth recording, because it is the case
+that could have been faked. A simulated typist with a planted 55 ms penalty on
+`in` produced a ranking of `in` at 141 ms against an 87 ms baseline. Drilling it
+*while still carrying the same penalty* reported **144 ms against 141 ms, a
+difference of +4 ms** — the measurement declined to manufacture an improvement.
+Re-typing the same drill without the penalty reported **86 ms, −55 ms**. The
+comparison moves in both directions and only when something really changed.
+
+Nothing here recommends what to practise next, scores the attempt, or says a
+transition was fixed. The hypothesis under test is only whether personalised
+transition detection can produce a useful targeted exercise; a drill that
+congratulated the typist would be answering a different question.
+
 ### Statistics read history; they never rewrite it
 
 ```

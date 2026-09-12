@@ -25,7 +25,7 @@ import type {
  * adding a field to a record shape after months of history means migrating that
  * history; reserving the shape costs nothing and a migration costs a weekend.
  */
-export type SessionMode = 'words' | 'time' | 'quote'
+export type SessionMode = 'words' | 'time' | 'quote' | 'drill'
 export type SessionDifficulty = 'normal' | 'punctuation' | 'numbers'
 export type KeyboardLayout = 'qwerty' | 'dvorak' | 'colemak'
 /** BCP 47 language tag for the practice text. */
@@ -36,6 +36,18 @@ export interface SessionContext {
   readonly difficulty: SessionDifficulty
   readonly language: LanguageCode
   readonly keyboardLayout: KeyboardLayout
+  /**
+   * The character sequence a drill was built around — present only when
+   * `mode` is `'drill'`.
+   *
+   * It lives here rather than on the telemetry blob because it describes how
+   * the session was *configured*, which is what this object is for. Telemetry
+   * is keyed by session id, so a keystroke log is joined to its target rather
+   * than carrying a second copy of it that could disagree.
+   *
+   * Optional, so every session already on disk still parses unchanged.
+   */
+  readonly targetSequence?: string
 }
 
 /**

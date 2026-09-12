@@ -16,7 +16,10 @@
  * Nothing here says "weakness", and nothing suggests what to practise.
  */
 
+import { drillPath } from '@app/routes.ts'
 import type { PersistentSequenceReport } from '@core/telemetry'
+import { isDrillableSequence } from '@core/text'
+import { ButtonLink } from '@shared/ui'
 
 import styles from './PersistentSequences.module.css'
 
@@ -96,6 +99,19 @@ export const PersistentSequences = ({ report }: PersistentSequencesProps) => {
               {entry.observations} observations across {entry.sessions} tests, slower
               in {entry.slowerSessions} of {entry.sessions}
             </span>
+
+            {/* Offered only where a drill can actually be built from real
+                words. A button that leads to "no drill for that sequence"
+                would be worse than no button. */}
+            {isDrillableSequence(entry.sequence) && (
+              <ButtonLink
+                to={drillPath(entry.sequence)}
+                variant="secondary"
+                className={styles.train}
+              >
+                Train
+              </ButtonLink>
+            )}
           </li>
         ))}
       </ul>

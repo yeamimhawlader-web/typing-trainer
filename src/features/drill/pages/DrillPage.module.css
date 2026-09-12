@@ -1,0 +1,26 @@
+/**
+ * Same bare treatment as the practice page: the typing text is the screen, and
+ * a card or a banner around it would compete with what is being read.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  /* Pulls the text towards the optical centre, as the practice page does. */
+  min-height: min(60vh, 34rem);
+}
+
+.missing {
+  max-width: var(--layout-reading-width);
+  padding: var(--space-8) 0;
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
