@@ -93,6 +93,13 @@ export interface SessionRepository {
   getRecent(limit: number): Promise<readonly TypingSession[]>
   /** Newest first. */
   getAll(): Promise<readonly TypingSession[]>
+  /**
+   * How many sessions are stored, from the index alone.
+   *
+   * A list screen shows the most recent few; this is what lets it say how many
+   * exist in total without reading every record to find out.
+   */
+  count(): Promise<number>
   /** Removing an absent session is not an error. */
   remove(id: SessionId): Promise<void>
   clear(): Promise<void>

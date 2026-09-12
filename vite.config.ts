@@ -50,6 +50,7 @@ export default defineConfig({
             'src/core/text/**/*.test.ts',
             'src/core/statistics/**/*.test.ts',
             'src/core/telemetry/**/*.test.ts',
+            'src/core/history/**/*.test.ts',
             // Design tokens: a stylesheet parsed as text and some colour
             // arithmetic. No DOM involved, so it belongs on the fast project.
             'src/styles/**/*.test.ts',

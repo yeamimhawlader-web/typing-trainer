@@ -17,6 +17,7 @@ import { NotFoundPage } from '@app/layout/NotFoundPage.tsx'
 import { ROUTES } from '@app/routes.ts'
 import { DrillPage } from '@features/drill'
 import { HistoryPage } from '@features/history/pages/HistoryPage.tsx'
+import { historyStore } from '@features/history/state/history.store.ts'
 import { HomePage } from '@features/home/pages/HomePage.tsx'
 import { SessionDetailPage } from '@features/results'
 import { StatisticsPage } from '@features/statistics'
@@ -31,7 +32,13 @@ export const routeConfig: RouteObject[] = [
       { index: true, element: <HomePage /> },
       { path: ROUTES.practice, element: <PracticePage /> },
       { path: ROUTES.history, element: <HistoryPage /> },
-      { path: ROUTES.sessionDetail, element: <SessionDetailPage /> },
+      {
+        path: ROUTES.sessionDetail,
+        // Wired here rather than imported by the page: the history feature already
+        // depends on results, and deleting through the history store is what makes
+        // a deletion from this page undoable on the history page.
+        element: <SessionDetailPage deleteSession={(id) => historyStore.getState().remove(id)} />,
+      },
       { path: ROUTES.statistics, element: <StatisticsPage /> },
       { path: ROUTES.settings, element: <SettingsPage /> },
       { path: ROUTES.drill, element: <DrillPage /> },

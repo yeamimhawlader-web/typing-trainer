@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
 import { ROUTES } from '@app/routes.ts'
+import { historyDeletion } from '@core/history'
 import { sessionService, type SessionService, type TypingSession } from '@core/sessions'
 import {
   analyseSlowSequences,
@@ -21,8 +22,8 @@ import {
   type SequenceReport,
   type TelemetryService,
 } from '@core/telemetry'
-import { sessionId as toSessionId } from '@core/types'
-import { Button, ButtonLink, Page } from '@shared/ui'
+import { sessionId as toSessionId, type SessionId } from '@core/types'
+import { ButtonLink, ConfirmAction, Page } from '@shared/ui'
 
 import { SessionSummary } from '../components/SessionSummary.tsx'
 
@@ -38,11 +39,25 @@ export interface SessionDetailPageProps {
   readonly service?: SessionService
   /** Injectable for tests; defaults to the application's telemetry service. */
   readonly telemetry?: TelemetryService
+  /**
+   * Deletes a session and everything derived from it.
+   *
+   * The application passes the history store's delete, so the deletion can be
+   * undone from the history page this one navigates to. Left out, it still goes
+   * through the one deletion service — this page must never remove a session
+   * record on its own again, which is how it once left keystroke detail behind.
+   */
+  readonly deleteSession?: (id: SessionId) => Promise<unknown>
 }
+
+/** A stable default, so the delete handler is not rebuilt on every render. */
+const deleteThroughService = (id: SessionId): Promise<unknown> =>
+  historyDeletion.deleteSession(id)
 
 export const SessionDetailPage = ({
   service = sessionService,
   telemetry = defaultTelemetryService,
+  deleteSession = deleteThroughService,
 }: SessionDetailPageProps = {}) => {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
@@ -110,15 +125,14 @@ export const SessionDetailPage = ({
 
     // Removed and left immediately: staying on the page of something that no
     // longer exists would only show the "missing" state a moment later.
-    void service
-      .remove(state.session.id)
+    void deleteSession(state.session.id)
       .catch((error: unknown) => {
         console.warn('[results] failed to delete a session', error)
       })
       .finally(() => {
         void navigate(ROUTES.history)
       })
-  }, [state, navigate, service])
+  }, [state, navigate, deleteSession])
 
   if (state.status === 'loading') {
     return (
@@ -166,9 +180,13 @@ export const SessionDetailPage = ({
           View history
         </ButtonLink>
         <span className={styles.spacer} />
-        <Button variant="ghost" className={styles.danger} onClick={handleDelete}>
-          Delete
-        </Button>
+        <ConfirmAction
+          label="Delete"
+          prompt="Delete this test?"
+          confirmLabel="Delete"
+          triggerClassName={styles.danger}
+          onConfirm={handleDelete}
+        />
       </div>
     </Page>
   )

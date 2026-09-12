@@ -22,6 +22,7 @@ import {
   type SessionService,
   type TypingSession,
 } from '@core/sessions'
+import { telemetryService } from '@core/telemetry'
 import { accuracy, milliseconds, sessionId, timestamp, wpm } from '@core/types'
 import { HistoryPage } from '@features/history/pages/HistoryPage.tsx'
 import { historyStore } from '@features/history/state/history.store.ts'
@@ -293,7 +294,22 @@ describe('session detail page', () => {
     expect(await screen.findByText(/not in your history/i)).toBeInTheDocument()
   })
 
-  it('deletes a session and returns to the history', async () => {
+  it('deletes a session after confirmation and returns to the history', async () => {
+    const user = userEvent.setup()
+    const session = makeSession()
+    await sessionService.save(session)
+    renderDetail(session.id)
+    await screen.findByRole('region', { name: 'Session result' })
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    const confirm = screen.getByRole('group', { name: 'Delete this test?' })
+    await user.click(within(confirm).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText('History page')).toBeInTheDocument()
+    await expect(sessionService.getById(session.id)).resolves.toBeNull()
+  })
+
+  it('does not delete on the first press', async () => {
     const user = userEvent.setup()
     const session = makeSession()
     await sessionService.save(session)
@@ -302,8 +318,46 @@ describe('session detail page', () => {
 
     await user.click(screen.getByRole('button', { name: 'Delete' }))
 
-    expect(await screen.findByText('History page')).toBeInTheDocument()
-    await expect(sessionService.getById(session.id)).resolves.toBeNull()
+    // A question, not a deletion — and focus on the safe answer.
+    expect(screen.getByRole('group', { name: 'Delete this test?' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveFocus()
+    await expect(sessionService.getById(session.id)).resolves.not.toBeNull()
+  })
+
+  it('keeps the session when the deletion is cancelled', async () => {
+    const user = userEvent.setup()
+    const session = makeSession()
+    await sessionService.save(session)
+    renderDetail(session.id)
+    await screen.findByRole('region', { name: 'Session result' })
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('group', { name: 'Delete this test?' })).not.toBeInTheDocument()
+    // Focus goes back to where it came from.
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveFocus()
+    await expect(sessionService.getById(session.id)).resolves.not.toBeNull()
+  })
+
+  it('removes the keystroke detail too, leaving nothing behind', async () => {
+    // The audit found this page deleting the record and leaving 788 bytes of
+    // what was typed in storage, still readable and still indexed.
+    const user = userEvent.setup()
+    const session = makeSession()
+    await sessionService.save(session)
+    await telemetryService.save(session.id, { version: 1, keystrokes: [[0, 0, 'h'], [90, 1, 'e']] })
+    renderDetail(session.id)
+    await screen.findByRole('region', { name: 'Session result' })
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }))
+    const confirm = screen.getByRole('group', { name: 'Delete this test?' })
+    await user.click(within(confirm).getByRole('button', { name: 'Delete' }))
+    await screen.findByText('History page')
+
+    await expect(telemetryService.getStored(session.id)).resolves.toBeNull()
+    const leftovers = Object.keys(window.localStorage).filter((key) => key.includes(session.id))
+    expect(leftovers).toEqual([])
   })
 
   it('offers a way back to practice', async () => {

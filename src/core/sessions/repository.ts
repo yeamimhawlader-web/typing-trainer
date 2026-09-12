@@ -10,9 +10,9 @@
  * writes two small values and `getRecent(10)` reads eleven.
  *
  * The index is a cache of an ordering, not the source of truth: records are
- * authoritative. Where the two disagree — a record the index points at that is
- * gone — the record wins and the entry is skipped, so a partial write degrades
- * to a missing row rather than a broken page.
+ * authoritative. Where the two disagree the records win, in both directions:
+ * an entry pointing at a record that is gone is dropped, and a valid record the
+ * index has lost track of is put back. See `reconcileIndex`.
  */
 
 import type { StorageAdapter } from '@core/persistence'
@@ -72,14 +72,65 @@ export const createSessionRepository = (storage: StorageAdapter): SessionReposit
     return run
   }
 
-  const readIndex = async (): Promise<IndexEntry[]> => {
-    const stored = await storage.read<unknown>(INDEX_KEY)
-    if (!Array.isArray(stored)) return []
-    return stored.filter(isIndexEntry).sort(byNewest)
-  }
-
   const writeIndex = (entries: readonly IndexEntry[]): Promise<void> =>
     storage.write(INDEX_KEY, [...entries].sort(byNewest))
+
+  /**
+   * The index, repaired from the records actually present if it has lost track
+   * of any of them.
+   *
+   * The index is only a cache of an ordering; the records are the history. But
+   * the index is what every read goes through, so an index that is missing,
+   * corrupted, or short of entries makes real sessions invisible — and the next
+   * save used to write a fresh index containing only itself, turning a
+   * recoverable glitch into permanent loss. The audit reproduced exactly that:
+   * three valid records orphaned by one save.
+   *
+   * So before the index is trusted it is checked against the session keys that
+   * exist. Records the index does not list are read, validated, and put back;
+   * malformed ones are left out rather than guessed at; entries pointing at
+   * records that no longer exist are dropped. When nothing is wrong this costs
+   * one listing of keys and writes nothing.
+   *
+   * Always called inside `serialise`, because repairing is a write.
+   */
+  const reconcileIndex = async (): Promise<IndexEntry[]> => {
+    const stored = await storage.read<unknown>(INDEX_KEY)
+    const listed = Array.isArray(stored) ? stored.filter(isIndexEntry) : []
+    const damaged =
+      stored !== null && (!Array.isArray(stored) || listed.length !== stored.length)
+
+    const recordIds = (await storage.keys())
+      .filter((key) => key.startsWith(SESSION_KEY_PREFIX))
+      .map((key) => key.slice(SESSION_KEY_PREFIX.length))
+    const present = new Set(recordIds)
+    const indexed = new Set(listed.map((entry) => entry.id))
+
+    const unlisted = recordIds.filter((id) => !indexed.has(id))
+    const dangling = listed.filter((entry) => !present.has(entry.id))
+
+    if (!damaged && unlisted.length === 0 && dangling.length === 0) {
+      return listed.sort(byNewest)
+    }
+
+    const recovered = (
+      await Promise.all(unlisted.map((id) => storage.read<unknown>(keyFor(id))))
+    )
+      .map((record) => parseTypingSession(record))
+      .filter((session): session is TypingSession => session !== null)
+      .map((session) => ({ id: session.id, completedAt: session.completedAt }))
+
+    const repaired = [...listed.filter((entry) => present.has(entry.id)), ...recovered]
+    await writeIndex(repaired)
+
+    if (recovered.length > 0 || damaged) {
+      console.warn(
+        `[sessions] rebuilt the session index: ${recovered.length} recovered, ${dangling.length} stale entries dropped`,
+      )
+    }
+
+    return repaired.sort(byNewest)
+  }
 
   /** Reads records for ids, dropping any that are missing or malformed. */
   const readMany = async (
@@ -109,7 +160,9 @@ export const createSessionRepository = (storage: StorageAdapter): SessionReposit
         // would leave the index pointing at nothing.
         await storage.write(keyFor(session.id), session)
 
-        const entries = await readIndex()
+        // Reconciled, not merely read: a save must never write a fresh index
+        // over a damaged one and orphan the history it failed to list.
+        const entries = await reconcileIndex()
         const without = entries.filter((entry) => entry.id !== session.id)
         await writeIndex([
           ...without,
@@ -122,15 +175,17 @@ export const createSessionRepository = (storage: StorageAdapter): SessionReposit
 
     getRecent: async (limit) => {
       if (limit <= 0) return []
-      return readMany((await readIndex()).slice(0, limit))
+      return readMany((await serialise(reconcileIndex)).slice(0, limit))
     },
 
-    getAll: async () => readMany(await readIndex()),
+    getAll: async () => readMany(await serialise(reconcileIndex)),
+
+    count: async () => (await serialise(reconcileIndex)).length,
 
     remove: (id) =>
       serialise(async () => {
         await storage.remove(keyFor(id))
-        const entries = await readIndex()
+        const entries = await reconcileIndex()
         await writeIndex(entries.filter((entry) => entry.id !== id))
       }),
 

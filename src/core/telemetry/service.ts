@@ -42,6 +42,14 @@ export interface TelemetryService {
   getMany(
     sessions: readonly TelemetrySessionRef[],
   ): Promise<readonly SessionTelemetryEntry[]>
+  /**
+   * The compact record exactly as stored, or null.
+   *
+   * For putting a deletion back: restoring from the stored form reproduces the
+   * record byte for byte, where re-deriving and re-encoding would only promise
+   * to be equivalent.
+   */
+  getStored(sessionId: SessionId): Promise<StoredTelemetry | null>
   remove(sessionId: SessionId): Promise<void>
   clear(): Promise<void>
 }
@@ -81,6 +89,8 @@ export const createTelemetryService = (
         }
       }),
     ),
+
+  getStored: (sessionId) => repository.getById(sessionId),
 
   remove: (sessionId) => repository.remove(sessionId),
   clear: () => repository.clear(),

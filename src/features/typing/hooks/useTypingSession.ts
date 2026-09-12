@@ -35,13 +35,20 @@ import {
   type TelemetryService,
 } from '@core/telemetry'
 import type { TextProvider } from '@core/text'
-import { timestamp, type SessionTarget, type Timestamp } from '@core/types'
+import {
+  PRACTICE_WORD_COUNTS,
+  timestamp,
+  type PracticeWordCount,
+  type SessionTarget,
+  type Timestamp,
+} from '@core/types'
 
 /** How often the clock advances while running, in milliseconds. */
 const TICK_INTERVAL_MS = 100
 
-export const WORD_COUNT_OPTIONS = [15, 30, 60] as const
-export type WordCount = (typeof WORD_COUNT_OPTIONS)[number]
+/** The lengths on offer. Defined with the preference that remembers the choice. */
+export const WORD_COUNT_OPTIONS = PRACTICE_WORD_COUNTS
+export type WordCount = PracticeWordCount
 export const DEFAULT_WORD_COUNT: WordCount = 30
 
 /**
@@ -112,6 +119,17 @@ const isControlActivation = (event: KeyboardEvent): boolean => {
 const isWordDelete = (event: KeyboardEvent): boolean =>
   event.key === BACKSPACE && (event.ctrlKey || event.altKey) && !event.metaKey
 
+/**
+ * A remembered practice length: where to start, and how to remember a change.
+ *
+ * Optional, because only ordinary practice has a length to remember — a drill
+ * is the length it was generated at.
+ */
+export interface WordCountPreference {
+  readonly initial: WordCount
+  readonly remember: (count: WordCount) => void
+}
+
 /** Whether the finished test made it to storage. */
 export type SaveState = 'idle' | 'saving' | 'saved' | 'failed'
 
@@ -144,6 +162,7 @@ export const useTypingSession = (
   service: SessionService = defaultSessionService,
   telemetry: TelemetryService = defaultTelemetryService,
   context: SessionContext = DEFAULT_SESSION_CONTEXT,
+  preference?: WordCountPreference,
 ): TypingSessionController => {
   // The idle cap is a rule of word-count practice: see IDLE_GAP_CAP_MS.
   const engine = useMemo(() => createTypingEngine({ maxGapMs: IDLE_GAP_CAP_MS }), [])
@@ -165,10 +184,18 @@ export const useTypingSession = (
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [sequences, setSequences] = useState<SequenceReport | null>(null)
   const [drillOutcome, setDrillOutcome] = useState<DrillOutcome | null>(null)
-  const [wordCount, setWordCountState] = useState<WordCount>(DEFAULT_WORD_COUNT)
+  const initialWordCount = preference?.initial ?? DEFAULT_WORD_COUNT
+  const [wordCount, setWordCountState] = useState<WordCount>(initialWordCount)
   const [target, setTarget] = useState<SessionTarget>(() =>
-    provider.provide({ wordCount: DEFAULT_WORD_COUNT }),
+    provider.provide({ wordCount: initialWordCount }),
   )
+
+  // A ref for the same reason as the context above: the callback may be rebuilt
+  // by the caller on any render, and nothing here should re-subscribe for it.
+  const rememberRef = useRef(preference?.remember)
+  useEffect(() => {
+    rememberRef.current = preference?.remember
+  }, [preference?.remember])
 
   const loadTest = useCallback(
     (count: WordCount) => {
@@ -190,6 +217,7 @@ export const useTypingSession = (
     (count: WordCount) => {
       setWordCountState(count)
       loadTest(count)
+      rememberRef.current?.(count)
     },
     [loadTest],
   )

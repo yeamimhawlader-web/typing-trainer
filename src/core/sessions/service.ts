@@ -30,6 +30,8 @@ export interface SessionService {
   getRecent(limit?: number): Promise<readonly TypingSession[]>
   /** Newest first. */
   getAll(): Promise<readonly TypingSession[]>
+  /** How many sessions are stored in total. */
+  count(): Promise<number>
   remove(id: SessionId): Promise<void>
   clear(): Promise<void>
 }
@@ -41,6 +43,7 @@ export const createSessionService = (
   getById: (id) => repository.getById(id),
   getRecent: (limit = DEFAULT_RECENT_LIMIT) => repository.getRecent(limit),
   getAll: () => repository.getAll(),
+  count: () => repository.count(),
   remove: (id) => repository.remove(id),
   clear: () => repository.clear(),
 })

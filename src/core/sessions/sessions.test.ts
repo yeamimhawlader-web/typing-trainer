@@ -226,16 +226,20 @@ describe.each(adapters)('SessionRepository over %s', (_name, createAdapter) => {
     expect(all.map((session) => session.id)).toEqual(['session-2', 'session-0'])
   })
 
-  it('ignores a corrupt index instead of failing to read', async () => {
+  it('rebuilds a corrupt index from the records instead of hiding them', async () => {
+    // This test used to assert that a corrupt index made history read as empty
+    // while the record sat untouched — the exact behaviour that let the next
+    // save orphan it for good. Records are the history; the index is rebuilt.
     const adapter = createAdapter()
     const repo = createSessionRepository(adapter)
     await repo.save(makeSession())
 
     await adapter.write('session-index', 'not an array')
 
-    await expect(repo.getAll()).resolves.toEqual([])
-    // The record itself is untouched and still directly addressable.
-    await expect(repo.getById(sessionId('session-1'))).resolves.not.toBeNull()
+    expect((await repo.getAll()).map((session) => session.id)).toEqual(['session-1'])
+    await expect(adapter.read('session-index')).resolves.toEqual([
+      { id: 'session-1', completedAt: makeSession().completedAt },
+    ])
   })
 
   it('drops index entries whose record has gone missing', async () => {
@@ -444,9 +448,13 @@ describe('SessionService', () => {
   const createService = () =>
     createSessionService(createSessionRepository(createMemoryAdapter()))
 
-  it('exposes exactly the six operations the UI needs', () => {
+  it('exposes exactly the seven operations the UI needs', () => {
+    // `count` was added so the history page can say how many tests exist when
+    // it lists only the most recent, instead of calling a page of fifty the
+    // whole history.
     expect(Object.keys(createService()).sort()).toEqual([
       'clear',
+      'count',
       'getAll',
       'getById',
       'getRecent',
@@ -492,5 +500,102 @@ describe('SessionService', () => {
     await service.clear()
 
     await expect(service.getAll()).resolves.toEqual([])
+  })
+})
+
+describe.each(adapters)('index recovery over %s', (_name, createAdapter) => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  /** Writes records directly, the way they would sit after an index was lost. */
+  const writeRecords = async (adapter: StorageAdapter, sessions: readonly TypingSession[]) => {
+    await Promise.all(sessions.map((session) => adapter.write(`session:${session.id}`, session)))
+  }
+
+  it('rebuilds a missing index from the records present, newest first', async () => {
+    const adapter = createAdapter()
+    await writeRecords(adapter, makeSeries(3))
+    const repo = createSessionRepository(adapter)
+
+    expect((await repo.getAll()).map((s) => s.id)).toEqual(['session-2', 'session-1', 'session-0'])
+  })
+
+  it('rebuilds an index that is present but not a list', async () => {
+    const adapter = createAdapter()
+    await writeRecords(adapter, makeSeries(2))
+    await adapter.write('session-index', { broken: true })
+
+    const repo = createSessionRepository(adapter)
+    expect(await repo.getAll()).toHaveLength(2)
+  })
+
+  it('keeps valid entries and recovers the rest when an index is partly damaged', async () => {
+    const adapter = createAdapter()
+    await writeRecords(adapter, makeSeries(3))
+    await adapter.write('session-index', [
+      { id: 'session-2', completedAt: 3_000 },
+      'garbage',
+      { id: 42 },
+    ])
+
+    const repo = createSessionRepository(adapter)
+    expect((await repo.getAll()).map((s) => s.id)).toEqual(['session-2', 'session-1', 'session-0'])
+  })
+
+  it('puts back records a valid index has lost track of', async () => {
+    const adapter = createAdapter()
+    const repo = createSessionRepository(adapter)
+    await Promise.all(makeSeries(2).map((s) => repo.save(s)))
+    // A third record exists on disk that the index never heard of.
+    await writeRecords(adapter, [makeSession({ id: sessionId('orphan'), completedAt: timestamp(9_000) })])
+
+    expect((await repo.getAll()).map((s) => s.id)).toEqual(['orphan', 'session-1', 'session-0'])
+  })
+
+  it('ignores malformed records rather than guessing at them', async () => {
+    const adapter = createAdapter()
+    await writeRecords(adapter, makeSeries(2))
+    await adapter.write('session:broken', { id: 'broken', metrics: 'nonsense' })
+    await adapter.write('session-index', 'not an array')
+
+    const repo = createSessionRepository(adapter)
+    expect((await repo.getAll()).map((s) => s.id)).toEqual(['session-1', 'session-0'])
+    expect(JSON.stringify(await adapter.read('session-index'))).not.toContain('broken')
+  })
+
+  it('never lets a save after corruption orphan the existing history', async () => {
+    // The audit's scenario exactly: a corrupt index, then one more test saved.
+    // Before recovery, that save wrote an index of one and stranded the rest.
+    const adapter = createAdapter()
+    const repo = createSessionRepository(adapter)
+    await Promise.all(makeSeries(3).map((s) => repo.save(s)))
+
+    await adapter.write('session-index', 'this is not an array')
+    await repo.save(makeSession({ id: sessionId('new'), completedAt: timestamp(10_000) }))
+
+    expect((await repo.getAll()).map((s) => s.id)).toEqual(['new', 'session-2', 'session-1', 'session-0'])
+  })
+
+  it('writes nothing when the index already matches the records', async () => {
+    const adapter = createAdapter()
+    const repo = createSessionRepository(adapter)
+    await Promise.all(makeSeries(2).map((s) => repo.save(s)))
+
+    const write = vi.spyOn(adapter, 'write')
+    await repo.getAll()
+    await repo.getRecent(1)
+
+    expect(write).not.toHaveBeenCalled()
+  })
+
+  it('still removes a recovered record when deleted', async () => {
+    const adapter = createAdapter()
+    await writeRecords(adapter, makeSeries(2))
+    const repo = createSessionRepository(adapter)
+
+    await repo.remove(sessionId('session-0'))
+
+    expect((await repo.getAll()).map((s) => s.id)).toEqual(['session-1'])
   })
 })

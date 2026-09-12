@@ -7,7 +7,7 @@
  * visible change to the page.
  */
 
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 
 import { settingsStore, useSettingsStore } from '../state/settings.store.ts'
 
@@ -18,7 +18,9 @@ export const useSettingsBootstrap = (): void => {
     void settingsStore.getState().hydrate()
   }, [])
 
-  useEffect(() => {
+  // A layout effect, so the theme is on the page before the first paint rather
+  // than one frame after it.
+  useLayoutEffect(() => {
     document.documentElement.dataset['theme'] = theme
   }, [theme])
 }

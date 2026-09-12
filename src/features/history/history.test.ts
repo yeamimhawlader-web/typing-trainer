@@ -133,6 +133,83 @@ describe('history store', () => {
   })
 })
 
+describe('undo', () => {
+  let service: SessionService
+
+  beforeEach(() => {
+    service = createSessionService(createSessionRepository(createMemoryAdapter()))
+  })
+
+  it('offers to restore a deleted session, and does', async () => {
+    await Promise.all([0, 1].map((index) => service.save(makeSession(index))))
+    const store = createHistoryStore(service)
+    await store.getState().load()
+
+    await store.getState().remove(sessionId('session-1'))
+    expect(store.getState().lastDeleted?.sessions.map((s) => s.id)).toEqual(['session-1'])
+
+    await store.getState().undo()
+
+    expect(store.getState().lastDeleted).toBeNull()
+    expect(store.getState().sessions.map((s) => s.id)).toEqual(['session-1', 'session-0'])
+    await expect(service.getById(sessionId('session-1'))).resolves.not.toBeNull()
+  })
+
+  it('restores everything after clearing the whole history', async () => {
+    await Promise.all([0, 1, 2].map((index) => service.save(makeSession(index))))
+    const store = createHistoryStore(service)
+    await store.getState().load()
+
+    await store.getState().clear()
+    expect(store.getState().sessions).toEqual([])
+    expect(store.getState().lastDeleted?.sessions).toHaveLength(3)
+
+    await store.getState().undo()
+
+    expect(store.getState().sessions).toHaveLength(3)
+    expect(store.getState().total).toBe(3)
+  })
+
+  it('forgets the deletion when dismissed, leaving it deleted', async () => {
+    await service.save(makeSession(0))
+    const store = createHistoryStore(service)
+    await store.getState().load()
+
+    await store.getState().remove(sessionId('session-0'))
+    store.getState().dismissUndo()
+    await store.getState().undo()
+
+    await expect(service.getAll()).resolves.toEqual([])
+  })
+})
+
+describe('history totals', () => {
+  it('reports the full count when the list shows only the most recent', async () => {
+    const service = createSessionService(createSessionRepository(createMemoryAdapter()))
+    await Promise.all(Array.from({ length: 53 }, (_, index) => service.save(makeSession(index))))
+    const store = createHistoryStore(service)
+
+    await store.getState().load()
+
+    expect(store.getState().sessions).toHaveLength(50)
+    expect(store.getState().total).toBe(53)
+  })
+
+  it('fills the gap a deletion leaves in a full list', async () => {
+    const service = createSessionService(createSessionRepository(createMemoryAdapter()))
+    await Promise.all(Array.from({ length: 52 }, (_, index) => service.save(makeSession(index))))
+    const store = createHistoryStore(service)
+    await store.getState().load()
+
+    await store.getState().remove(sessionId('session-51'))
+
+    // Still fifty shown: the next older session moved up instead of the list
+    // quietly shrinking to forty-nine until a reload.
+    expect(store.getState().sessions).toHaveLength(50)
+    expect(store.getState().total).toBe(51)
+  })
+})
+
 describe('history formatting', () => {
   it('writes short durations in seconds', () => {
     expect(formatDuration(7_400)).toBe('7s')

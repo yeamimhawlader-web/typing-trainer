@@ -24,7 +24,7 @@ import { TestConfig } from './components/TestConfig.tsx'
 import { TestResult } from './components/TestResult.tsx'
 import { TypingSurface } from './components/TypingSurface.tsx'
 import { useEngineValue } from './hooks/useEngineValue.ts'
-import { useTypingSession } from './hooks/useTypingSession.ts'
+import { useTypingSession, type WordCountPreference } from './hooks/useTypingSession.ts'
 
 import styles from './TypingTest.module.css'
 
@@ -78,6 +78,8 @@ export interface TypingTestProps {
   readonly telemetry?: TelemetryService
   /** Present only when this screen is a targeted drill. */
   readonly drill?: DrillSettings | null
+  /** The remembered practice length, for ordinary practice. */
+  readonly wordCountPreference?: WordCountPreference
 }
 
 export const TypingTest = ({
@@ -85,6 +87,7 @@ export const TypingTest = ({
   service,
   telemetry,
   drill = null,
+  wordCountPreference,
 }: TypingTestProps = {}) => {
   // One provider for the life of the screen. Swapping in quotes or pasted text
   // later is a change here and nowhere else.
@@ -112,7 +115,13 @@ export const TypingTest = ({
     saveState,
     sequences,
     drillOutcome,
-  } = useTypingSession(provider ?? fallbackProvider, service, telemetry, context)
+  } = useTypingSession(
+    provider ?? fallbackProvider,
+    service,
+    telemetry,
+    context,
+    wordCountPreference,
+  )
 
   const characters = useMemo(() => toCharacters(target.text), [target])
 

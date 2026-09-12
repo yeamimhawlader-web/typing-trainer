@@ -6,3 +6,6 @@ export type { ButtonLinkProps } from './Button/ButtonLink.tsx'
 
 export { Page } from './Page/Page.tsx'
 export type { PageProps } from './Page/Page.tsx'
+
+export { ConfirmAction } from './ConfirmAction/ConfirmAction.tsx'
+export type { ConfirmActionProps } from './ConfirmAction/ConfirmAction.tsx'

@@ -656,6 +656,7 @@ describe('telemetry capture', () => {
       },
       getBySessionId: () => Promise.resolve(null),
       getMany: () => Promise.resolve([]),
+      getStored: () => Promise.resolve(null),
       remove: () => Promise.resolve(),
       clear: () => Promise.resolve(),
     }
@@ -682,6 +683,7 @@ describe('telemetry capture', () => {
       save: () => Promise.reject(new Error('quota exceeded')),
       getBySessionId: () => Promise.resolve(null),
       getMany: () => Promise.resolve([]),
+      getStored: () => Promise.resolve(null),
       remove: () => Promise.resolve(),
       clear: () => Promise.resolve(),
     }
@@ -872,5 +874,25 @@ describe('starting a test', () => {
 
     expect(screen.queryByText(/start typing to begin/i)).not.toBeInTheDocument()
     expect(characterSpans()[0]?.className).toMatch(/correct/)
+  })
+})
+
+describe('remembered practice length', () => {
+  it('opens at the remembered length', () => {
+    renderTest({ wordCountPreference: { initial: 60, remember: () => undefined } })
+
+    expect(renderedText().split(' ')).toHaveLength(60)
+    expect(screen.getByRole('button', { name: '60' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('reports a new choice so it can be remembered', async () => {
+    const user = userEvent.setup()
+    const remembered: number[] = []
+    renderTest({ wordCountPreference: { initial: 30, remember: (count) => remembered.push(count) } })
+
+    await user.click(screen.getByRole('button', { name: '15' }))
+
+    expect(remembered).toEqual([15])
+    expect(renderedText().split(' ')).toHaveLength(15)
   })
 })
