@@ -818,3 +818,59 @@ describe('deleting a word from the keyboard', () => {
     expect(screen.getByText('100%')).toBeInTheDocument()
   })
 })
+
+describe('recovering from a normal mistake', () => {
+  const statesFrom = (start: number, length: number): string[] =>
+    characterSpans()
+      .slice(start, start + length)
+      .map((span) => (span.className.match(/(correct|incorrect|corrected)/)?.[1] ?? 'pending'))
+
+  it('keeps an extra letter from making the next word wrong', async () => {
+    const user = userEvent.setup()
+    renderTest()
+
+    const [first = '', second = ''] = renderedText().split(' ')
+    // One extra letter on the end of the first word, then the second word
+    // typed correctly.
+    await user.keyboard(`${first}x ${second}`)
+
+    expect(statesFrom(first.length + 1, second.length).every((s) => s === 'correct')).toBe(true)
+    expect(statesFrom(first.length, 1)).toEqual(['incorrect'])
+  })
+
+  it('keeps a dropped letter from making the next word wrong', async () => {
+    const user = userEvent.setup()
+    renderTest()
+
+    const [first = '', second = ''] = renderedText().split(' ')
+    // Drop the last letter of the first word.
+    await user.keyboard(`${first.slice(0, -1)} ${second}`)
+
+    expect(statesFrom(first.length + 1, second.length).every((s) => s === 'correct')).toBe(true)
+  })
+
+  it('does not start the test on a stray space', async () => {
+    const user = userEvent.setup()
+    renderTest()
+
+    await user.keyboard(' ')
+
+    expect(screen.getByText(/start typing to begin/i)).toBeInTheDocument()
+  })
+})
+
+describe('starting a test', () => {
+  it('starts on a first letter that happens to be "s"', async () => {
+    // Guards a regression found while adding the stray-space rule: a whitespace
+    // check that lost its backslash matched the letter s instead.
+    const user = userEvent.setup()
+    renderTest({
+      provider: { id: 'fixed', label: 'Fixed', provide: () => ({ text: 'some text here', sourceId: 'fixed' }) },
+    })
+
+    await user.keyboard('s')
+
+    expect(screen.queryByText(/start typing to begin/i)).not.toBeInTheDocument()
+    expect(characterSpans()[0]?.className).toMatch(/correct/)
+  })
+})

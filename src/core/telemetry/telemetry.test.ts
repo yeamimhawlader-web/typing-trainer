@@ -848,3 +848,70 @@ describe('word-wise deletion', () => {
     expect(sequences.ranked.find((entry) => entry.sequence === 'wo')?.observations).toBe(2)
   })
 })
+
+describe('word-synchronised input in telemetry', () => {
+  it('records an extra at the boundary and credits the backspace that removes it', () => {
+    // "thee cat": the second e is an extra on the space at index 3, removed by
+    // one backspace, then the space is typed correctly.
+    const { telemetry } = run('the cat', ['t', 'h', 'e', 'e', 'Backspace', ' ', 'c', 'a', 't'])
+
+    expect(telemetry.corrections).toHaveLength(1)
+    const [extra] = telemetry.corrections
+    expect(extra?.index).toBe(3)
+    expect(extra?.typedKey).toBe('e')
+    expect(extra?.expectedKey).toBe(' ')
+    expect(extra?.backspaces).toBe(1)
+    expect(extra?.outcome).toBe('corrected')
+  })
+
+  it('records an early space as one error at the letter it replaced', () => {
+    const { telemetry } = run('quick fox', ['q', 'u', 'i', ' ', 'f', 'o', 'x'])
+
+    expect(telemetry.corrections).toHaveLength(1)
+    expect(telemetry.corrections[0]).toMatchObject({ index: 3, typedKey: ' ', expectedKey: 'c', outcome: 'uncorrected' })
+    expect(telemetry.summary.characterKeystrokes).toBe(7)
+  })
+
+  it('credits backspaces that walk back into missed letters', () => {
+    // Early space after "qui", then three backspaces reach the c, which is
+    // retyped: the error at index 3 was noticed and put right.
+    const { telemetry } = run('quick fox', ['q', 'u', 'i', ' ', 'Backspace', 'Backspace', 'Backspace', 'c', 'k', ' ', 'f', 'o', 'x'])
+
+    const [early] = telemetry.corrections
+    expect(early?.index).toBe(3)
+    expect(early?.backspaces).toBe(1)
+    expect(early?.outcome).toBe('corrected')
+  })
+
+  it('keeps the next word fully measurable after a contained error', () => {
+    // An extra in "thee" must not stop "cat" contributing clean transitions.
+    const { telemetry } = run('the cat', ['t', 'h', 'e', 'e', ' ', 'c', 'a', 't'])
+    const clean = analyseSlowSequences(telemetry, { minimumObservations: 1 })
+      .ranked.map((entry) => entry.sequence)
+      .sort()
+
+    // th and he from "the"; ca and at from "cat". Nothing paired across the extra.
+    expect(clean).toEqual(['at', 'ca', 'he', 'th'])
+  })
+
+  it('does not pair a transition across a skipped word', () => {
+    const { telemetry } = run('quick fox', ['q', 'u', 'i', ' ', 'f', 'o', 'x'])
+    const clean = analyseSlowSequences(telemetry, { minimumObservations: 1 })
+      .ranked.map((entry) => entry.sequence)
+      .sort()
+
+    expect(clean).toEqual(['fo', 'ox', 'qu', 'ui'])
+  })
+
+  it('survives the storage round trip unchanged', () => {
+    const script = ['t', 'h', 'e', 'e', 'e', 'Backspace', ' ', 'c', 'a', ' ', 'd', 'o', 'g']
+    const { keystrokes } = run('the cat dog', script)
+
+    const restored = decodeTelemetry(encodeTelemetry(keystrokes), 'the cat dog')
+
+    expect(restored).toEqual(keystrokes)
+    expect(deriveSessionTelemetry(restored, 'the cat dog')).toEqual(
+      deriveSessionTelemetry(keystrokes, 'the cat dog'),
+    )
+  })
+})

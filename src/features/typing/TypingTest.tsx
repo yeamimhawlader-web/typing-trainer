@@ -31,13 +31,21 @@ import styles from './TypingTest.module.css'
 /** Subscribes to status alone, so the hint line does not hold up the tree. */
 const SessionHint = ({ engine }: { engine: TypingEngine }) => {
   const status = useEngineValue(engine, (snapshot) => snapshot.status)
+  const idle = useEngineValue(engine, (snapshot) => snapshot.idle)
 
   // Once a test is finished the results panel carries the instructions, so this
   // line gets out of the way rather than repeating them.
   if (status === 'completed') return null
 
   if (status === 'running') {
-    return (
+    return idle ? (
+      // The clock stopped counting when the idle cap ran out; saying so is what
+      // makes a frozen timer read as intended rather than as a fault.
+      <p className={styles.hint}>
+        Paused — keep typing to continue, or <kbd className={styles.key}>Tab</kbd> to
+        restart.
+      </p>
+    ) : (
       <p className={styles.hint}>
         <kbd className={styles.key}>Tab</kbd> to restart.
       </p>

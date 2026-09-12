@@ -80,6 +80,11 @@ export interface EngineSnapshot {
   /** Speed counting every character typed, right or wrong. */
   readonly rawWpm: Wpm
   readonly accuracy: Accuracy
+  /**
+   * True while a running session has had no input for longer than the gap
+   * cap, so the clock has stopped counting. Always false without a cap.
+   */
+  readonly idle: boolean
 }
 
 /**
@@ -130,7 +135,35 @@ export interface TypingEngineOptions {
   readonly isComplete?: CompletionPolicy
   /** Overridable so tests can assert on a fixed session id. */
   readonly createSessionId?: () => SessionId
+  /**
+   * Longest gap between inputs that is charged to the session clock.
+   *
+   * A longer gap counts as exactly this long; the rest is treated as paused.
+   * Unset means no cap, which is what a timed mode needs — its clock has to run
+   * whether or not anyone is typing. See `IDLE_GAP_CAP_MS` for the value the
+   * word-count screen uses.
+   */
+  readonly maxGapMs?: number
 }
+
+/**
+ * The idle rule for ordinary practice: any single gap between keystrokes counts
+ * as at most three seconds.
+ *
+ * Three seconds is long enough that no real hesitation reaches it — at 130 WPM
+ * a keystroke gap is under a tenth of a second, and a pause to find a word or
+ * shift hands is well under two — and short enough that walking away mid-test
+ * cannot quietly wreck a result. Before this, eight seconds away saved a
+ * 130 WPM test as 80 WPM with nothing to show why.
+ *
+ * A cap rather than discarding the test, and a cap rather than stopping the
+ * clock the moment typing stops: the test stays valid, real hesitation is
+ * still counted in full, and the most an interruption can cost is three
+ * seconds however long it lasted. Applied to every gap, including the one
+ * after a background tab, because it is computed from timestamps when the next
+ * key arrives rather than from a timer that a hidden tab may not run.
+ */
+export const IDLE_GAP_CAP_MS = 3_000
 
 export interface TypingEngine {
   /** Loads a target and moves to 'running', discarding any previous session. */

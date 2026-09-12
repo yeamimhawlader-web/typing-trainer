@@ -49,8 +49,12 @@ import {
   type TypingEngineOptions,
   type Unsubscribe,
 } from './types.ts'
-import { computeWordRanges, findCurrentWordIndex, type WordRange,
+import { ruleForCharacter } from './input-rules.ts'
+import {
+  computeWordRanges,
+  findCurrentWordIndex,
   findWordDeleteIndex,
+  type WordRange,
 } from './words.ts'
 
 /** Ends the session once the last character has been typed. */
@@ -80,8 +84,17 @@ const defaultCreateSessionId = (): SessionId => {
   return toSessionId(`session-${Date.now()}-${Math.random().toString(36).slice(2)}`)
 }
 
-/** A key is typeable when it is exactly one code point: 'a', 'é', '👍'. */
-const isTypeableCharacter = (key: string): boolean => toCharacters(key).length === 1
+/**
+ * A key is typeable when it is one code point that could appear in text: 'a',
+ * 'é', '👍', a space.
+ *
+ * Control characters ('\r', '\t', NUL, ESC, DEL), invisible format characters
+ * such as a zero-width space, and a combining mark on its own are not. No
+ * physical keyboard sends them as a key value, and accepting them used to mark
+ * an invisible character wrong.
+ */
+export const isTypeableCharacter = (key: string): boolean =>
+  toCharacters(key).length === 1 && !/[\p{Cc}\p{Cf}\p{M}]/u.test(key)
 
 interface EngineState {
   status: SessionStatus
@@ -93,6 +106,11 @@ interface EngineState {
   characterStates: CharacterState[]
   /** Whether a position has ever been typed wrongly. Survives a backspace. */
   everWrong: boolean[]
+  /**
+   * Extra characters typed at each word boundary, where a space was expected.
+   * Almost always zero; parallel to `characters` for a constant-time lookup.
+   */
+  extras: number[]
   cursorIndex: number
   keystrokes: Keystroke[]
   sessionId: SessionId | null
@@ -103,6 +121,8 @@ interface EngineState {
   runStartedAt: number | null
   /** Latest timestamp the engine has been given. Never moves backwards. */
   lastKnownAt: number
+  /** Timestamp of the last real input, for the idle cap. */
+  lastInputAt: number
   typedCount: number
   correctKeystrokes: number
   errorCount: number
@@ -124,6 +144,7 @@ const createState = (target: SessionTarget): EngineState => {
     wordEnds: new Map(words.map((word) => [word.end, word])),
     characterStates: characters.map(() => 'pending'),
     everWrong: characters.map(() => false),
+    extras: characters.map(() => 0),
     cursorIndex: 0,
     keystrokes: [],
     sessionId: null,
@@ -131,6 +152,7 @@ const createState = (target: SessionTarget): EngineState => {
     accumulatedMs: 0,
     runStartedAt: null,
     lastKnownAt: 0,
+    lastInputAt: 0,
     typedCount: 0,
     correctKeystrokes: 0,
     errorCount: 0,
@@ -142,6 +164,7 @@ const createState = (target: SessionTarget): EngineState => {
 export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEngine => {
   const isComplete = options.isComplete ?? defaultIsComplete
   const createSessionId = options.createSessionId ?? defaultCreateSessionId
+  const maxGapMs = options.maxGapMs ?? null
 
   let state = createState(emptyTarget)
   let cachedSnapshot: EngineSnapshot | null = null
@@ -161,16 +184,59 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
     for (const listener of eventListeners) listener(event)
   }
 
-  /** Running time so far, excluding paused intervals. */
+  /**
+   * The latest moment that counts as typing time.
+   *
+   * Without a gap cap, simply the latest timestamp seen. With one, never more
+   * than the cap past the last input — a typist who has stopped for longer is
+   * not typing, and the time they spend away is not charged to their speed.
+   */
+  const countedNow = (): number =>
+    maxGapMs === null
+      ? state.lastKnownAt
+      : Math.min(state.lastKnownAt, state.lastInputAt + maxGapMs)
+
+  /** Running time so far, excluding paused intervals and capped idle gaps. */
   const elapsed = (): number =>
     state.runStartedAt === null
       ? state.accumulatedMs
-      : state.accumulatedMs + Math.max(0, state.lastKnownAt - state.runStartedAt)
+      : state.accumulatedMs + Math.max(0, countedNow() - state.runStartedAt)
 
   /** Clamped so an out-of-order timestamp cannot rewind the session clock. */
   const advanceClock = (at: Timestamp): void => {
     state.lastKnownAt = Math.max(state.lastKnownAt, at)
     invalidate()
+  }
+
+  /**
+   * Notes that the typist pressed something, after the clock has advanced.
+   *
+   * When the gap since the previous input is longer than the cap, the running
+   * segment is banked as it stood when the cap ran out and a new segment starts
+   * now. The interval in between is treated exactly as if it had been paused —
+   * which is what makes the rule survive a background tab, where the tick that
+   * would otherwise notice the idle time may not run for a minute.
+   */
+  const registerInput = (): void => {
+    if (
+      maxGapMs !== null &&
+      state.runStartedAt !== null &&
+      state.lastKnownAt - state.lastInputAt > maxGapMs
+    ) {
+      state.accumulatedMs = elapsed()
+      state.runStartedAt = state.lastKnownAt
+    }
+
+    state.lastInputAt = state.lastKnownAt
+    invalidate()
+  }
+
+  /** The state a position takes when the key typed at it was right. */
+  const stateWhenCorrect = (index: number): CharacterState => {
+    // Extras still standing at a boundary mean the word is not right, however
+    // correctly its space was then typed.
+    if ((state.extras[index] ?? 0) > 0) return 'incorrect'
+    return state.everWrong[index] === true ? 'corrected' : 'correct'
   }
 
   const buildSnapshot = (): EngineSnapshot => {
@@ -206,6 +272,10 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
       netWpm: calculateWpm(correctCount, elapsedMs),
       rawWpm: calculateWpm(state.typedCount, elapsedMs),
       accuracy: calculateAccuracy(state.correctKeystrokes, state.typedCount),
+      idle:
+        state.status === 'running' &&
+        maxGapMs !== null &&
+        state.lastKnownAt - state.lastInputAt > maxGapMs,
     }
   }
 
@@ -268,6 +338,16 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
     emit({ type: 'keystroke', keystroke, at })
   }
 
+  /**
+   * One character keystroke, under the word-synchronised rules in
+   * `input-rules.ts`.
+   *
+   * Every keystroke that counts is recorded once, at the position the cursor was
+   * on, whatever the rule then does with the cursor. That is what keeps accuracy
+   * ("correct keystrokes over all keystrokes"), raw speed and the error count
+   * meaning exactly what they meant before: an early space is one wrong
+   * keystroke, an extra letter is one wrong keystroke.
+   */
   const handleCharacter = (key: string, at: Timestamp): void => {
     const index = state.cursorIndex
     const expected = state.characters[index]
@@ -276,20 +356,52 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
     // recorded. Reachable when a mode keeps the session open at the end.
     if (expected === undefined) return
 
+    const rule = ruleForCharacter(state.characters, state.words, index, key)
+
+    // A space before any letter of the word is not an attempt at anything.
+    if (rule.kind === 'ignore') return
+
     const correct = key === expected
 
     state.typedCount += 1
     if (correct) {
       state.correctKeystrokes += 1
-      state.characterStates[index] =
-        state.everWrong[index] === true ? 'corrected' : 'correct'
+      state.characterStates[index] = stateWhenCorrect(index)
     } else {
       state.errorCount += 1
       state.everWrong[index] = true
       state.characterStates[index] = 'incorrect'
     }
 
-    state.cursorIndex = index + 1
+    let completedWord: WordRange | undefined
+
+    switch (rule.kind) {
+      case 'advance':
+        state.cursorIndex = index + 1
+        completedWord = state.wordEnds.get(state.cursorIndex)
+        break
+
+      case 'extra':
+        // The cursor holds on the boundary, so the next word is untouched.
+        state.extras[index] = (state.extras[index] ?? 0) + 1
+        break
+
+      case 'skip-word':
+        // The letters never reached are missed. They count as wrong and as
+        // ever-wrong, so retyping them later shows as a correction.
+        for (let position = index + 1; position < rule.missedEnd; position += 1) {
+          state.everWrong[position] = true
+          state.characterStates[position] = 'incorrect'
+        }
+        // The space itself did separate the words.
+        for (let position = rule.missedEnd; position < rule.nextWordStart; position += 1) {
+          state.characterStates[position] = stateWhenCorrect(position)
+        }
+        state.cursorIndex = rule.nextWordStart
+        completedWord = state.words[findCurrentWordIndex(state.words, index)]
+        break
+    }
+
     invalidate()
 
     recordKeystroke(
@@ -304,20 +416,38 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
       at,
     )
 
-    const crossedWord = state.wordEnds.get(state.cursorIndex)
-    if (crossedWord !== undefined) {
-      emit({ type: 'word-completed', word: crossedWord, at })
+    if (completedWord !== undefined) {
+      emit({ type: 'word-completed', word: completedWord, at })
     }
   }
 
+  /**
+   * One backspace.
+   *
+   * Extras go first: while the cursor is holding on a boundary with extra
+   * characters, a backspace removes one of them and the cursor stays put, the
+   * way deleting trailing garbage works in any editor. Otherwise it steps back
+   * one position as it always did — and stepping back over a space that still
+   * has extras in front of it leaves those extras standing.
+   */
   const handleBackspace = (at: Timestamp): void => {
-    // At the start there is nothing to delete. Not an error, just nothing —
-    // so no keystroke is recorded and no metric moves.
-    if (state.cursorIndex <= 0) return
+    const here = state.cursorIndex
+    let index: number
 
-    const index = state.cursorIndex - 1
-    state.cursorIndex = index
-    state.characterStates[index] = 'pending'
+    if ((state.extras[here] ?? 0) > 0) {
+      state.extras[here] = (state.extras[here] ?? 1) - 1
+      index = here
+      state.characterStates[here] = (state.extras[here] ?? 0) > 0 ? 'incorrect' : 'pending'
+    } else {
+      // At the start there is nothing to delete. Not an error, just nothing —
+      // so no keystroke is recorded and no metric moves.
+      if (here <= 0) return
+
+      index = here - 1
+      state.cursorIndex = index
+      state.characterStates[index] = (state.extras[index] ?? 0) > 0 ? 'incorrect' : 'pending'
+    }
+
     invalidate()
 
     // `typedCount` and `correctKeystrokes` deliberately do not move. Accuracy
@@ -344,18 +474,19 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
    * timestamp would put a run of zero-millisecond gaps into the very rhythm
    * data this engine exists to produce.
    *
-   * How much it removed is not lost by recording one event. The index is where
-   * the cursor landed, and the cursor before it is known from the event before,
-   * so the span is recoverable from the log — which is how the telemetry layer
-   * attributes it to every position it cleared.
+   * Extras go with the word they belong to: from a boundary holding extra
+   * characters, one press clears the word and everything typed after it.
    */
   const handleWordDelete = (at: Timestamp): void => {
-    if (state.cursorIndex <= 0) return
+    const here = state.cursorIndex
+    const holdingExtras = (state.extras[here] ?? 0) > 0
 
-    const index = findWordDeleteIndex(state.characters, state.cursorIndex)
-    if (index >= state.cursorIndex) return
+    const index = findWordDeleteIndex(state.characters, here)
+    if (index >= here && !holdingExtras) return
 
-    for (let position = index; position < state.cursorIndex; position += 1) {
+    const end = holdingExtras ? here + 1 : here
+    for (let position = index; position < end; position += 1) {
+      state.extras[position] = 0
       state.characterStates[position] = 'pending'
     }
 
@@ -389,6 +520,7 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
       state.sessionId = createSessionId()
       state.startedAt = at
       state.lastKnownAt = at
+      state.lastInputAt = at
       state.runStartedAt = at
       invalidate()
 
@@ -406,6 +538,7 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
       if (!backspace && !isTypeableCharacter(key)) return
 
       advanceClock(at)
+      registerInput()
 
       if (backspace) handleBackspace(at)
       else handleCharacter(key, at)
@@ -418,6 +551,7 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
       if (state.status !== 'running') return
 
       advanceClock(at)
+      registerInput()
       handleWordDelete(at)
       checkCompletion(at)
       notify()
@@ -449,6 +583,8 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
 
       advanceClock(at)
       state.runStartedAt = state.lastKnownAt
+      // A deliberate resume starts a fresh idle window.
+      state.lastInputAt = state.lastKnownAt
       state.status = 'running'
       invalidate()
 

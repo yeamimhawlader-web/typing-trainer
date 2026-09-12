@@ -6,9 +6,12 @@
  * something from those layers, the dependency is pointing the wrong way.
  */
 
-export { createTypingEngine } from './engine.ts'
+export { createTypingEngine, isTypeableCharacter } from './engine.ts'
 
-export { BACKSPACE } from './types.ts'
+export { cursorAfterCharacter, ruleForCharacter } from './input-rules.ts'
+export type { CharacterRule } from './input-rules.ts'
+
+export { BACKSPACE, IDLE_GAP_CAP_MS } from './types.ts'
 export type {
   CompletionPolicy,
   EngineEvent,

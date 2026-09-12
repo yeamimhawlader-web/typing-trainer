@@ -10,7 +10,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { BACKSPACE, createTypingEngine, type TypingEngine } from '@core/engine'
+import {
+  BACKSPACE,
+  createTypingEngine,
+  IDLE_GAP_CAP_MS,
+  isTypeableCharacter,
+  type TypingEngine,
+} from '@core/engine'
 import {
   createTypingSession,
   DEFAULT_SESSION_CONTEXT,
@@ -139,7 +145,8 @@ export const useTypingSession = (
   telemetry: TelemetryService = defaultTelemetryService,
   context: SessionContext = DEFAULT_SESSION_CONTEXT,
 ): TypingSessionController => {
-  const engine = useMemo(() => createTypingEngine(), [])
+  // The idle cap is a rule of word-count practice: see IDLE_GAP_CAP_MS.
+  const engine = useMemo(() => createTypingEngine({ maxGapMs: IDLE_GAP_CAP_MS }), [])
 
   /**
    * Held in a ref rather than in the effect below's dependencies.
@@ -256,7 +263,9 @@ export const useTypingSession = (
       if (isControlActivation(event)) return
 
       const isBackspace = event.key === BACKSPACE
-      const isCharacter = Array.from(event.key).length === 1
+      // The engine's own definition, so a key the engine would ignore cannot
+      // start a test here.
+      const isCharacter = isTypeableCharacter(event.key)
       if (!isBackspace && !isCharacter) return
 
       // Space would scroll the page and Backspace can navigate back.
@@ -265,8 +274,10 @@ export const useTypingSession = (
       const at = resolveEventTime(event)
 
       if (status === 'idle') {
-        // First keystroke starts the test — no button to press first.
-        if (isBackspace) return
+        // First keystroke starts the test — no button to press first. Not a
+        // backspace, and not a space: before any letter a space is ignored by
+        // the engine, and starting the clock on it would charge time for nothing.
+        if (isBackspace || /\s/u.test(event.key)) return
         engine.start(target, at)
       }
 

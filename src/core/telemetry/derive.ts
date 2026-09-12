@@ -10,7 +10,12 @@
  * than being fast.
  */
 
-import { computeWordRanges, toCharacters, type WordRange } from '@core/engine'
+import {
+  computeWordRanges,
+  cursorAfterCharacter,
+  toCharacters,
+  type WordRange,
+} from '@core/engine'
 import { milliseconds, type Keystroke, type Milliseconds } from '@core/types'
 
 import type {
@@ -50,6 +55,8 @@ const buildWordLookup = (
 const deriveCorrections = (
   keystrokes: readonly Keystroke[],
   wordOf: Int32Array,
+  characters: readonly string[],
+  words: readonly WordRange[],
 ): readonly CorrectionTelemetry[] => {
   interface OpenError {
     readonly index: number
@@ -89,14 +96,27 @@ const deriveCorrections = (
    * plain backspace is simply the case where that span is one character wide,
    * which is why this generalises the old equality test rather than replacing
    * it with something different.
+   *
+   * A character does not always move the cursor on by one. An extra character
+   * at a word boundary leaves it where it was, and a space part-way through a
+   * word moves it to the next word, so the movement comes from the same rule the
+   * engine applied live rather than being assumed here.
+   *
+   * Sessions recorded before that rule existed always moved on by one, so for
+   * them a backspace straight after a letter typed on a space may be credited
+   * one position differently. Only the per-error backspace count and detection
+   * latency can be affected; no metric, ranking or drill figure reads them.
    */
   let cursor = 0
 
   for (const keystroke of keystrokes) {
     if (keystroke.kind === 'backspace') {
       for (const error of open) {
-        // Every position the deletion actually cleared, not just its last.
-        if (error.index < keystroke.index || error.index >= cursor) continue
+        // Every position the deletion actually cleared, not just its last. A
+        // backspace that removes an extra leaves the cursor where it was, so
+        // its span is at least the position it acted on.
+        const spanEnd = Math.max(cursor, keystroke.index + 1)
+        if (error.index < keystroke.index || error.index >= spanEnd) continue
         error.backspaces += 1
         error.firstBackspaceAt ??= keystroke.at
       }
@@ -104,7 +124,7 @@ const deriveCorrections = (
       continue
     }
 
-    cursor = keystroke.index + 1
+    cursor = cursorAfterCharacter(characters, words, keystroke.index, keystroke.key)
 
     if (keystroke.correct) {
       // Close every outstanding error on this position.
@@ -208,7 +228,7 @@ export const deriveSessionTelemetry = (
   const words = computeWordRanges(characters)
   const { wordOf, offsetOf } = buildWordLookup(characters, words)
 
-  const corrections = deriveCorrections(keystrokes, wordOf)
+  const corrections = deriveCorrections(keystrokes, wordOf, characters, words)
 
   // Positions a later correct keystroke landed on, so each error knows whether
   // it was eventually put right.
