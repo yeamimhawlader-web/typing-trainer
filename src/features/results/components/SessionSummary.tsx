@@ -51,7 +51,10 @@ const toSegments = (session: TypingSession): readonly CompositionSegment[] => {
   return [
     {
       key: 'correct',
-      label: 'Correct',
+      // Not "Correct": that word means currently correct everywhere on this
+      // screen, corrections included. This segment is the part that was right
+      // on the first try, and it plus Corrected is the Correct figure below.
+      label: 'First try',
       count: cleanlyCorrect,
       className: styles.segmentCorrect ?? '',
       swatch: styles.segmentCorrect ?? '',
@@ -77,14 +80,21 @@ const CompositionBar = ({ session }: { session: TypingSession }) => {
   const segments = toSegments(session)
   const total = Math.max(1, session.metrics.totalCharacters)
 
+  const count = (key: string): number =>
+    segments.find((segment) => segment.key === key)?.count ?? 0
+  const firstTry = count('correct')
+  const corrected = count('corrected')
+  const incorrect = count('incorrect')
+  const correct = firstTry + corrected
+
   return (
     <>
       <div
         className={styles.bar}
         role="img"
-        aria-label={segments
-          .map((segment) => `${segment.count} ${segment.label.toLowerCase()}`)
-          .join(', ')}
+        // Stated with the same meaning of "correct" as the figures below it:
+        // corrections included, with the first-try and corrected parts named.
+        aria-label={`${correct} correct (${firstTry} first try, ${corrected} corrected), ${incorrect} incorrect`}
       >
         {segments
           .filter((segment) => segment.count > 0)

@@ -47,14 +47,23 @@ export interface SessionStatistics {
   /** Sum of characters that were wrong and then fixed. */
   readonly totalCorrectedCharacters: number
 
-  /** Arithmetic mean of session net WPM. */
+  /**
+   * Arithmetic mean of session net WPM, leaving out far-out sessions — see
+   * `splitFarOutliers`. Median and best use every session.
+   */
   readonly averageWpm: number | null
   /** Middle value of session net WPM; the mean of the two middle values when even. */
   readonly medianWpm: number | null
   /** Maximum session net WPM. */
   readonly bestWpm: number | null
-  /** Arithmetic mean of session raw WPM. */
+  /** Arithmetic mean of session raw WPM, over the same sessions as `averageWpm`. */
   readonly averageRawWpm: number | null
+  /**
+   * Net WPM of each session left out of the averages and consistency as far out
+   * from the rest. Empty when none were, and always empty below five sessions.
+   * Exposed so a screen can say so rather than adjusting a figure silently.
+   */
+  readonly excludedFromAverages: readonly number[]
 
   /** Arithmetic mean of session accuracy, as a ratio in 0..1. */
   readonly averageAccuracy: number | null
@@ -69,7 +78,8 @@ export interface SessionStatistics {
   /**
    * How repeatable speed was **across** sessions, as a ratio in 0..1.
    *
-   * Derived: `1 - (standard deviation / mean)` of session net WPM, clamped.
+   * Derived: `1 - (standard deviation / mean)` of session net WPM, clamped,
+   * over the same sessions as `averageWpm`.
    * 1 means every test came out at the same speed.
    *
    * This is deliberately not the consistency figure other typing sites show.

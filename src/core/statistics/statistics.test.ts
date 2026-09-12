@@ -570,3 +570,62 @@ describe('buildStatisticsReport', () => {
     expect(report.skippedCount).toBe(0)
   })
 })
+
+describe('far-out guard on averages', () => {
+  const at = (netWpm: number) => session({ netWpm, rawWpm: netWpm + 5 })
+
+  it('excludes nothing below five sessions', () => {
+    const stats = computeStatistics([at(100), at(110), at(5_000), at(120)])
+
+    expect(stats.excludedFromAverages).toEqual([])
+    expect(stats.averageWpm).toBe((100 + 110 + 5_000 + 120) / 4)
+  })
+
+  it('leaves a far-out result out of the average, and says which', () => {
+    // Speeds 110-130 and one 5 223 WPM burst, as in the audit.
+    const stats = computeStatistics([at(110), at(115), at(120), at(125), at(130), at(5_223)])
+
+    expect(stats.excludedFromAverages).toEqual([5_223])
+    expect(stats.averageWpm).toBe(120) // (110 + 115 + 120 + 125 + 130) / 5
+    expect(stats.averageRawWpm).toBe(125)
+  })
+
+  it('leaves an idle-distorted slow result out too', () => {
+    const stats = computeStatistics([at(20), at(118), at(120), at(122), at(125), at(128)])
+
+    expect(stats.excludedFromAverages).toEqual([20])
+    expect(stats.averageWpm).toBeCloseTo((118 + 120 + 122 + 125 + 128) / 5)
+  })
+
+  it('keeps the median and best honest over every session', () => {
+    const stats = computeStatistics([at(110), at(115), at(120), at(125), at(130), at(5_223)])
+
+    expect(stats.bestWpm).toBe(5_223)
+    expect(stats.medianWpm).toBe(122.5) // (120 + 125) / 2 over all six
+    expect(stats.sessionCount).toBe(6)
+  })
+
+  it('never trims a typist for being fast when they are consistently fast', () => {
+    // No WPM limit: a 250 WPM typist is unlike other people, not unlike themselves.
+    const stats = computeStatistics([at(245), at(250), at(252), at(255), at(260)])
+
+    expect(stats.excludedFromAverages).toEqual([])
+    expect(stats.averageWpm).toBe(252.4)
+  })
+
+  it('does not discard a slightly different result when the rest are identical', () => {
+    // The interquartile range is zero here; without a floor on the spread, 121
+    // would count as far out for differing at all.
+    const stats = computeStatistics([at(120), at(120), at(120), at(120), at(121)])
+
+    expect(stats.excludedFromAverages).toEqual([])
+  })
+
+  it('computes consistency over the same sessions as the average', () => {
+    const withBurst = computeStatistics([at(110), at(115), at(120), at(125), at(130), at(5_223)])
+    const without = computeStatistics([at(110), at(115), at(120), at(125), at(130)])
+
+    expect(withBurst.wpmConsistency).toBeCloseTo(without.wpmConsistency ?? -1)
+    expect(withBurst.wpmConsistency).toBeGreaterThan(0.9)
+  })
+})

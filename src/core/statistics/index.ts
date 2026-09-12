@@ -19,6 +19,10 @@ export type {
 export {
   computeStatistics,
   consistency,
+  FAR_OUT_IQR_MULTIPLE,
+  MINIMUM_SESSIONS_FOR_OUTLIERS,
+  MINIMUM_SPREAD_OF_MEDIAN,
+  splitFarOutliers,
   isUsableSession,
   maximum,
   mean,

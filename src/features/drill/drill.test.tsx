@@ -59,6 +59,34 @@ const surface = (): HTMLElement => {
 
 const drillText = (): string => surface().textContent ?? ''
 
+/**
+ * Types the whole drill, once the page is actually listening.
+ *
+ * The drill page reads a baseline before it shows the typing screen, so that
+ * screen appears from a resolved promise rather than inside the initial render.
+ * Its keyboard listener is attached in an effect React schedules for just after
+ * that, and a test typing the moment the text is visible can get its first
+ * keystrokes in ahead of it — measured at about one run in sixty, which is what
+ * made these tests fail intermittently. A person cannot type in that gap; a test
+ * with no delay between keys can.
+ *
+ * So the first character is pressed until the test has started, and only then
+ * is the rest typed. Every press happens inside an act() flush, so a press that
+ * did register is visible in the status before the next attempt is decided.
+ */
+const typeDrill = async (user: ReturnType<typeof userEvent.setup>): Promise<string> => {
+  const text = drillText()
+  const [first = '', ...rest] = Array.from(text)
+
+  await waitFor(async () => {
+    if (surface().dataset.status === 'idle') await user.keyboard(first)
+    expect(surface()).toHaveAttribute('data-status', 'running')
+  })
+  await user.keyboard(rest.join(''))
+
+  return text
+}
+
 /** Records an ordinary practice session in which `sequence` was typed slowly. */
 const recordPractice = async (text: string, gapMs: number, slowPair: number) => {
   const engine = createTypingEngine()
@@ -145,7 +173,7 @@ describe('drill page', () => {
       renderDrill('in')
       await screen.findByRole('region', { name: 'Typing test' })
 
-      await user.keyboard(drillText())
+      await typeDrill(user)
 
       await waitFor(async () => {
         expect(await sessions.getAll()).toHaveLength(1)
@@ -162,8 +190,7 @@ describe('drill page', () => {
       renderDrill('in')
       await screen.findByRole('region', { name: 'Typing test' })
 
-      const text = drillText()
-      await user.keyboard(text)
+      const text = await typeDrill(user)
 
       await waitFor(async () => {
         expect(await sessions.getAll()).toHaveLength(1)
@@ -183,8 +210,7 @@ describe('drill page', () => {
       renderDrill('in')
       await screen.findByRole('region', { name: 'Typing test' })
 
-      const text = drillText()
-      await user.keyboard(text)
+      await typeDrill(user)
 
       const heading = await screen.findByRole('heading', { name: /drill result/i })
       const section = heading.closest('section')
@@ -199,7 +225,7 @@ describe('drill page', () => {
       renderDrill('in')
       await screen.findByRole('region', { name: 'Typing test' })
 
-      await user.keyboard(drillText())
+      await typeDrill(user)
       await screen.findByRole('heading', { name: /drill result/i })
 
       const page = document.body.textContent ?? ''
@@ -211,7 +237,7 @@ describe('drill page', () => {
       renderDrill('in')
       await screen.findByRole('region', { name: 'Typing test' })
 
-      await user.keyboard(drillText())
+      await typeDrill(user)
       await screen.findByRole('heading', { name: /drill result/i })
 
       // The text was built to be lopsided, so its slowest sequences would be a
@@ -226,7 +252,7 @@ describe('drill page', () => {
       renderDrill('in')
       await screen.findByRole('region', { name: 'Typing test' })
 
-      await user.keyboard(drillText())
+      await typeDrill(user)
       await screen.findByRole('heading', { name: /drill result/i })
 
       expect(screen.getByRole('link', { name: /back to practice/i })).toHaveAttribute(
@@ -242,7 +268,7 @@ describe('drill page', () => {
       renderDrill('in')
       await screen.findByRole('region', { name: 'Typing test' })
 
-      await user.keyboard(drillText())
+      await typeDrill(user)
       await screen.findByRole('heading', { name: /drill result/i })
 
       expect(screen.getByText(/no earlier record of this transition/i)).toBeInTheDocument()
@@ -258,7 +284,7 @@ describe('drill page', () => {
       renderDrill('in')
       await screen.findByRole('region', { name: 'Typing test' })
 
-      await user.keyboard(drillText())
+      await typeDrill(user)
       const heading = await screen.findByRole('heading', { name: /drill result/i })
 
       expect(heading.closest('section')).toHaveTextContent('200 ms')
@@ -290,7 +316,7 @@ describe('drill page', () => {
       renderDrill('in')
       await screen.findByRole('region', { name: 'Typing test' })
 
-      await user.keyboard(drillText())
+      await typeDrill(user)
       const heading = await screen.findByRole('heading', { name: /drill result/i })
 
       // Still 200 from the single practice session, not pulled down to 50.

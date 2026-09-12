@@ -9,6 +9,7 @@
  * The container itself subscribes to nothing and never re-renders.
  */
 
+import { formatDuration } from '@features/results'
 import type { CSSProperties } from 'react'
 
 import type { TypingEngine } from '@core/engine'
@@ -72,7 +73,8 @@ const TimerStat = ({ engine }: { engine: TypingEngine }) => {
   const seconds = useEngineValue(engine, (snapshot) =>
     Math.floor(snapshot.elapsedMs / 1000),
   )
-  return <Stat value={`${seconds}s`} unit="time" width={4} />
+  // The same formatter as the result, so a finished test shows one time.
+  return <Stat value={formatDuration(seconds * 1000)} unit="time" width={4} />
 }
 
 export const LiveStats = ({ engine }: { engine: TypingEngine }) => (

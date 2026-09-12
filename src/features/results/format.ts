@@ -29,8 +29,15 @@ export const toIsoString = (session: TypingSession): string =>
  * Durations read as seconds below a minute and m:ss above it. A typing test is
  * a handful of seconds to a couple of minutes, so hours never appear.
  */
+/**
+ * A test's duration, as whole seconds or minutes and seconds.
+ *
+ * Rounded down, like a stopwatch — and shared with the live timer, so the time
+ * showing when a test ends is the time the result reports. They used to differ:
+ * the live timer read 15s while the result said 16s for the same 15.77 seconds.
+ */
 export const formatDuration = (milliseconds: number): string => {
-  const totalSeconds = Math.max(0, Math.round(milliseconds / 1000))
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000))
   if (totalSeconds < 60) return `${totalSeconds}s`
 
   const minutes = Math.floor(totalSeconds / 60)

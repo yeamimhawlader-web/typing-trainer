@@ -46,6 +46,75 @@ export const standardDeviation = (values: readonly number[]): number | null => {
   return Math.sqrt(variance)
 }
 
+/** Linear-interpolation quantile of an already sorted list. */
+const quantileOfSorted = (sorted: readonly number[], p: number): number => {
+  const position = (sorted.length - 1) * p
+  const lower = Math.floor(position)
+  const upper = Math.ceil(position)
+  const weight = position - lower
+  return (sorted[lower] as number) * (1 - weight) + (sorted[upper] as number) * weight
+}
+
+/**
+ * The display guard for averages: which sessions are far outside the rest.
+ *
+ * ## What it does
+ *
+ * Tukey's rule for a "far out" value: more than three interquartile ranges
+ * below the first quartile or above the third, measured on the typist's own
+ * speeds in the range being shown. Those sessions are left out of the average,
+ * the average raw speed and consistency — and **nothing else**. The median, the
+ * best, the counts, the totals and the trend charts all still use every
+ * session, and no stored measurement is changed.
+ *
+ * ## Why, and why not a cap
+ *
+ * A mean is dominated by one extreme value. In the audit two implausible
+ * sessions pushed the average to 714 WPM while the median stayed at 115, and
+ * consistency collapsed to 0%. The realistic cause is the other direction — a
+ * test that sat idle drags the average down — but either way one session
+ * should not decide the headline.
+ *
+ * There is no fixed WPM limit anywhere in this. A cap would be a claim about
+ * what speeds are possible; this is only a statement about which of *this
+ * typist's* results are unlike their others, so a genuinely fast typist is
+ * never trimmed for being fast.
+ *
+ * ## Two guards on the guard
+ *
+ * Fewer than five sessions: nothing is excluded, because quartiles of three or
+ * four numbers describe nothing. And the spread used is at least a tenth of
+ * the median, so a typist whose tests all came out identical does not have a
+ * single different result thrown away for differing at all.
+ */
+export const FAR_OUT_IQR_MULTIPLE = 3
+export const MINIMUM_SESSIONS_FOR_OUTLIERS = 5
+export const MINIMUM_SPREAD_OF_MEDIAN = 0.1
+
+export const splitFarOutliers = <T>(
+  items: readonly T[],
+  valueOf: (item: T) => number,
+): { readonly kept: readonly T[]; readonly excluded: readonly T[] } => {
+  if (items.length < MINIMUM_SESSIONS_FOR_OUTLIERS) return { kept: items, excluded: [] }
+
+  const sorted = items.map(valueOf).sort((a, b) => a - b)
+  const q1 = quantileOfSorted(sorted, 0.25)
+  const q3 = quantileOfSorted(sorted, 0.75)
+  const spread = Math.max(q3 - q1, MINIMUM_SPREAD_OF_MEDIAN * quantileOfSorted(sorted, 0.5))
+  const low = q1 - FAR_OUT_IQR_MULTIPLE * spread
+  const high = q3 + FAR_OUT_IQR_MULTIPLE * spread
+
+  const kept: T[] = []
+  const excluded: T[] = []
+  for (const item of items) {
+    const value = valueOf(item)
+    if (value < low || value > high) excluded.push(item)
+    else kept.push(item)
+  }
+
+  return { kept, excluded }
+}
+
 /**
  * How repeatable a set of speeds is, as a ratio in 0..1.
  *
@@ -102,7 +171,13 @@ export const computeStatistics = (
   sessions: readonly TypingSession[],
 ): SessionStatistics => {
   const netWpms = sessions.map((session) => session.metrics.netWpm)
-  const rawWpms = sessions.map((session) => session.metrics.rawWpm)
+  // See `splitFarOutliers`: only the averages and consistency use this.
+  const { kept: typical, excluded: farOut } = splitFarOutliers(
+    sessions,
+    (session) => session.metrics.netWpm,
+  )
+  const typicalNetWpms = typical.map((session) => session.metrics.netWpm)
+  const typicalRawWpms = typical.map((session) => session.metrics.rawWpm)
   const accuracies = sessions.map((session) => session.metrics.accuracy)
   const errors = sessions.map((session) => session.metrics.errorCount)
   const corrected = sessions.map((session) => session.metrics.correctedCharacters)
@@ -117,10 +192,11 @@ export const computeStatistics = (
     totalErrors: sum(errors),
     totalCorrectedCharacters: sum(corrected),
 
-    averageWpm: mean(netWpms),
+    averageWpm: mean(typicalNetWpms),
     medianWpm: median(netWpms),
     bestWpm: maximum(netWpms),
-    averageRawWpm: mean(rawWpms),
+    averageRawWpm: mean(typicalRawWpms),
+    excludedFromAverages: farOut.map((session) => session.metrics.netWpm),
 
     averageAccuracy: mean(accuracies),
     bestAccuracy: maximum(accuracies),
@@ -128,6 +204,6 @@ export const computeStatistics = (
     averageErrorsPerSession: mean(errors),
     averageCorrectedPerSession: mean(corrected),
 
-    wpmConsistency: consistency(netWpms),
+    wpmConsistency: consistency(typicalNetWpms),
   }
 }

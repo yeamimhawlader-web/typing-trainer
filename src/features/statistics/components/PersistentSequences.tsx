@@ -91,7 +91,8 @@ export const PersistentSequences = ({ report }: PersistentSequencesProps) => {
             <span className={styles.timing}>
               {formatMs(entry.medianMs)}{' '}
               <span className={styles.delta}>
-                ({formatDelta(entry.deltaMs)} vs baseline)
+                ({formatDelta(Math.round(entry.medianMs) - Math.round(report.baselineMs ?? entry.medianMs))}{' '}
+                vs baseline)
               </span>
             </span>
 

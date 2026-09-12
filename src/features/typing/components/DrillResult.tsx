@@ -57,9 +57,12 @@ export const DrillResult = ({ outcome, comparison }: DrillResultProps) => {
           <div className={styles.figure}>
             <dt className={styles.label}>Difference</dt>
             <dd className={styles.value}>
-              {comparison.differenceMs === null
+              {medianMs === null || comparison.baselineMs === null
                 ? '—'
-                : formatDifference(comparison.differenceMs)}
+                : // From the two rounded figures beside it, so the three always
+                  // subtract correctly on screen. That can move the figure by at
+                  // most one millisecond from the exact difference.
+                  formatDifference(Math.round(medianMs) - Math.round(comparison.baselineMs))}
             </dd>
           </div>
         </dl>

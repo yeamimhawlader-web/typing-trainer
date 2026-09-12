@@ -204,6 +204,19 @@ export const StatisticsPage = () => {
         </dl>
       </div>
 
+      {statistics.excludedFromAverages.length > 0 && (
+        <p className={styles.note}>
+          {/* Said out loud rather than adjusted quietly. See splitFarOutliers. */}
+          The average and consistency leave out{' '}
+          {statistics.excludedFromAverages.length === 1
+            ? 'one test'
+            : `${statistics.excludedFromAverages.length} tests`}{' '}
+          far outside your others (
+          {statistics.excludedFromAverages.map((value) => Math.round(value)).join(', ')} wpm).
+          Median and best include every test.
+        </p>
+      )}
+
       <dl className={styles.tiles}>
         <Tile label="Tests" value={formatNumber(statistics.sessionCount)} />
         <Tile

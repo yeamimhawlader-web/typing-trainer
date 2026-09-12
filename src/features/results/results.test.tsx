@@ -95,7 +95,8 @@ describe('session summary', () => {
     const session = makeSession()
     renderSummary(session)
 
-    expect(detailValue('Duration')).toBe('8s')
+    // 7 500 ms reads as 7s: rounded down, the same as the live timer showed.
+    expect(detailValue('Duration')).toBe('7s')
     expect(detailValue('Characters')).toBe(String(session.metrics.totalCharacters))
     expect(detailValue('Correct')).toBe(String(session.metrics.correctCharacters))
     expect(detailValue('Incorrect')).toBe(String(session.metrics.incorrectCharacters))
@@ -177,9 +178,11 @@ describe('session summary', () => {
     const session = makeSession()
     renderSummary(session)
 
-    // correctCharacters includes the corrected ones, so cleanly-correct is 15.
+    // One meaning of "correct" everywhere: 18 includes the 3 corrected, and
+    // the first-try and corrected parts are named rather than one being called
+    // "correct" while the figure below says otherwise.
     expect(
-      screen.getByRole('img', { name: '15 correct, 3 corrected, 1 incorrect' }),
+      screen.getByRole('img', { name: '18 correct (15 first try, 3 corrected), 1 incorrect' }),
     ).toBeInTheDocument()
   })
 
@@ -198,7 +201,7 @@ describe('session summary', () => {
 
     expect(screen.getByText('0%')).toBeInTheDocument()
     expect(
-      screen.getByRole('img', { name: '0 correct, 0 corrected, 19 incorrect' }),
+      screen.getByRole('img', { name: '0 correct (0 first try, 0 corrected), 19 incorrect' }),
     ).toBeInTheDocument()
   })
 })
@@ -248,7 +251,8 @@ describe('session detail page', () => {
 
     expect(detailValue('Correct')).toBe(String(session.metrics.correctCharacters))
     expect(detailValue('Errors')).toBe(String(session.metrics.errorCount))
-    expect(detailValue('Duration')).toBe('8s')
+    // 7 500 ms reads as 7s: rounded down, the same as the live timer showed.
+    expect(detailValue('Duration')).toBe('7s')
   })
 
   it('says so when the session does not exist', async () => {
