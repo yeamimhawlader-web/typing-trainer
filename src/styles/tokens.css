@@ -45,8 +45,16 @@
   --palette-accent-600: oklch(80% 0.13 235);
 
   /* Status hues */
+  /* Likewise for green on a light background: the 400 step measures 3.32:1,
+     short of text contrast. This measures 5.5:1. */
+  --palette-success-300: oklch(50% 0.135 150);
   --palette-success-400: oklch(62% 0.15 150);
   --palette-success-500: oklch(72% 0.16 150);
+  /* 300 exists for the light theme, where amber has to go a long way down to
+     carry text: the 400 step measures 2.65:1 on a near-white background,
+     against 4.5:1 for normal text. This measures 5.3:1. Chroma drops with
+     lightness to stay inside sRGB. */
+  --palette-warning-300: oklch(52% 0.11 75);
   --palette-warning-400: oklch(70% 0.14 75);
   --palette-warning-500: oklch(80% 0.15 75);
   --palette-danger-400: oklch(58% 0.18 25);
@@ -68,7 +76,13 @@
   /* --- Text ------------------------------------------------------- */
   --color-text-primary: var(--palette-neutral-900);
   --color-text-secondary: var(--palette-neutral-700);
-  --color-text-tertiary: var(--palette-neutral-500);
+  /* neutral-500 measured 4.23:1 here, and this carries caption text at 11-14px
+     where the bar is 4.5:1 — de-emphasised should not mean unreadable.
+     neutral-600 gives 6.32:1 on the base surface and 5.43:1 on the inset one.
+     Note this is a different token from --color-char-pending below, which
+     stays on neutral-500 deliberately: that one is 28px type, where the bar
+     is 3:1, and moving it would close the gap against typed characters. */
+  --color-text-tertiary: var(--palette-neutral-600);
   --color-text-on-accent: var(--palette-neutral-0);
 
   /* --- Borders ---------------------------------------------------- */
@@ -231,8 +245,8 @@
   --color-accent-active: var(--palette-accent-300);
   --color-accent-subtle: oklch(52% 0.13 235 / 0.12);
 
-  --color-status-success: var(--palette-success-400);
-  --color-status-warning: var(--palette-warning-400);
+  --color-status-success: var(--palette-success-300);
+  --color-status-warning: var(--palette-warning-300);
   --color-status-danger: var(--palette-danger-400);
 
   /* Same reasoning as the dark theme: neutral-600 measured 3.04:1 here. */
@@ -240,7 +254,7 @@
   --color-char-correct: var(--palette-neutral-50);
   --color-char-incorrect: var(--palette-danger-400);
   --color-char-incorrect-bg: oklch(58% 0.18 25 / 0.14);
-  --color-char-corrected: var(--palette-warning-400);
+  --color-char-corrected: var(--palette-warning-300);
   --color-caret: var(--palette-accent-300);
 
   --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.08);

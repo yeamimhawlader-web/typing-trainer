@@ -223,6 +223,57 @@ it. Timing precision is whatever the browser gives — `performance.now()` is
 deliberately coarsened — so these are milliseconds with sub-millisecond noise,
 not microsecond measurements.
 
+### The palette is checked, not just written down
+
+```
+tokens.css → parsed → OKLCH to linear sRGB → WCAG contrast → assertions
+```
+
+Colour in this application comes only from tokens: there is not one hex or
+`oklch()` literal in any component stylesheet, and `src/styles/tokens.test.ts`
+keeps it that way. That is what makes checking the tokens equivalent to checking
+the product, and it is the reason this guard is cheap enough to be worth having.
+
+It exists because aesthetic work pushes in exactly one direction. Contrast gets
+softer, greys move closer together, and the person making the change is the last
+to notice — it looks better to them. There is no console error and a screenshot
+shows nothing.
+
+**It was not hypothetical.** Running these numbers for the first time found
+`--color-status-warning` at **2.65:1** in the light theme while carrying 14px
+text, against a 4.5:1 bar; nobody had seen it because the application opens in
+dark mode. The dark theme's caption colour was at 4.23:1. Both are fixed — the
+light theme gained darker amber and green steps, since those hues have to travel
+a long way down to carry text on a near-white ground, and `--color-text-tertiary`
+moved one step up the neutral ramp. `--color-char-pending` stayed where it was:
+it is a different semantic token on the same primitive, at 28px where the bar is
+3:1, and moving it would close the gap against typed characters. That is the
+semantic layer earning its keep.
+
+Two comments in `tokens.css` already quoted measured ratios from a hand
+calculation someone did once. Nothing kept them true. Now the assertions and the
+comments agree, and they fail together.
+
+Each pairing is asserted at the level its **actual usage** demands, with the
+usage named — 4.5:1 for the caption text, 3:1 for the 28px typing surface. A bar
+copied from a specification without looking at how the colour is used is either
+too strict, and gets deleted the first time it is inconvenient, or too loose and
+catches nothing.
+
+**One shortfall is recorded rather than fixed.** A mistyped character and one not
+yet typed differ by 1.01:1 in the light theme — the same lightness, different
+hue. Red against grey. Anyone with red-green colour blindness is relying on the
+faint tint behind the character, and peripheral vision, which is what notices an
+error at speed, works mostly on lightness. It is held as a ratchet that can
+improve but not slip, because no standard demands a ratio between two text
+states, and the error colour is too central a decision to change as a side
+effect of adding a test.
+
+The OKLCH-to-sRGB conversion is forty lines of published matrix arithmetic
+rather than a dependency. It was checked against the browser: painting each
+token into a canvas and reading the pixels Chromium produces agrees with these
+numbers to within 0.04, which is 8-bit quantisation.
+
 ### A word delete is one keystroke, not five
 
 `Ctrl`+`Backspace` removes a whole word, and the engine records **one** event for

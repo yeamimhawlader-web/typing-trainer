@@ -40,5 +40,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  /* Reads files from disk, so it is type-checked by tsconfig.node.json
+     instead — keeping node globals out of the browser type space. */
+  "exclude": ["src/styles/**/*.test.ts"]
 }
