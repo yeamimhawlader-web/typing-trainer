@@ -47,7 +47,10 @@ const UndoNotice = () => {
       </p>
       {count > 0 && (
         <p className={styles.notice}>
-          {message}
+          {/* Hidden from assistive technology because the status region just
+              before it already says this; otherwise browsing the page reads
+              the message twice. The buttons stay, right after the status. */}
+          <span aria-hidden>{message}</span>
           <button type="button" className={styles.noticeAction} onClick={() => void undo()}>
             Undo
           </button>
