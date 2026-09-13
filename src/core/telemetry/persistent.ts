@@ -55,16 +55,47 @@
  * eleven is a pattern. A digraph slow in one session out of eleven is a bad
  * evening — exactly what the single-session experiment could not tell apart.
  *
+ * ## Evidence tiers: how much to believe a row
+ *
+ * Passing the thresholds below makes a sequence a candidate. It does not make it
+ * a finding worth acting on, and the audit showed why: with nothing slow at all,
+ * ten sessions of ordinary jitter produced candidates in every simulated
+ * history, because the more sequences there are to check, the more of them
+ * clear a "slow in 70% of sessions" bar by chance. So every candidate is also
+ * given a tier, from two questions asked together:
+ *
+ * - **Is it big enough to matter?** `relativeDelta` — the delta as a fraction of
+ *   the typist's own baseline. A few milliseconds is not worth a drill however
+ *   consistent it is.
+ * - **Is it consistent enough not to be luck, given how many were checked?**
+ *   `expectedByChance` — the exact one-sided sign-test probability of being
+ *   slower in at least that many of its sessions if it were really no slower,
+ *   multiplied by the number of sequences judged. That product bounds how many
+ *   sequences this consistent chance alone would be expected to produce
+ *   (Bonferroni), so checking more sequences demands more consistency of each.
+ *
+ * `strong` needs both at a strict level, and is the only tier offered
+ * prominently for training. `possible` is a smaller or less settled difference,
+ * shown as exactly that. A candidate reaching neither is not reported. The
+ * levels, and the simulation they were calibrated against, are in
+ * `EVIDENCE_TIERS`.
+ *
+ * None of this is certainty. The sign test assumes that, for a sequence that is
+ * not really slower, being slower than the session's baseline is a coin flip;
+ * real typing only approximately behaves like that.
+ *
  * ## What this is not
  *
  * A heuristic ranking of timings, not a diagnosis. It cannot distinguish a
  * genuinely awkward hand movement from an unfamiliar word, a letter pair that
  * only appears in long words, or a habit of pausing to think mid-word. It says
  * which transitions are consistently slower than the typist's own average, and
- * deliberately stops there — no "weakness", no recommendation, no drill.
+ * how far to believe it, and deliberately stops there — no "weakness" and no
+ * recommendation. Offering a drill is the statistics screen's decision, made
+ * from the tier.
  */
 
-import { median, spreadOf, type Spread } from './distribution.ts'
+import { median, quantile, spreadOf, type Spread } from './distribution.ts'
 import { collectCleanTransitions } from './sequences.ts'
 import type { SessionTelemetry } from './types.ts'
 
@@ -129,6 +160,92 @@ export const PERSISTENT_THRESHOLDS = {
  */
 export const MAX_SESSIONS_ANALYSED = 30
 
+/** How much weight a candidate's evidence will bear. See the header. */
+export type EvidenceTier = 'strong' | 'possible'
+
+/**
+ * The two tiers' requirements.
+ *
+ * **Calibrated against simulation, not derived.** Histories were generated with
+ * the audit's typist model — 86 ms transitions with log-normal jitter (σ 0.3)
+ * and a 150–400 ms pause on 3% of keystrokes, over 60-word tests — forty
+ * histories per case, with one pair made slower where stated:
+ *
+ * | Case                      | Before tiers        | `strong`     | `possible` or better |
+ * | ------------------------- | ------------------- | ------------ | -------------------- |
+ * | Nothing slow, 10 sessions | fake rows in 40/40  | fake in 1/40 | fake in 9/40         |
+ * | Nothing slow, 20 sessions | fake rows in 40/40  | fake in 0/40 | fake in 8/40         |
+ * | +40 ms, 6 sessions        | found in 31/40      | 0/40         | 30/40                |
+ * | +40 ms, 10 sessions       | found in 40/40      | 38/40        | 40/40                |
+ * | +25 ms, 20 sessions       | found in 40/40      | 33/40        | 39/40                |
+ * | +15 ms, 20 sessions       | found in 37/40      | 8/40         | 27/40                |
+ *
+ * So a large, persistent slowdown reaches `strong` at around ten sessions, a
+ * real but small one mostly stays `possible`, and noise almost never reaches
+ * `strong`. Below about eight sessions nothing can be `strong`: even slower in
+ * every session is too likely by chance across all the sequences checked. That
+ * is the honest cost of asking the question of many sequences at once.
+ */
+export const EVIDENCE_TIERS = {
+  strong: {
+    /** At least a fifth slower than the typist's own typical transition. */
+    minimumRelativeDelta: 0.2,
+    /** Chance would be expected to produce one like it in under 1 in 20 histories. */
+    maximumExpectedByChance: 0.05,
+  },
+  possible: {
+    /** At least a tenth slower. */
+    minimumRelativeDelta: 0.1,
+    /** Chance would be expected to produce one like it in under 1 in 2 histories. */
+    maximumExpectedByChance: 0.5,
+  },
+} as const satisfies Record<
+  EvidenceTier,
+  { readonly minimumRelativeDelta: number; readonly maximumExpectedByChance: number }
+>
+
+/**
+ * Probability of at least `slower` heads in `sessions` fair coin flips.
+ *
+ * The exact one-sided sign test. Summed in log space so a long history cannot
+ * underflow `0.5 ** n` to zero and report an impossible certainty.
+ */
+export const signTestProbability = (sessions: number, slower: number): number => {
+  if (slower <= 0) return 1
+  if (slower > sessions) return 0
+
+  const logHalfPower = sessions * Math.log(0.5)
+  let logChoose = 0 // log C(sessions, 0)
+  let total = 0
+
+  for (let index = 0; index <= sessions; index += 1) {
+    if (index > 0) logChoose += Math.log((sessions - index + 1) / index)
+    if (index >= slower) total += Math.exp(logChoose + logHalfPower)
+  }
+
+  return Math.min(1, total)
+}
+
+const tierOf = (relativeDelta: number, expectedByChance: number): EvidenceTier | null => {
+  const { strong, possible } = EVIDENCE_TIERS
+
+  if (
+    relativeDelta >= strong.minimumRelativeDelta &&
+    expectedByChance <= strong.maximumExpectedByChance
+  ) {
+    return 'strong'
+  }
+
+  if (
+    relativeDelta >= possible.minimumRelativeDelta &&
+    expectedByChance <= possible.maximumExpectedByChance
+  ) {
+    return 'possible'
+  }
+
+  return null
+}
+
 export interface PersistentThresholds {
   readonly minimumObservations: number
   readonly minimumSessions: number
@@ -176,6 +293,19 @@ export interface SequenceEvidence {
   /** `slowerSessions / sessions`. The stability measure. */
   readonly slowSessionRatio: number
 
+  /** `deltaMs / baselineMs`: how much slower, relative to this typist. */
+  readonly relativeDelta: number
+
+  /**
+   * Sign-test probability of this much consistency by chance, times the number
+   * of sequences judged: an upper bound on how many sequences this consistent
+   * chance alone would be expected to turn up. Smaller is stronger.
+   */
+  readonly expectedByChance: number
+
+  /** How much weight this row will bear. See `EVIDENCE_TIERS`. */
+  readonly tier: EvidenceTier
+
   /** Quartiles of the pooled observations — enough to judge spread. */
   readonly spread: Spread
 
@@ -185,7 +315,8 @@ export interface SequenceEvidence {
 
 export interface PersistentSequenceReport {
   /**
-   * Sequences meeting every threshold, most consistently slow first.
+   * Sequences meeting every threshold and reaching at least the `possible`
+   * tier: `strong` first, then by how far above baseline.
    *
    * Empty is a normal and common answer. It is not a reason to relax a
    * threshold until something appears.
@@ -291,6 +422,22 @@ export interface SequenceBaseline {
   readonly slowerSessions: number
   /** The typist's overall transition median across the same sessions. */
   readonly overallMedianMs: number
+  /**
+   * Where this sequence's per-session medians usually fall: their 10th to 90th
+   * percentile. Null below `PERSISTENT_THRESHOLDS.minimumSessions` sessions,
+   * where a range would describe a few numbers rather than a habit.
+   *
+   * It lets a drill result say when its difference is inside ordinary
+   * variation. In simulation, with nothing changed, the drill landed inside
+   * this range in 42 of 60 histories at four sessions and 54 of 60 at ten; a
+   * genuine 40 ms change landed outside it in at least 58 of 60 at every length.
+   */
+  readonly typicalRangeMs: TypicalRange | null
+}
+
+export interface TypicalRange {
+  readonly lowMs: number
+  readonly highMs: number
 }
 
 /**
@@ -317,16 +464,24 @@ export const findSequenceBaseline = (
     sessions: record.perSessionMedians.length,
     slowerSessions: record.slowerSessions,
     overallMedianMs: median(sessionBaselines),
+    typicalRangeMs:
+      record.perSessionMedians.length < PERSISTENT_THRESHOLDS.minimumSessions
+        ? null
+        : {
+            lowMs: quantile(record.perSessionMedians, 0.1),
+            highMs: quantile(record.perSessionMedians, 0.9),
+          },
   }
 }
+
 /**
  * Ranks transitions that are consistently slower than the typist's own baseline.
  *
  * Pure: no storage, no clock, no React. The caller decides which sessions are in
  * scope and reads their telemetry; this only does the arithmetic.
  *
- * Ordering is total and reproducible — by how far above baseline, then how
- * consistently, then how often observed, then alphabetically — so the same
+ * Ordering is total and reproducible — by tier, then how far above baseline,
+ * then how consistently, then how often observed, then alphabetically — so the same
  * history always produces the same ranking and a reload cannot reshuffle it.
  */
 export const analysePersistentSequences = (
@@ -347,22 +502,29 @@ export const analysePersistentSequences = (
   const baselineMs = sessionsWithTelemetry === 0 ? null : median(sessionBaselines)
 
   let totalObservations = 0
-  let metEvidenceThreshold = 0
-  const candidates: SequenceEvidence[] = []
+  const judged: (readonly [string, Accumulated])[] = []
 
   for (const [sequence, record] of accumulated) {
     totalObservations += record.pooled.length
 
-    const sessions = record.perSessionMedians.length
     if (
       record.pooled.length < thresholds.minimumObservations ||
-      sessions < thresholds.minimumSessions
+      record.perSessionMedians.length < thresholds.minimumSessions
     ) {
       continue
     }
 
-    metEvidenceThreshold += 1
+    judged.push([sequence, record])
+  }
 
+  // Every sequence judged counts towards the multiple-comparison adjustment,
+  // including those the rules below go on to reject: each was a chance for
+  // noise to look like a pattern.
+  const metEvidenceThreshold = judged.length
+  const candidates: SequenceEvidence[] = []
+
+  for (const [sequence, record] of judged) {
+    const sessions = record.perSessionMedians.length
     const slowSessionRatio = record.slowerSessions / sessions
     if (slowSessionRatio < thresholds.minimumSlowSessionRatio) continue
 
@@ -372,7 +534,13 @@ export const analysePersistentSequences = (
     // Slower than the typist's own typical transition, or it is not a finding —
     // the rule the single-session experiment had to learn. Sorting alone always
     // produces a leader, including out of a list of things that are all fast.
-    if (deltaMs <= 0) continue
+    if (deltaMs <= 0 || baselineMs === null) continue
+
+    const relativeDelta = deltaMs / baselineMs
+    const expectedByChance =
+      signTestProbability(sessions, record.slowerSessions) * metEvidenceThreshold
+    const tier = tierOf(relativeDelta, expectedByChance)
+    if (tier === null) continue
 
     candidates.push({
       sequence,
@@ -382,13 +550,19 @@ export const analysePersistentSequences = (
       sessions,
       slowerSessions: record.slowerSessions,
       slowSessionRatio,
+      relativeDelta,
+      expectedByChance,
+      tier,
       spread: spreadOf(record.pooled),
       perSessionMedians: [...record.perSessionMedians].sort((a, b) => a - b),
     })
   }
 
+  const tierRank = (tier: EvidenceTier): number => (tier === 'strong' ? 0 : 1)
+
   candidates.sort(
     (a, b) =>
+      tierRank(a.tier) - tierRank(b.tier) ||
       b.deltaMs - a.deltaMs ||
       b.slowSessionRatio - a.slowSessionRatio ||
       b.observations - a.observations ||

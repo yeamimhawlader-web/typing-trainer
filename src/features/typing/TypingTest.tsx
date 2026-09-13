@@ -15,7 +15,7 @@ import {
   type SessionContext,
   type SessionService,
 } from '@core/sessions'
-import { compareToBaseline, type TelemetryService } from '@core/telemetry'
+import { compareToBaseline, type TelemetryService, type TypicalRange } from '@core/telemetry'
 import { createCommonWordsProvider, type TextProvider } from '@core/text'
 
 import { LiveStats } from './components/LiveStats.tsx'
@@ -67,6 +67,12 @@ export interface DrillSettings {
    * its own baseline, and the comparison would be against itself.
    */
   readonly baselineMs: number | null
+  /**
+   * Where this sequence usually falls in ordinary tests, captured alongside the
+   * baseline and for the same reason. Absent or null when there is too little
+   * history to say.
+   */
+  readonly typicalRangeMs?: TypicalRange | null
 }
 
 export interface TypingTestProps {
@@ -156,7 +162,11 @@ export const TypingTest = ({
             drill !== null && drillOutcome !== null
               ? {
                   outcome: drillOutcome,
-                  comparison: compareToBaseline(drillOutcome, drill.baselineMs),
+                  comparison: compareToBaseline(
+                    drillOutcome,
+                    drill.baselineMs,
+                    drill.typicalRangeMs ?? null,
+                  ),
                 }
               : null
           }

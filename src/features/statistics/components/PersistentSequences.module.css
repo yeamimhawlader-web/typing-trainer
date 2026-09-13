@@ -103,12 +103,46 @@
   padding: var(--space-1) var(--space-3);
 }
 
+/* Names how much a group of rows will bear. Worded, never colour-coded, so the
+   distinction survives greyscale, a screen reader and a quick glance alike. */
+.group {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+/* A possible row is the same information stated more quietly: the sequence
+   loses its emphasis, so the eye lands on the strong rows first. */
+.possible .sequence {
+  color: var(--color-text-secondary);
+}
+
+/* The quiet way into a drill from a possible row: a text link where a strong
+   row has a button. Underlined so it is still recognisably a link. */
+.tryDrill {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
+  justify-self: end;
+  white-space: nowrap;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  border-radius: var(--radius-sm);
+}
+
+.tryDrill:hover {
+  color: var(--color-text-primary);
+}
+
 @media (max-width: 480px) {
   .row {
     grid-template-columns: 3.5rem 1fr;
   }
 
-  .train {
+  .train,
+  .tryDrill {
     grid-column: 2;
     grid-row: 3;
     justify-self: start;

@@ -23,6 +23,12 @@ export interface DrillResultProps {
 
 const formatMs = (value: number): string => `${Math.round(value)} ms`
 
+const PLACEMENT_TEXT = {
+  within: 'This drill is inside that range, so the difference is within normal variation.',
+  faster: 'This drill is below that range.',
+  slower: 'This drill is above that range.',
+} as const
+
 const formatDifference = (value: number): string =>
   `${value > 0 ? '+' : value < 0 ? '−' : '±'}${Math.abs(Math.round(value))} ms`
 
@@ -73,6 +79,18 @@ export const DrillResult = ({ outcome, comparison }: DrillResultProps) => {
         this drill, {correctTransitions} typed cleanly
         {missed > 0 ? ` and ${missed} not` : ''}.
       </p>
+
+      {comparison.typicalRangeMs !== null && comparison.placement !== null && (
+        <p className={styles.evidence}>
+          {/* The noise band beside the difference. Without it a few
+              milliseconds either way reads as a change, when an unchanged
+              typist produces exactly that. */}
+          Your ordinary tests usually have this transition between{' '}
+          {Math.round(comparison.typicalRangeMs.lowMs)} and{' '}
+          {Math.round(comparison.typicalRangeMs.highMs)} ms.{' '}
+          {PLACEMENT_TEXT[comparison.placement]}
+        </p>
+      )}
 
       <p className={styles.caveat}>
         {comparison.baselineMs === null

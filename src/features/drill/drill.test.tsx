@@ -291,6 +291,43 @@ describe('drill page', () => {
       expect(screen.getByText(/not proof of a lasting change/i)).toBeInTheDocument()
     })
 
+    it('says where the drill fell against the range ordinary tests usually give', async () => {
+      // Four practice sessions put `in` at 180, 190, 200 and 210 ms, so its
+      // usual range is the 10th to 90th percentile of those: 183 to 207 ms. The
+      // test types with no delay, so the drill comes in far below it.
+      for (const slow of [180, 190, 200, 210]) {
+        // Sequential on purpose: each save goes through the same index.
+        // eslint-disable-next-line no-await-in-loop
+        await recordPractice('in find into stop', 80, slow)
+      }
+
+      const user = userEvent.setup({ delay: null })
+      renderDrill('in')
+      await screen.findByRole('region', { name: 'Typing test' })
+
+      await typeDrill(user)
+      const heading = await screen.findByRole('heading', { name: /drill result/i })
+      const section = heading.closest('section')
+
+      expect(section).toHaveTextContent(
+        /usually have this transition between 183 and 207 ms\. This drill is below that range\./i,
+      )
+    })
+
+    it('gives no range when there are too few earlier tests to describe one', async () => {
+      await recordPractice('in find into stop', 80, 200)
+      await recordPractice('in find into stop', 80, 200)
+
+      const user = userEvent.setup({ delay: null })
+      renderDrill('in')
+      await screen.findByRole('region', { name: 'Typing test' })
+
+      await typeDrill(user)
+      const heading = await screen.findByRole('heading', { name: /drill result/i })
+
+      expect(heading.closest('section')).not.toHaveTextContent(/usually have this transition/i)
+    })
+
     it('ignores earlier drills, which are not ordinary typing', async () => {
       await recordPractice('in find into stop', 80, 200)
 

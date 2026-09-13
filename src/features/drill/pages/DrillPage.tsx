@@ -36,6 +36,7 @@ import {
   MAX_SESSIONS_ANALYSED,
   telemetryService as defaultTelemetryService,
   type TelemetryService,
+  type TypicalRange,
 } from '@core/telemetry'
 import { createDrill, createDrillProvider, isDrillableSequence } from '@core/text'
 import { TypingTest } from '@features/typing'
@@ -52,7 +53,11 @@ export interface DrillPageProps {
 
 type BaselineState =
   | { readonly status: 'loading' }
-  | { readonly status: 'ready'; readonly medianMs: number | null }
+  | {
+      readonly status: 'ready'
+      readonly medianMs: number | null
+      readonly typicalRangeMs: TypicalRange | null
+    }
 
 export const DrillPage = ({
   service = sessionService,
@@ -93,16 +98,18 @@ export const DrillPage = ({
         )
 
         if (!active) return
+        const found = findSequenceBaseline(entries, sequence)
         setBaseline({
           status: 'ready',
-          medianMs: findSequenceBaseline(entries, sequence)?.medianMs ?? null,
+          medianMs: found?.medianMs ?? null,
+          typicalRangeMs: found?.typicalRangeMs ?? null,
         })
       })
       .catch((error: unknown) => {
         // No baseline is a state the result screen already knows how to show;
         // it is not a reason to refuse the drill.
         console.warn('[drill] failed to read a baseline', error)
-        if (active) setBaseline({ status: 'ready', medianMs: null })
+        if (active) setBaseline({ status: 'ready', medianMs: null, typicalRangeMs: null })
       })
 
     return () => {
@@ -149,7 +156,11 @@ export const DrillPage = ({
         provider={provider}
         service={service}
         telemetry={telemetry}
-        drill={{ sequence, baselineMs: baseline.medianMs }}
+        drill={{
+          sequence,
+          baselineMs: baseline.medianMs,
+          typicalRangeMs: baseline.typicalRangeMs,
+        }}
       />
     </div>
   )

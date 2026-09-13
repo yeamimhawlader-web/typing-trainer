@@ -36,6 +36,9 @@ const evidence = (over: Partial<SequenceEvidence> = {}): SequenceEvidence => ({
   sessions: 11,
   slowerSessions: 9,
   slowSessionRatio: 9 / 11,
+  relativeDelta: 24 / 94,
+  expectedByChance: 0.01,
+  tier: 'strong',
   spread: { p25: 104, median: 118, p75: 131, iqr: 27 },
   perSessionMedians: [104, 110, 118, 121, 131],
   ...over,
@@ -112,17 +115,85 @@ describe('persistent sequences section', () => {
     expect(text).toMatch(/heuristic measures, not a diagnosis/i)
   })
 
-  it('offers a drill for each sequence it ranks', () => {
+  it('offers Train for a sequence with strong evidence, named for that sequence', () => {
     renderSection(report({ candidates: [evidence()] }))
 
-    const train = screen.getByRole('link', { name: 'Train' })
+    expect(screen.getByRole('heading', { name: 'Strong evidence' })).toBeInTheDocument()
+    // Named per row, so a list of them is not a column of identical "Train"
+    // links to a screen reader.
+    const train = screen.getByRole('link', { name: 'Train th' })
     expect(train).toHaveAttribute('href', '/drill/th')
+    expect(train).toHaveTextContent('Train')
   })
 
   it('offers no drill when there is nothing ranked', () => {
     renderSection(report({ candidates: [] }))
 
-    expect(screen.queryByRole('link', { name: 'Train' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /train|drill/i })).not.toBeInTheDocument()
+  })
+
+  describe('a possible finding', () => {
+    const possible = evidence({
+      sequence: 'ce',
+      medianMs: 105,
+      deltaMs: 11,
+      relativeDelta: 11 / 94,
+      expectedByChance: 0.3,
+      tier: 'possible',
+    })
+
+    it('is labelled as needing more tests', () => {
+      renderSection(report({ candidates: [evidence(), possible] }))
+
+      expect(
+        screen.getByRole('heading', { name: 'Possible — needs more tests' }),
+      ).toBeInTheDocument()
+    })
+
+    it('gets no Train button, only a quiet way into a drill', () => {
+      renderSection(report({ candidates: [possible] }))
+
+      expect(screen.queryByRole('link', { name: /^train/i })).not.toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Try a drill for ce' })).toHaveAttribute(
+        'href',
+        '/drill/ce',
+      )
+    })
+
+    it('still shows its evidence, so the reader can judge it', () => {
+      renderSection(report({ candidates: [possible] }))
+
+      const row = screen.getByRole('listitem')
+      expect(row).toHaveTextContent('105 ms')
+      expect(row).toHaveTextContent('+11 ms vs baseline')
+      expect(row).toHaveTextContent('slower in 9 of 11')
+    })
+
+    it('says outright when nothing has strong evidence', () => {
+      renderSection(report({ candidates: [possible] }))
+
+      expect(screen.getByText(/no sequence has strong evidence yet/i)).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Strong evidence' })).not.toBeInTheDocument()
+    })
+
+    it('keeps the two tiers in separate lists', () => {
+      renderSection(report({ candidates: [evidence(), possible] }))
+
+      const [strongList, possibleList] = screen.getAllByRole('list')
+      expect(strongList).toHaveTextContent('th')
+      expect(strongList).not.toHaveTextContent('ce')
+      expect(possibleList).toHaveTextContent('ce')
+    })
+  })
+
+  it('explains what each tier requires, including how many sequences were checked', () => {
+    renderSection(report({ candidates: [evidence()] }))
+
+    expect(screen.getByText(/at least 20% slower than your typical transition/i)).toBeInTheDocument()
+    expect(screen.getByText(/allowing for the 14 sequences checked/i)).toBeInTheDocument()
+    expect(screen.getByText(/may turn out to be noise/i)).toBeInTheDocument()
+    // Evidence, never certainty.
+    expect(document.body.textContent).not.toMatch(/proven|certain|significant|confiden/i)
   })
 
   it('caps the list rather than printing everything that qualified', () => {

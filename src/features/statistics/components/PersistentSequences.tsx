@@ -11,13 +11,22 @@
  *
  * - not enough history yet, said plainly;
  * - enough history, and nothing stood out — a real and common result;
- * - these sequences, with their evidence.
+ * - these sequences, with their evidence, grouped by how much that evidence
+ *   will bear. Only `strong` rows get a Train button; `possible` rows are
+ *   labelled as needing more tests and keep only a quiet link, so a difference
+ *   that may be noise is not presented as something to act on.
  *
- * Nothing here says "weakness", and nothing suggests what to practise.
+ * Nothing here says "weakness", and nothing tells the reader what to practise.
  */
 
+import { Link } from 'react-router'
+
 import { drillPath } from '@app/routes.ts'
-import type { PersistentSequenceReport } from '@core/telemetry'
+import {
+  EVIDENCE_TIERS,
+  type PersistentSequenceReport,
+  type SequenceEvidence,
+} from '@core/telemetry'
 import { isDrillableSequence } from '@core/text'
 import { ButtonLink } from '@shared/ui'
 
@@ -32,6 +41,8 @@ export interface PersistentSequencesProps {
 }
 
 const formatMs = (value: number): string => `${Math.round(value)} ms`
+
+const formatPercent = (ratio: number): string => `${Math.round(ratio * 100)}%`
 
 const formatDelta = (value: number): string =>
   `${value >= 0 ? '+' : '−'}${Math.abs(Math.round(value))} ms`
@@ -79,43 +90,89 @@ export const PersistentSequences = ({ report }: PersistentSequencesProps) => {
     )
   }
 
+  // Strong rows are sorted first, so the cap never hides one behind a
+  // possible row.
   const shown = report.candidates.slice(0, MAX_SHOWN)
+  const strong = shown.filter((entry) => entry.tier === 'strong')
+  const possible = shown.filter((entry) => entry.tier === 'possible')
+
+  const row = (entry: SequenceEvidence) => (
+    <li key={entry.sequence} className={styles.row}>
+      <span className={styles.sequence}>{entry.sequence}</span>
+
+      <span className={styles.timing}>
+        {formatMs(entry.medianMs)}{' '}
+        <span className={styles.delta}>
+          (
+          {formatDelta(
+            Math.round(entry.medianMs) - Math.round(report.baselineMs ?? entry.medianMs),
+          )}{' '}
+          vs baseline)
+        </span>
+      </span>
+
+      <span className={styles.evidence}>
+        {entry.observations} observations across {entry.sessions} tests, slower in{' '}
+        {entry.slowerSessions} of {entry.sessions}
+      </span>
+
+      {/* Offered only where a drill can actually be built from real words. A
+          button that leads to "no drill for that sequence" would be worse than
+          no button. Prominent only where the evidence is strong; a possible
+          row keeps a quiet way in rather than none. */}
+      {isDrillableSequence(entry.sequence) &&
+        (entry.tier === 'strong' ? (
+          <ButtonLink
+            to={drillPath(entry.sequence)}
+            variant="secondary"
+            className={styles.train}
+            aria-label={`Train ${entry.sequence}`}
+          >
+            Train
+          </ButtonLink>
+        ) : (
+          <Link
+            to={drillPath(entry.sequence)}
+            className={styles.tryDrill}
+            aria-label={`Try a drill for ${entry.sequence}`}
+          >
+            Try a drill
+          </Link>
+        ))}
+    </li>
+  )
 
   return (
     <Section>
-      <ul className={styles.list}>
-        {shown.map((entry) => (
-          <li key={entry.sequence} className={styles.row}>
-            <span className={styles.sequence}>{entry.sequence}</span>
+      {strong.length > 0 ? (
+        <>
+          <h3 className={styles.group}>Strong evidence</h3>
+          <ul className={styles.list}>{strong.map(row)}</ul>
+        </>
+      ) : (
+        <p className={styles.note}>
+          No sequence has strong evidence yet. What follows may be real, or may be
+          the ordinary variation of {report.sessionsWithTelemetry} tests.
+        </p>
+      )}
 
-            <span className={styles.timing}>
-              {formatMs(entry.medianMs)}{' '}
-              <span className={styles.delta}>
-                ({formatDelta(Math.round(entry.medianMs) - Math.round(report.baselineMs ?? entry.medianMs))}{' '}
-                vs baseline)
-              </span>
-            </span>
+      {possible.length > 0 && (
+        <>
+          <h3 className={styles.group}>Possible — needs more tests</h3>
+          <ul className={`${styles.list} ${styles.possible}`}>{possible.map(row)}</ul>
+        </>
+      )}
 
-            <span className={styles.evidence}>
-              {entry.observations} observations across {entry.sessions} tests, slower
-              in {entry.slowerSessions} of {entry.sessions}
-            </span>
-
-            {/* Offered only where a drill can actually be built from real
-                words. A button that leads to "no drill for that sequence"
-                would be worse than no button. */}
-            {isDrillableSequence(entry.sequence) && (
-              <ButtonLink
-                to={drillPath(entry.sequence)}
-                variant="secondary"
-                className={styles.train}
-              >
-                Train
-              </ButtonLink>
-            )}
-          </li>
-        ))}
-      </ul>
+      <p className={styles.caveat}>
+        Strong evidence means at least{' '}
+        {formatPercent(EVIDENCE_TIERS.strong.minimumRelativeDelta)} slower than your
+        typical transition, and slower in so many of its tests that chance alone would
+        rarely produce it, even allowing for the {report.metEvidenceThreshold}{' '}
+        {report.metEvidenceThreshold === 1 ? 'sequence' : 'sequences'} checked.
+        Possible means at least{' '}
+        {formatPercent(EVIDENCE_TIERS.possible.minimumRelativeDelta)} slower with
+        thinner or less consistent evidence, and may turn out to be noise.
+      </p>
 
       <p className={styles.caveat}>
         Median time between the two keys, taken per test and then across tests, so

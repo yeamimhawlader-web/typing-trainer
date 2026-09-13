@@ -21,6 +21,7 @@
 import { countOccurrences } from '@core/text'
 
 import { median } from './distribution.ts'
+import type { TypicalRange } from './persistent.ts'
 import { collectCleanTransitions } from './sequences.ts'
 import type { SessionTelemetry } from './types.ts'
 
@@ -77,14 +78,38 @@ export interface DrillComparison {
    * percentage of a number this noisy reads as precision that is not present.
    */
   readonly differenceMs: number | null
+  /** Where this sequence usually falls in ordinary tests; null when unknown. */
+  readonly typicalRangeMs: TypicalRange | null
+  /**
+   * The drill's median against that range: `within` it, or `faster` or `slower`
+   * than it. Null when either is missing.
+   *
+   * This is the noise band the difference alone lacks. A few milliseconds either
+   * way is what an unchanged typist produces, and a screen that shows "−9 ms"
+   * with nothing beside it invites reading that as progress.
+   */
+  readonly placement: 'within' | 'faster' | 'slower' | null
 }
 
 export const compareToBaseline = (
   outcome: DrillOutcome,
   baselineMs: number | null,
-): DrillComparison => ({
-  baselineMs,
-  drillMs: outcome.medianMs,
-  differenceMs:
-    baselineMs === null || outcome.medianMs === null ? null : outcome.medianMs - baselineMs,
-})
+  typicalRangeMs: TypicalRange | null = null,
+): DrillComparison => {
+  const drillMs = outcome.medianMs
+
+  return {
+    baselineMs,
+    drillMs,
+    differenceMs: baselineMs === null || drillMs === null ? null : drillMs - baselineMs,
+    typicalRangeMs,
+    placement:
+      typicalRangeMs === null || drillMs === null
+        ? null
+        : drillMs < typicalRangeMs.lowMs
+          ? 'faster'
+          : drillMs > typicalRangeMs.highMs
+            ? 'slower'
+            : 'within',
+  }
+}

@@ -146,6 +146,27 @@ describe('compareToBaseline', () => {
     expect(comparison.differenceMs).toBeNull()
   })
 
+  describe('against the typical range', () => {
+    const range = { lowMs: 110, highMs: 140 }
+
+    it('calls a drill inside the range within ordinary variation, edges included', () => {
+      expect(compareToBaseline(outcomeAt(121), 133, range).placement).toBe('within')
+      expect(compareToBaseline(outcomeAt(110), 133, range).placement).toBe('within')
+      expect(compareToBaseline(outcomeAt(140), 133, range).placement).toBe('within')
+    })
+
+    it('says which side of the range a drill fell outside it', () => {
+      expect(compareToBaseline(outcomeAt(109), 133, range).placement).toBe('faster')
+      expect(compareToBaseline(outcomeAt(141), 133, range).placement).toBe('slower')
+    })
+
+    it('places nothing without a range or without a drill timing', () => {
+      expect(compareToBaseline(outcomeAt(121), 133).placement).toBeNull()
+      expect(compareToBaseline(outcomeAt(121), 133, null).typicalRangeMs).toBeNull()
+      expect(compareToBaseline(outcomeAt(null), 133, range).placement).toBeNull()
+    })
+  })
+
   it('has no difference to state when the drill measured nothing', () => {
     expect(compareToBaseline(outcomeAt(null), 133).differenceMs).toBeNull()
   })
@@ -180,6 +201,34 @@ describe('findSequenceBaseline', () => {
     const baseline = findSequenceBaseline(entriesOf(long, short, short), 'in')
 
     expect(baseline?.medianMs).toBe(100)
+  })
+
+  it('gives no typical range from too few sessions to describe one', () => {
+    const text = 'in find into stop'
+    const baseline = findSequenceBaseline(
+      entriesOf(run(text, 80, { in: 120 }), run(text, 80, { in: 120 })),
+      'in',
+    )
+
+    expect(baseline?.typicalRangeMs).toBeNull()
+  })
+
+  it('gives the 10th to 90th percentile of the per-session medians as the typical range', () => {
+    // Per-session medians 100, 110, 120, 130. The 10th percentile sits 0.3 of
+    // the way from 100 to 110; the 90th, 0.7 of the way from 120 to 130.
+    const text = 'in find into stop'
+    const baseline = findSequenceBaseline(
+      entriesOf(
+        run(text, 80, { in: 130 }),
+        run(text, 80, { in: 100 }),
+        run(text, 80, { in: 120 }),
+        run(text, 80, { in: 110 }),
+      ),
+      'in',
+    )
+
+    expect(baseline?.typicalRangeMs?.lowMs).toBeCloseTo(103, 10)
+    expect(baseline?.typicalRangeMs?.highMs).toBeCloseTo(127, 10)
   })
 
   it('returns nothing for a sequence never typed', () => {

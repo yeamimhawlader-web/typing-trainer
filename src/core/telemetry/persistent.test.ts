@@ -26,6 +26,7 @@ import { deriveSessionTelemetry } from './derive.ts'
 import {
   analysePersistentSequences,
   PERSISTENT_THRESHOLDS,
+  signTestProbability,
   type SessionTelemetryEntry,
 } from './persistent.ts'
 import type { SessionTelemetry } from './types.ts'
@@ -256,7 +257,12 @@ describe('analysePersistentSequences', () => {
       expect(find(report, 'th')).toBeUndefined()
     })
 
-    it('accepts a sequence slow in three sessions out of four', () => {
+    it('no longer reports three slow sessions out of four, which chance produces too often', () => {
+      // 0.75 clears the stability ratio, and this used to be reported. But a
+      // sequence no slower than any other is on the slow side three times in
+      // four with probability 5/16, and five sequences were judged here, so
+      // chance would be expected to produce about 1.6 like it. That is not
+      // evidence of anything, and the tiers now say so by leaving it out.
       const report = analysePersistentSequences(
         entries(
           sessionOf('thqwab', 5, 80, { th: 120 }),
@@ -266,12 +272,8 @@ describe('analysePersistentSequences', () => {
         ),
       )
 
-      const th = find(report, 'th')
-      expect(th?.slowerSessions).toBe(3)
-      expect(th?.sessions).toBe(4)
-      expect(th?.slowSessionRatio).toBe(0.75)
-      // Per-session medians 120, 120, 120, 80 → median 120.
-      expect(th?.medianMs).toBe(120)
+      expect(report.metEvidenceThreshold).toBe(5)
+      expect(find(report, 'th')).toBeUndefined()
     })
 
     it('rejects a sequence above baseline that was slow in only half its sessions', () => {
@@ -294,20 +296,24 @@ describe('analysePersistentSequences', () => {
     })
 
     it('accepts a sequence sitting exactly on the ratio threshold', () => {
-      // Slow in seven sessions of ten: 0.7 exactly, which must pass rather than
-      // fall foul of a strict comparison.
+      // Slow in fourteen sessions of twenty: 0.7 exactly, which must pass rather
+      // than fall foul of a strict comparison. Twenty rather than ten, because
+      // seven of ten is too likely by chance to reach even the possible tier
+      // (171/1024 × 5 sequences judged ≈ 0.86), and this test is about the
+      // ratio, not the tiers. Fourteen of twenty is 0.058 × 5 ≈ 0.29.
       const report = analysePersistentSequences(
         entries(
-          ...Array.from({ length: 7 }, () => sessionOf('thqwab', 5, 80, { th: 120 })),
-          ...Array.from({ length: 3 }, () => sessionOf('thqwab', 5, 80)),
+          ...Array.from({ length: 14 }, () => sessionOf('thqwab', 5, 80, { th: 120 })),
+          ...Array.from({ length: 6 }, () => sessionOf('thqwab', 5, 80)),
         ),
       )
 
       const th = find(report, 'th')
-      expect(th?.slowSessionRatio).toBeCloseTo(PERSISTENT_THRESHOLDS.minimumSlowSessionRatio)
-      expect(th?.slowerSessions).toBe(7)
-      expect(th?.sessions).toBe(10)
+      expect(th?.slowSessionRatio).toBe(PERSISTENT_THRESHOLDS.minimumSlowSessionRatio)
+      expect(th?.slowerSessions).toBe(14)
+      expect(th?.sessions).toBe(20)
       expect(th?.medianMs).toBe(120)
+      expect(th?.tier).toBe('possible')
     })
 
     it('is unmoved by a session in which everything was slow', () => {
@@ -526,19 +532,132 @@ describe('analysePersistentSequences', () => {
     })
 
     it('can be relaxed enough to admit what the defaults reject', () => {
-      const twoSessions = entries(
-        sessionOf('thqwab', 5, 80, { th: 120 }),
-        sessionOf('thqwab', 5, 80, { th: 120 }),
+      // Three sessions of a word with three transitions — th, ha, ab — so only
+      // three sequences are judged. Slower in three of three is 1/8 by chance,
+      // times three judged is 0.375: inside the possible tier, which is not
+      // adjustable. With the usual five-transition word it would be 0.625 and
+      // no count threshold could admit it, which is the tiers doing their job.
+      const threeSessions = entries(
+        ...Array.from({ length: 3 }, () => sessionOf('thab', 10, 80, { th: 120 })),
       )
 
-      expect(analysePersistentSequences(twoSessions).candidates).toEqual([])
+      expect(analysePersistentSequences(threeSessions).candidates).toEqual([])
 
-      const relaxed = analysePersistentSequences(twoSessions, {
-        minimumObservations: 10,
-        minimumSessions: 2,
+      const relaxed = analysePersistentSequences(threeSessions, {
+        minimumObservations: 15,
+        minimumSessions: 3,
       })
 
+      expect(relaxed.metEvidenceThreshold).toBe(3)
       expect(find(relaxed, 'th')?.deltaMs).toBe(40)
+      expect(find(relaxed, 'th')?.tier).toBe('possible')
     })
+  })
+
+  describe('evidence tiers', () => {
+    it('calls a large difference strong once it is consistent across enough sessions', () => {
+      // Slower in ten of ten: 1/1024 by chance, times five judged ≈ 0.005, and
+      // 50% slower than baseline. Both clear the strong tier.
+      const report = analysePersistentSequences(
+        entries(...Array.from({ length: 10 }, () => sessionOf('thqwab', 5, 80, { th: 120 }))),
+      )
+
+      const th = find(report, 'th')
+      expect(th?.tier).toBe('strong')
+      expect(th?.relativeDelta).toBe(0.5)
+      expect(th?.expectedByChance).toBeCloseTo((1 / 1024) * 5, 10)
+    })
+
+    it('does not call four sessions strong evidence, however large the difference', () => {
+      // Slower in four of four is 1/16 by chance. Across five sequences judged
+      // that is 0.31 — a possible pattern, not a strong one.
+      const th = find(analysePersistentSequences(fourSlowThSessions()), 'th')
+
+      expect(th?.tier).toBe('possible')
+      expect(th?.expectedByChance).toBeCloseTo(5 / 16, 10)
+      expect(th?.relativeDelta).toBe(0.5)
+    })
+
+    it('keeps a consistent but modest difference out of the strong tier', () => {
+      // 92 against 80 is 15% slower, in ten of ten sessions: as consistent as it
+      // gets, but below the fifth that strong requires.
+      const report = analysePersistentSequences(
+        entries(...Array.from({ length: 10 }, () => sessionOf('thqwab', 5, 80, { th: 92 }))),
+      )
+
+      expect(find(report, 'th')?.tier).toBe('possible')
+    })
+
+    it('does not report a consistent difference too small to matter', () => {
+      // 86 against 80 is 7.5% slower, in every one of ten sessions. Consistency
+      // alone is not a finding; a few milliseconds is not worth a drill.
+      const report = analysePersistentSequences(
+        entries(...Array.from({ length: 10 }, () => sessionOf('thqwab', 5, 80, { th: 86 }))),
+      )
+
+      expect(report.metEvidenceThreshold).toBe(5)
+      expect(find(report, 'th')).toBeUndefined()
+    })
+
+    it('asks more consistency of each sequence when more sequences were checked', () => {
+      // The same eight-of-eight pattern, 1/256 by chance. Among five sequences
+      // judged that is 0.02 — strong. Among thirteen it is 0.051 — only
+      // possible, because thirteen chances to look slow make one more likely.
+      const few = analysePersistentSequences(
+        entries(...Array.from({ length: 8 }, () => sessionOf('thqwab', 5, 80, { th: 120 }))),
+      )
+      const many = analysePersistentSequences(
+        entries(
+          ...Array.from({ length: 8 }, () => sessionOf('thqwabcdefghij', 5, 80, { th: 120 })),
+        ),
+      )
+
+      expect(few.metEvidenceThreshold).toBe(5)
+      expect(many.metEvidenceThreshold).toBe(13)
+      expect(find(few, 'th')?.tier).toBe('strong')
+      expect(find(many, 'th')?.tier).toBe('possible')
+    })
+
+    it('lists strong evidence before a larger but less certain difference', () => {
+      // `th` is +40 in all ten sessions: strong. `qw` is +120 but slow in only
+      // eight of ten, 56/1024 × 5 ≈ 0.27: possible. Delta alone would put `qw`
+      // first; the tier puts the better-supported finding first.
+      const report = analysePersistentSequences(
+        entries(
+          ...Array.from({ length: 8 }, () => sessionOf('thqwab', 5, 80, { th: 120, qw: 200 })),
+          ...Array.from({ length: 2 }, () => sessionOf('thqwab', 5, 80, { th: 120 })),
+        ),
+      )
+
+      expect(
+        report.candidates.map((candidate) => [candidate.sequence, candidate.tier]),
+      ).toEqual([
+        ['th', 'strong'],
+        ['qw', 'possible'],
+      ])
+      expect(find(report, 'qw')?.deltaMs).toBe(120)
+    })
+  })
+})
+
+describe('signTestProbability', () => {
+  it('is the exact chance of at least that many slow sessions', () => {
+    expect(signTestProbability(4, 4)).toBeCloseTo(1 / 16, 12)
+    expect(signTestProbability(4, 3)).toBeCloseTo(5 / 16, 12)
+    expect(signTestProbability(10, 7)).toBeCloseTo(176 / 1024, 12)
+    expect(signTestProbability(20, 14)).toBeCloseTo(60_460 / 1_048_576, 12)
+  })
+
+  it('is certain for none slow and impossible for more slow than there were sessions', () => {
+    expect(signTestProbability(6, 0)).toBe(1)
+    expect(signTestProbability(6, 7)).toBe(0)
+  })
+
+  it('does not underflow on a long history', () => {
+    // 0.5 ** 1100 is zero in floating point, which would make every term zero
+    // and report a coin-flip result as impossible.
+    const half = signTestProbability(1100, 550)
+    expect(half).toBeGreaterThan(0.5)
+    expect(half).toBeLessThan(0.52)
   })
 })

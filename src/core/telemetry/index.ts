@@ -44,17 +44,21 @@ export type { DrillComparison, DrillOutcome } from './drill.ts'
 
 export {
   analysePersistentSequences,
+  EVIDENCE_TIERS,
   findSequenceBaseline,
   MAX_SESSIONS_ANALYSED,
   PERSISTENT_THRESHOLDS,
+  signTestProbability,
 } from './persistent.ts'
 export type {
+  EvidenceTier,
   PersistentSequenceOptions,
   PersistentSequenceReport,
   PersistentThresholds,
   SequenceBaseline,
   SequenceEvidence,
   SessionTelemetryEntry,
+  TypicalRange,
 } from './persistent.ts'
 
 export { median, quantile, spreadOf } from './distribution.ts'
