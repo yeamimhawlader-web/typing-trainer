@@ -23,6 +23,22 @@
   color: var(--color-text-tertiary);
 }
 
+/* Hidden unless the device looks touch-only. A laptop with a touchscreen still
+   has a fine primary pointer and hover, so it never sees this. */
+.touchNote {
+  display: none;
+  width: 100%;
+  max-width: var(--layout-reading-width);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .touchNote {
+    display: block;
+  }
+}
+
 .key {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);

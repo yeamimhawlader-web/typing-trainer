@@ -78,7 +78,9 @@ const TimerStat = ({ engine }: { engine: TypingEngine }) => {
 }
 
 export const LiveStats = ({ engine }: { engine: TypingEngine }) => (
-  <div className={styles.stats} role="status" aria-live="off">
+  // Named so it can be told apart from the result announcement, which is the
+  // status region that does speak.
+  <div className={styles.stats} role="status" aria-live="off" aria-label="Live statistics">
     <WpmStat engine={engine} />
     <AccuracyStat engine={engine} />
     <TimerStat engine={engine} />

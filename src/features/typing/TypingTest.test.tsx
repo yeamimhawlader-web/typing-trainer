@@ -155,7 +155,7 @@ describe('typing screen', () => {
   it('withholds live speed until it means something', async () => {
     const user = userEvent.setup()
     renderTest()
-    const stats = screen.getByRole('status')
+    const stats = screen.getByRole('status', { name: 'Live statistics' })
 
     expect(within(stats).getByText('—')).toBeInTheDocument()
 
@@ -175,7 +175,7 @@ describe('typing screen', () => {
     await user.keyboard(wrong)
     await user.keyboard(word.slice(1))
 
-    const stats = screen.getByRole('status')
+    const stats = screen.getByRole('status', { name: 'Live statistics' })
     // One wrong character out of however many were typed: not a full score.
     expect(within(stats).getByText(/%/).textContent).not.toBe('100%')
   })
@@ -404,9 +404,11 @@ describe('recording a finished test', () => {
     await completeATest(user)
 
     // The result is still on screen, and the failure is admitted rather than
-    // hidden behind a success message.
-    expect(await screen.findByText(/could not be saved/i)).toBeInTheDocument()
-    expect(screen.getByRole('status')).toBeInTheDocument()
+    // hidden behind a success message — on screen and to a screen reader.
+    expect(
+      await screen.findByText(/could not be saved/i, { selector: 'span' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/^Test complete:/)).toHaveTextContent(/could not be saved/i)
   })
 
   it('offers a way to the history once a test is saved', async () => {
@@ -552,7 +554,33 @@ describe('the results panel', () => {
     expect(
       screen.queryByRole('link', { name: /view details/i }),
     ).not.toBeInTheDocument()
-    expect(await screen.findByText(/could not be saved/i)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/could not be saved/i, { selector: 'span' }),
+    ).toBeInTheDocument()
+  })
+
+  it('announces the result to a screen reader, and clears it for the next test', async () => {
+    const user = userEvent.setup()
+    renderWithRoutes(createService())
+
+    // Present and empty before anything happens: a live region that only
+    // appears with its text is often not announced at all.
+    const announcement = screen
+      .getAllByRole('status')
+      .find((region) => region.getAttribute('aria-live') !== 'off')
+    expect(announcement).toBeDefined()
+    expect(announcement).toBeEmptyDOMElement()
+
+    await complete(user)
+
+    expect(announcement).toHaveTextContent(
+      /^Test complete: \d+ words per minute, \d+% accuracy\.$/,
+    )
+
+    await user.keyboard('{Enter}')
+
+    expect(announcement).toBeInTheDocument()
+    expect(announcement).toBeEmptyDOMElement()
   })
 
   it('leaves Tab free to reach the result controls', async () => {

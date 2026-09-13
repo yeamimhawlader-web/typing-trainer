@@ -15,10 +15,13 @@
 
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { TypingTest } from '@features/typing'
+import { useDocumentTitle } from '@shared/lib'
 
 import styles from './PracticePage.module.css'
 
 export const PracticePage = () => {
+  // Not built on Page, so it names the tab itself.
+  useDocumentTitle('Practice')
   const ready = useSettingsStore((state) => state.status === 'ready')
   const initial = useSettingsStore((state) => state.preferences.practiceWordCount)
   const remember = useSettingsStore((state) => state.setPracticeWordCount)

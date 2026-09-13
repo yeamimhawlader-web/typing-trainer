@@ -40,6 +40,7 @@ import {
 } from '@core/telemetry'
 import { createDrill, createDrillProvider, isDrillableSequence } from '@core/text'
 import { TypingTest } from '@features/typing'
+import { useDocumentTitle } from '@shared/lib'
 import { ButtonLink, Page } from '@shared/ui'
 
 import styles from './DrillPage.module.css'
@@ -116,6 +117,17 @@ export const DrillPage = ({
       active = false
     }
   }, [plan, sequence, service, telemetry])
+
+  // Set here, above the early returns, for all three states. React runs a
+  // parent's effects after its children's, so this is the title that stands
+  // even where a Page below sets one too.
+  useDocumentTitle(
+    plan === null
+      ? 'No drill for that sequence'
+      : baseline.status === 'loading'
+        ? 'Drill'
+        : `Drill: ${sequence}`,
+  )
 
   if (plan === null || provider === null) {
     return (

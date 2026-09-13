@@ -4,16 +4,19 @@ A typing-training platform built for daily deliberate practice.
 
 **Status: typing test, saved history and statistics.** Run a typing test —
 live speed, accuracy, timer and progress, keyboard-first — see a full result
-when it finishes, find every past test on the History page with its own detail
-view, and track speed, accuracy and activity over time on the Statistics page.
+when it finishes, find your most recent 50 tests on the History page with their
+own detail views, and track speed, accuracy and activity over time — across all
+of them — on the Statistics page.
 Finished tests also record keystroke-level telemetry — timings, word positions
 and corrections — and the analysis built on it now leads somewhere. The result
 screen shows the slowest character transitions of the test just typed. The
 statistics page asks the harder question: which transitions are consistently
 slower than your own baseline across recent sessions, with the evidence for
-each one beside it. Any of those can be trained: **Train** builds a short drill
-from real words containing that transition, then reports how it went against
-your baseline.
+each one beside it and a plain grading of that evidence — strong, or possible
+and needing more tests. Where the evidence is strong, **Train** builds a short
+drill from real words containing that transition, then reports how it went
+against your baseline and whether the difference is within your normal
+variation.
 
 All of it is an experiment and says so. One test is far too thin a sample,
 which is why the cross-session analysis exists; and one drill cannot tell a
@@ -24,7 +27,8 @@ practise next.
 ## Keyboard
 
 The typing screen is keyboard-first: nothing needs to be clicked before typing,
-and there is no text field to focus.
+and there is no text field to focus. It needs a physical keyboard; on-screen
+keyboards on phones and tablets are not supported yet.
 
 | Key | What it does | When |
 | --- | --- | --- |
@@ -38,6 +42,25 @@ and there is no text field to focus.
 A drill uses the same keys as ordinary practice. Restarting one re-types the
 same words, which is what makes doing it twice a comparison rather than two
 unrelated pieces of text.
+
+### Mistakes and pauses
+
+A mistake stays in its own word. The space bar is what keeps the rest of the
+test aligned:
+
+- a letter typed where a space belongs is marked as an extra, and the next word
+  is untouched;
+- a space pressed part-way through a word ends that word, marks the letters you
+  skipped as wrong, and moves on to the next word;
+- a space before you have started a word does nothing.
+
+A missed space, which runs two words together, still shifts the text by a word
+until you fix it — `Ctrl`+`Backspace` is the quick way back.
+
+A pause is fine. Any single gap between keystrokes counts as at most three
+seconds, so a hesitation is timed in full but walking away mid-test cannot wreck
+the result. After three seconds the timer stops and the screen says the test is
+paused; the next key carries on.
 
 A word delete takes any whitespace behind the cursor first, so from just after a
 finished word the space and the word go together in one press rather than two.

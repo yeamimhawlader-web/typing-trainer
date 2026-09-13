@@ -42,10 +42,23 @@
   color: var(--color-char-correct);
 }
 
+/**
+ * A mistyped character is marked by shape as well as colour.
+ *
+ * Its red is almost exactly the lightness of an untyped character's grey —
+ * 1.01:1 in the light theme — so without this the only difference is hue, and
+ * a typist with red-green colour blindness is left with a faint tint.
+ *
+ * An inset shadow rather than `text-decoration`: a mistyped *space* is one of
+ * the commonest errors, and an underline is not reliably drawn under a space at
+ * the end of a line. The shadow is painted on the box, so it shows under any
+ * character, and it changes nothing about layout, so the text never moves.
+ */
 .incorrect {
   color: var(--color-char-incorrect);
   background-color: var(--color-char-incorrect-bg);
   border-radius: var(--radius-xs);
+  box-shadow: inset 0 -0.12em 0 var(--color-char-incorrect);
 }
 
 .corrected {

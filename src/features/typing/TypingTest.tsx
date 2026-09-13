@@ -14,9 +14,11 @@ import {
   DEFAULT_SESSION_CONTEXT,
   type SessionContext,
   type SessionService,
+  type TypingSession,
 } from '@core/sessions'
 import { compareToBaseline, type TelemetryService, type TypicalRange } from '@core/telemetry'
 import { createCommonWordsProvider, type TextProvider } from '@core/text'
+import { formatAccuracy, formatWpm } from '@features/results'
 
 import { LiveStats } from './components/LiveStats.tsx'
 import { ProgressBar } from './components/ProgressBar.tsx'
@@ -24,9 +26,39 @@ import { TestConfig } from './components/TestConfig.tsx'
 import { TestResult } from './components/TestResult.tsx'
 import { TypingSurface } from './components/TypingSurface.tsx'
 import { useEngineValue } from './hooks/useEngineValue.ts'
-import { useTypingSession, type WordCountPreference } from './hooks/useTypingSession.ts'
+import {
+  useTypingSession,
+  type SaveState,
+  type WordCountPreference,
+} from './hooks/useTypingSession.ts'
 
 import styles from './TypingTest.module.css'
+
+interface ResultAnnouncementProps {
+  readonly session: TypingSession | null
+  readonly saveState: SaveState
+}
+
+/**
+ * Tells a screen reader the test is over, and how it went.
+ *
+ * The result panel appears silently, and the live statistics are deliberately
+ * `aria-live="off"` — announcing speed on every keystroke would drown the
+ * typing out. So without this a screen-reader user finishes a test and hears
+ * nothing.
+ *
+ * The region is always in the page and empty while typing, because a live
+ * region is only reliably announced when content changes inside one that
+ * already existed; one that arrives together with its text is often skipped.
+ * It says only the headline — the full result is on the page to read.
+ */
+const ResultAnnouncement = ({ session, saveState }: ResultAnnouncementProps) => (
+  <p role="status" className="visually-hidden">
+    {session === null
+      ? ''
+      : `Test complete: ${formatWpm(session.metrics.netWpm)} words per minute, ${formatAccuracy(session.metrics.accuracy)} accuracy.${saveState === 'failed' ? ' This test could not be saved.' : ''}`}
+  </p>
+)
 
 /** Subscribes to status alone, so the hint line does not hold up the tree. */
 const SessionHint = ({ engine }: { engine: TypingEngine }) => {
@@ -148,6 +180,15 @@ export const TypingTest = ({
       <TypingSurface engine={engine} characters={characters} />
 
       <SessionHint engine={engine} />
+
+      {/* Shown only where the primary pointer is a finger and nothing hovers —
+          a phone or a tablet without a keyboard — by CSS, so it costs the
+          typing screen no state. See the input note in useTypingSession. */}
+      <p className={styles.touchNote}>
+        Typing here needs a physical keyboard. On-screen keyboards are not supported.
+      </p>
+
+      <ResultAnnouncement session={lastSession} saveState={saveState} />
 
       {lastSession !== null && (
         <TestResult

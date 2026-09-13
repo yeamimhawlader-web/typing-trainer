@@ -17,8 +17,8 @@ export const HomePage = () => (
     </div>
 
     <p className={styles.note}>
-      Start typing to begin — no button to press first. Results are not saved yet, so
-      nothing is recorded between sessions.
+      Start typing to begin — no button to press first. Results are saved in this
+      browser only; nothing is sent anywhere.
     </p>
   </Page>
 )

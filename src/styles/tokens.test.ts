@@ -244,10 +244,13 @@ const PAIRINGS: readonly Pairing[] = [
  * faint background tint behind the character, and peripheral vision, which is
  * what notices an error at 130 WPM, works mostly on lightness too.
  *
- * It is not fixed here for two reasons. There is no standard that demands a
- * ratio between two text states, so any bar would be invented; and the error
- * colour is the most visually loaded decision on the typing screen, which is
- * not something to change as a side effect of adding a test.
+ * The colours are not changed to fix it, for two reasons. There is no standard
+ * that demands a ratio between two text states, so any bar would be invented;
+ * and the error colour is the most visually loaded decision on the typing
+ * screen. Instead a mistyped character now also carries a bar along its bottom
+ * edge (`.incorrect` in `TypingSurface.module.css`), so the difference no
+ * longer rests on hue alone. The test at the end of this file keeps that bar
+ * from being quietly removed.
  */
 const KNOWN_GAPS: readonly (Pairing & { readonly measured: number })[] = [
   {
@@ -358,6 +361,20 @@ describe('design tokens', () => {
       // Guards the guard: a glob that silently matched nothing would make the
       // test above pass forever.
       expect(stylesheets.length).toBeGreaterThan(10)
+    })
+  })
+
+  describe('a mistyped character is not marked by colour alone', () => {
+    it('keeps the bar that separates it from an untyped one', () => {
+      // See KNOWN_GAPS: the two states are the same lightness, so this shape is
+      // what carries the difference for anyone who cannot rely on hue.
+      const surface = readFileSync(
+        `${srcPath}/features/typing/components/TypingSurface.module.css`,
+        'utf8',
+      ).replace(/\/\*[\s\S]*?\*\//g, '')
+      const incorrect = /\.incorrect\s*\{([^}]*)\}/.exec(surface)?.[1] ?? ''
+
+      expect(incorrect).toMatch(/box-shadow:\s*inset\s+0\s+-[\d.]+em\s+0\s+var\(--color-char-incorrect\)/)
     })
   })
 })

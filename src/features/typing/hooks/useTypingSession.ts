@@ -6,6 +6,21 @@
  * slices they display. Putting the cursor or the character states in `useState`
  * here would re-render the entire screen on every key, which is exactly the
  * thing to avoid.
+ *
+ * ## Input: physical keyboard only, by decision
+ *
+ * This application is desktop and keyboard-first. It reads `keydown` on the
+ * window and has no editable element, so a phone's on-screen keyboard never
+ * opens, and Android's IME sends `key: "Unidentified"` anyway. That is stated
+ * to touch users on the typing screen rather than left to be discovered.
+ *
+ * The boundary for anything else is the engine, not this file: `engine.start`,
+ * `engine.input(key, at)` and `engine.deleteWord(at)` are the whole input
+ * surface, and nothing in the engine, metrics, telemetry or persistence knows
+ * where a key came from. The keyboard mapping lives in the one `keydown`
+ * handler below. A future touch path would be a second, small adapter that
+ * reads a hidden text field's `beforeinput` events and calls the same three
+ * methods — not a second typing system.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'

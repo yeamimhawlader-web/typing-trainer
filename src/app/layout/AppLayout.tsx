@@ -19,8 +19,26 @@ const NAV_ITEMS: ReadonlyArray<{ readonly to: string; readonly label: string }> 
   { to: ROUTES.settings, label: 'Settings' },
 ]
 
+const MAIN_ID = 'main-content'
+
 export const AppLayout = () => (
   <div className={styles.shell}>
+    {/* First in the tab order, hidden until focused, so a keyboard user can
+        pass the five header links on every page. Focus is moved by hand
+        rather than by following the fragment: following it would put
+        `#main-content` in the address bar, and the router treats that as a
+        navigation. */}
+    <a
+      href={`#${MAIN_ID}`}
+      className={styles.skipLink}
+      onClick={(event) => {
+        event.preventDefault()
+        document.getElementById(MAIN_ID)?.focus()
+      }}
+    >
+      Skip to content
+    </a>
+
     <header className={styles.header}>
       <NavLink to={ROUTES.home} className={cx(styles.brand)}>
         {appConfig.appName}
@@ -41,7 +59,8 @@ export const AppLayout = () => (
       </nav>
     </header>
 
-    <main className={styles.main}>
+    {/* Focusable only from script, so the skip link has somewhere to land. */}
+    <main id={MAIN_ID} className={styles.main} tabIndex={-1}>
       <Outlet />
     </main>
   </div>

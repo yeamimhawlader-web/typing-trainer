@@ -128,12 +128,35 @@ under one key — rewrites the entire history on every save and deserialises all
 of it to show ten rows. With an index, a save writes two small values and
 `getRecent(10)` reads eleven.
 
-The index is a cache of an ordering; records are authoritative. Where they
-disagree, the record wins and the stale entry is skipped, so a partial write
-degrades to a missing row rather than a broken page. `clear()` works from the
-keys actually present rather than the index, so a record the index lost track of
-is still removed — and it removes only session keys, leaving preferences and
-anything else on the origin alone.
+The index is a cache of an ordering; records are authoritative. `clear()` works
+from the keys actually present rather than the index, so a record the index lost
+track of is still removed — and it removes only session keys, leaving
+preferences and anything else on the origin alone.
+
+**The index is checked against the records before it is trusted.** It used to be
+trusted outright, and the audit showed the cost: a corrupted index made history
+read as empty while every record sat on disk, and the next save wrote a fresh
+index containing only itself, orphaning all of them for good. Now every read and
+write first compares the index with the session keys that exist. Records it does
+not list are read, validated and put back; records that fail validation are left
+out rather than guessed at, and stay on disk untouched; entries pointing at
+records that are gone are dropped. When nothing is wrong this is one key listing
+and no write. It also recovers sessions orphaned by the old behaviour.
+
+**Deleting goes through one service, and can be undone.** A session lives in two
+repositories — its record and its keystroke detail — and the detail page used to
+delete only the record, leaving what someone typed readable in storage after they
+had asked for it gone. `@core/history` is now the only way anything is deleted:
+telemetry first, then the session, so a failure part-way leaves a visible session
+that can be deleted again rather than invisible keystroke detail that cannot.
+Every deletion returns what it removed, which is what undo restores. The history
+list and the detail page both ask for confirmation before deleting — one
+confirming click, with focus on Cancel and Escape to back out — and the history
+page then offers Undo for the most recent deletion, whether one session or all of
+them and whether made from the list or a detail page. It stays available until it
+is used, dismissed, replaced by another deletion, or the app is reloaded; it is
+held in memory, not storage. Confirmation is only on destructive controls, never
+on the typing loop.
 
 **Index updates are serialised.** Updating the index is read-modify-write, so
 two overlapping saves would each read the same starting point and write back
@@ -418,11 +441,54 @@ qualified, at +4 ms and +1 ms on 5 of 8. Five of eight happens by chance 36% of
 the time. Raising the bar to 0.7, which needs 6 of 8 at 14%, left only the
 planted sequence standing.
 
+**Evidence tiers — how much a row will bear.** The thresholds above make a
+sequence a *candidate*, and the audit showed that is not enough: with nothing
+slow at all, ordinary jitter produced candidates in every simulated history from
+ten sessions on, each with the same Train button as a real +49 ms slowdown. The
+more sequences are checked, the more clear a 70% bar by chance, and nothing asked
+whether a difference was big enough to matter. So every candidate also gets a
+tier from two questions asked together:
+
+- **Big enough to matter?** The delta as a fraction of the typist's own baseline.
+- **Consistent enough not to be luck, given how many were checked?** The exact
+  one-sided sign-test probability of being slower in that many of its sessions if
+  it were really no slower, multiplied by the number of sequences judged — a
+  Bonferroni bound on how many sequences chance alone would produce this
+  consistent.
+
+| Tier | Relative delta | Expected by chance | On screen |
+| --- | --- | --- | --- |
+| Strong evidence | ≥ 20% | ≤ 0.05 | Listed first, with the Train button |
+| Possible | ≥ 10% | ≤ 0.5 | "Possible — needs more tests", a quiet text link |
+| — | otherwise | | Not listed; counted in "sequences with enough data" |
+
+Calibrated against the audit's simulated typist (86 ms transitions, log-normal
+jitter σ 0.3, 3% pauses, 60-word tests; forty histories per case):
+
+| Case | Before tiers | Strong | Possible or better |
+| --- | --- | --- | --- |
+| Nothing slow, 10 sessions | fake rows in 40/40 | fake in 1/40 | fake in 9/40 |
+| Nothing slow, 20 sessions | fake rows in 40/40 | fake in 0/40 | fake in 8/40 |
+| +40 ms, 6 sessions | found in 31/40 | 0/40 | 30/40 |
+| +40 ms, 10 sessions | found in 40/40 | 38/40 | 40/40 |
+| +15 ms, 20 sessions | found in 37/40 | 8/40 | 27/40 |
+
+A large persistent slowdown reaches strong at about ten sessions; a small real
+one mostly stays possible; noise almost never reaches strong. Below about eight
+sessions nothing can be strong, because even slower-in-every-session is too
+likely by chance across all the sequences checked — the honest price of asking the
+question of many sequences at once. A seeded version of this simulation runs in
+the test suite. The wording is "evidence", never certainty: the sign test assumes
+that a sequence which is not really slower lands on either side of its session
+baseline like a coin flip, and real typing only approximately does. Nothing here
+became machine learning; it is two numbers per row and two thresholds.
+
 **Known limitations, stated rather than buried.**
 
-- At the four-session minimum the stability rule can only ask for 3 of 4, which
-  chance supplies 31% of the time. The rule sharpens as history accumulates and
-  is weakest exactly where the data is thinnest.
+- Four to about seven sessions can only ever produce possible findings. That is
+  deliberate: at four sessions a sequence slow in three is 31% likely by chance.
+- A slowdown that began recently is diluted by the older sessions in the 30-test
+  window until it covers most of it.
 - It ranks timings; it does not diagnose. A sequence can be slow because the
   movement is awkward, because it occurs in long or unfamiliar words, or because
   it is where someone pauses to think. Nothing here separates those.
@@ -454,7 +520,10 @@ from the corpus words that contain it — in, into, think, find, being, going,
 begin, bring and six more. Nothing is invented and no second corpus exists. A
 sequence no word contains produces no drill at all, and the screen says so: a
 page of invented syllables would train a movement the typist will never make.
-The `Train` action is only offered for sequences a drill can be built from.
+The `Train` button is only offered for sequences with strong evidence that a
+drill can be built from; a possible finding gets a quiet "Try a drill" link
+instead, so a difference that may be noise is not presented as something to act
+on.
 
 **It is not all target words, and that is the point.** Roughly two in three
 words carry the target and the rest are ordinary, so the hands keep changing
@@ -496,7 +565,19 @@ target, the typist's baseline, and the difference between them — three numbers
 of the same weight, no colour, no percentage. A percentage of a figure this
 noisy would read as precision that is not present. Two counts are shown rather
 than one, because the gap between them matters: 27 occurrences and 27 clean
-transitions is a different session from 27 and 18.
+transitions is a different session from 27 and 18. The difference is taken from
+the two rounded figures beside it, so the three always subtract on screen.
+
+**The difference comes with its noise band.** With nothing changed, the audit saw
+16 of 60 drills look at least 5 ms faster, and the screen offered nothing to
+weigh that against. With four or more earlier sessions the result now also gives
+the range this transition usually falls in during ordinary tests — the 10th to
+90th percentile of its per-session medians — and says whether the drill landed
+inside it ("within normal variation"), below it or above it. In simulation an
+unchanged drill landed inside in 42 of 60 histories at four sessions and 54 of 60
+at ten, and a genuine 40 ms change landed outside in at least 58 of 60. It is a
+statement about where one number fell, not a test of significance, and the
+existing caveat that one drill is not proof of a lasting change stays.
 
 The browser run that verified this is worth recording, because it is the case
 that could have been faked. A simulated typist with a planted 55 ms penalty on
@@ -531,6 +612,20 @@ lying quietly.
 **Sessions are weighted equally.** The average of a 15-word test and a 60-word
 test is the mean of the two speeds. Weighting by characters is equally
 defensible; this is the choice that was made, and it is stated in a test.
+
+**One far-out session does not decide the average.** A mean is dominated by a
+single extreme value: in the audit two implausible sessions pushed the average
+to 714 WPM against a median of 115 and consistency to 0%. The average, the
+average raw speed and consistency now leave out sessions far outside the
+typist's own others in the range shown — Tukey's "far out" rule, more than three
+interquartile ranges beyond the quartiles of net WPM. It applies only with at
+least five sessions, and the spread it uses is at least a tenth of the median, so
+a typist whose tests are all nearly identical does not lose a slightly different
+one. **Nothing else changes**: the median, the best, every count and total and
+every chart use all sessions, and no stored measurement is altered. There is no
+WPM cap anywhere — a cap would be a claim about what speeds are possible, where
+this is only a statement about which of *this* typist's results are unlike their
+others. When a session is left out, the statistics page says so, with its speed.
 
 **Consistency is across sessions, not within one.** `1 - (standard deviation /
 mean)` of session speeds, clamped to 0..1, null below two sessions. Other typing
@@ -580,6 +675,41 @@ Errors **do not block**: a wrong character is marked wrong and the cursor moves
 on, rather than refusing to advance. This is what fast typists expect, and it is
 the only model that measures how someone actually types instead of imposing a
 correction rhythm. Backspace is how mistakes get fixed.
+
+**An error costs one word, not the rest of the test.** Comparing position by
+position has no way back into alignment, and the audit measured what that did:
+one extra letter left 52 of the next 60 characters wrong, and one dropped letter
+turned a 130 WPM test into 9 WPM at 7% accuracy. The space bar now
+re-synchronises to word boundaries (`core/engine/input-rules.ts`):
+
+- a letter typed where a space belongs is recorded as an extra and the cursor
+  holds on the boundary;
+- a space part-way through a word ends it — the letters not reached are marked
+  incorrect — and the cursor moves to the next word;
+- a space before any letter of a word is ignored.
+
+Each keystroke is still recorded once, at the position it was compared against,
+so raw WPM, net WPM, accuracy, corrections and telemetry keep their definitions.
+Telemetry replays the same rule when it derives the cursor from a stored log, so
+the live engine and the analysis cannot disagree about where a key landed. Two
+errors still shift a whole word, exactly as on Monkeytype: a missed space, which
+merges two words, and a space inside a word, which splits one. Both look
+identical to the contained cases when the key arrives, so guessing would
+misalign typists who made no error. `Ctrl`+`Backspace` recovers either.
+
+**A pause is capped, not counted in full.** Nothing detected a typist walking
+away: eight seconds mid-test saved a 130 WPM test as 80 WPM. Any single gap
+between keystrokes now counts as at most `IDLE_GAP_CAP_MS`, three seconds. No
+real hesitation reaches that — a keystroke gap at 130 WPM is under a tenth of a
+second, a pause to find a word well under two — so ordinary typing is charged in
+full and the screen never pauses on its own. After three seconds the clock stops
+advancing, the hint line says "Paused — keep typing to continue", and the next
+key resumes from where it left off. The most an interruption can cost is three
+seconds, whatever its length. A test left and never finished is not saved,
+exactly as before: only completed tests are recorded. The cap is worked out from
+keystroke timestamps rather than from a timer, so it holds in a background tab
+where timers are throttled, and it is an engine option rather than a rule, so a
+future timed mode can leave it off.
 
 A fixed mistake still happened. Retyping a character correctly after a backspace
 marks it `corrected`: it counts toward speed (the text is right) and permanently
@@ -676,6 +806,45 @@ event's target before taking either. Nothing below that check runs once a test
 is over, which is what stops a stray `preventDefault` from disabling the
 results' own buttons.
 
+### Input: a physical keyboard, by decision
+
+The typing screen reads `keydown` on the window and has no editable element, so
+on a phone or a tablet without a keyboard the on-screen keyboard never opens, and
+Android's IME reports `key: "Unidentified"` regardless. For now this application
+is **desktop and keyboard-first**, and says so: where the primary pointer is
+coarse and nothing hovers, the typing screen shows "Typing here needs a physical
+keyboard." A touchscreen laptop has a fine pointer and hover, so it never sees
+the note.
+
+The boundary a touch path would plug into already exists and is the engine, not
+the screen: `start`, `input(key, at)` and `deleteWord(at)` are the whole input
+surface, and nothing in the engine, metrics, telemetry or persistence knows where
+a key came from. The keyboard mapping is one `keydown` handler in
+`useTypingSession`. Touch support would be a second small adapter reading a
+hidden field's `beforeinput` events and calling the same three methods — not a
+second typing system.
+
+### Accessibility fixes that cost little
+
+- **A mistyped character is not marked by colour alone.** Its red is the same
+  lightness as untyped grey (1.01:1 in the light theme), so it now also carries a
+  bar along its bottom edge. An inset shadow rather than an underline, because a
+  mistyped space is one of the commonest errors and an underline is not reliably
+  drawn under a space at a line end; the shadow changes no layout. A test keeps
+  the rule from being quietly removed.
+- **Finishing a test is announced.** The live figures are `aria-live="off"` on
+  purpose, and the result panel appears silently, so a screen-reader user heard
+  nothing. A polite status region, present and empty while typing, now says the
+  headline — speed, accuracy, and a failed save if there was one — and empties
+  for the next test.
+- **A skip link** is the first thing in the tab order on every page and moves
+  focus to the main content.
+- **Each page names its tab.** `Page` sets the document title from its heading;
+  the practice and drill screens, which are not built on `Page`, set their own.
+- **Focus stays visible.** New controls use the global focus ring; the only
+  suppressed outline is on the main landmark the skip link lands on, which is not
+  a control.
+
 ### Live speed is withheld for the first second
 
 The clock starts on the first keystroke, so after N characters only N-1
@@ -757,3 +926,16 @@ Recorded honestly rather than hidden:
 
 6. **No CI pipeline.** `npm run verify` is the gate, but nothing runs it
    automatically yet.
+
+7. **Storage is never pruned.** Each session costs about 836 characters of
+   `localStorage`. At a typical 5 MB limit that is roughly 6,000 sessions, after
+   which saves fail — reported on screen, not silently — until something is
+   deleted. Telemetry retention is already bounded; session records are not.
+
+8. **A missed space or a split word still costs a word.** The error model contains
+   extra letters, dropped letters and early spaces to one word, but a space typed
+   inside a word, or a word boundary typed through, shifts alignment by one word
+   until corrected, as on word-based typing sites. `Ctrl`+`Backspace` recovers it.
+
+9. **No touch input.** Deliberate for now; see "Input: a physical keyboard, by
+   decision".
