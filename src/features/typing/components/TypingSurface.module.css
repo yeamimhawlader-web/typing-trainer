@@ -32,6 +32,17 @@
   display: none;
 }
 
+/* A word, so it can move as one piece when GGTyping makes it jump. Inline-block
+   because transforms do not apply to plain inline boxes, and always
+   inline-block — never switched on for the jump — so the line never reflows.
+   It aligns on the text baseline and is exactly one line tall, so the layout
+   measures the same as with bare character spans. The motion itself lives in
+   features/ggtyping/motion; there is deliberately no will-change here, which
+   would hold a compositor layer open for every word on the page. */
+.word {
+  display: inline-block;
+}
+
 .character {
   /* No transition. A colour that fades in over 120ms is a colour that is wrong
      for 120ms, and at speed the trail of half-coloured characters reads as lag. */

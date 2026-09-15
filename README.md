@@ -103,6 +103,7 @@ Then open http://localhost:5173.
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — how the project is arranged and why
 - [DEVELOPMENT.md](./DEVELOPMENT.md) — how to add features
+- [GGTYPING.md](./GGTYPING.md) — the standard for feedback effects, starting with the word jump
 
 ## Configuration
 

@@ -824,6 +824,34 @@ a key came from. The keyboard mapping is one `keydown` handler in
 hidden field's `beforeinput` events and calling the same three methods — not a
 second typing system.
 
+### GGTyping effects listen to the engine and move the DOM directly
+
+The first GGTyping effect — a word jumps after three consecutive mistakes on it —
+is built so that it cannot touch what the application measures, and so that
+future effects have a pattern to copy. The conventions are in
+[GGTYPING.md](./GGTYPING.md); the structural decisions are these.
+
+- **It is a listener, not a participant.** `@features/ggtyping` subscribes to
+  engine events and uses the keystroke's own `correct` verdict and position. It
+  never calls into the engine. A test replays the same keystrokes through two
+  engines, one with the effect connected and jumps firing, and asserts the
+  results, keystroke logs and derived telemetry are identical; another wraps the
+  engine in a proxy and asserts only `on` and `getSnapshot` are ever called.
+- **No React state, no re-render.** A jump is played with `element.animate` on
+  the word's element, found through a map filled by ref callbacks. Nothing
+  re-renders because a word jumped: measured at 4.5 renders per keystroke for
+  mistake-and-backspace typing with jumps firing and 4.5 with animation
+  unavailable. The snapshot is read once per test and once per completed word —
+  both the same cached object the screen reads anyway — and never per keystroke.
+- **Words are wrapped, always.** A transform does not apply to a plain inline
+  box, so each word's letters sit in an `inline-block` span. Always, not only
+  during a jump, because switching display would reflow the line. Measured in
+  Chromium with and without the wrappers at 1,510 px and 375 px, for 15, 30 and
+  60-word tests: no character moved.
+- **The motion is in em.** The typing text is 28 px on a desktop and 20 px on a
+  phone. A fixed 12 px jump made the word's text box overlap the line above by
+  1.3 px on a phone; at 0.43 em it clears it by about 2 px.
+
 ### Accessibility fixes that cost little
 
 - **A mistyped character is not marked by colour alone.** Its red is the same

@@ -58,9 +58,14 @@ const renderedText = (): string => textContainer().textContent ?? ''
 const firstWord = (): string => (renderedText().split(' ')[0] ?? '').trim()
 
 const characterSpans = (): HTMLElement[] =>
-  Array.from(textContainer().querySelectorAll('span')).filter(
-    // Excludes the zero-width span that carries the caret at the end.
-    (element) => element.textContent !== null && element.textContent.length === 1,
+  Array.from(textContainer().querySelectorAll('span:not([data-word])')).filter(
+    // Excludes the zero-width span that carries the caret at the end, and the
+    // word wrappers — a one-letter word's wrapper would otherwise look like a
+    // character and shift every index after it.
+    (element): element is HTMLElement =>
+      element instanceof HTMLElement &&
+      element.textContent !== null &&
+      element.textContent.length === 1,
   )
 
 const classesAt = (index: number): string => characterSpans()[index]?.className ?? ''
@@ -922,5 +927,106 @@ describe('remembered practice length', () => {
 
     expect(remembered).toEqual([15])
     expect(renderedText().split(' ')).toHaveLength(15)
+  })
+})
+
+describe('GGTyping word jump on the typing screen', () => {
+  const fixed = (text: string): NonNullable<TypingTestProps['provider']> => ({
+    id: 'fixed',
+    label: 'Fixed',
+    provide: () => ({ text, sourceId: 'fixed' }),
+  })
+
+  const media = (reduce: boolean) =>
+    ((query: string) => ({
+      matches: reduce && query.includes('prefers-reduced-motion: reduce'),
+      media: query,
+      onchange: null,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia
+
+  /** Records which elements were asked to animate, on the real screen. */
+  const recordAnimations = (reduce: boolean) => {
+    const animated: Element[] = []
+    const original = { animate: HTMLElement.prototype.animate, matchMedia: window.matchMedia }
+
+    window.matchMedia = media(reduce)
+    HTMLElement.prototype.animate = function animate(this: HTMLElement) {
+      animated.push(this)
+      return {
+        playState: 'running',
+        cancel: () => undefined,
+        addEventListener: () => undefined,
+      } as unknown as Animation
+    }
+
+    return {
+      animated,
+      restore: () => {
+        HTMLElement.prototype.animate = original.animate
+        window.matchMedia = original.matchMedia
+      },
+    }
+  }
+
+  it('makes the mistyped word jump on the third mistake in a row, and not before', async () => {
+    const recorder = recordAnimations(false)
+    try {
+      const user = userEvent.setup()
+      renderTest({ provider: fixed('alpha bravo charlie') })
+
+      await user.keyboard('x{Backspace}x{Backspace}')
+      expect(recorder.animated).toEqual([])
+
+      await user.keyboard('x')
+
+      const alpha = textContainer().querySelector('[data-word="0"]')
+      expect(recorder.animated).toEqual([alpha])
+      // The word wraps its own letters and nothing else.
+      expect(alpha?.textContent).toBe('alpha')
+    } finally {
+      recorder.restore()
+    }
+  })
+
+  it('keeps the mistake on screen but does not move anything under reduced motion', async () => {
+    const recorder = recordAnimations(true)
+    try {
+      const user = userEvent.setup()
+      renderTest({ provider: fixed('alpha bravo charlie') })
+
+      await user.keyboard('x{Backspace}x{Backspace}x')
+
+      expect(recorder.animated).toEqual([])
+      expect(classesAt(0)).toMatch(/incorrect/)
+    } finally {
+      recorder.restore()
+    }
+  })
+
+  it('leaves the text, the caret and the line exactly as they were', async () => {
+    const recorder = recordAnimations(false)
+    try {
+      const user = userEvent.setup()
+      renderTest({ provider: fixed('alpha bravo charlie') })
+
+      await user.keyboard('x{Backspace}x{Backspace}x')
+
+      expect(recorder.animated).toHaveLength(1)
+      expect(renderedText()).toBe('alpha bravo charlie')
+      // The caret is where the engine put it, one past the mistake.
+      expect(classesAt(1)).toMatch(/cursor/)
+      // Spaces are not inside any word, so they never move with one.
+      const spaces = Array.from(textContainer().querySelectorAll('[data-word] span')).filter(
+        (element) => element.textContent === ' ',
+      )
+      expect(spaces).toEqual([])
+    } finally {
+      recorder.restore()
+    }
   })
 })

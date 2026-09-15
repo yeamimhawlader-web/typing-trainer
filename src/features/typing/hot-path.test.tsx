@@ -211,3 +211,70 @@ describe('typing hot path', () => {
     expect(late).toBeLessThanOrEqual(early)
   })
 })
+
+describe('typing hot path while words are jumping', () => {
+  it('costs no more per keystroke when mistakes make words jump', async () => {
+    // The word jump listens to the engine and animates the DOM directly. It
+    // must add nothing to a keystroke: no component renders because a word
+    // jumped, and no class or style is written to make it move.
+    const played: Element[] = []
+    const originalAnimate = HTMLElement.prototype.animate
+    HTMLElement.prototype.animate = function animate(this: HTMLElement) {
+      played.push(this)
+      return {
+        playState: 'finished',
+        cancel: () => undefined,
+        addEventListener: () => undefined,
+      } as unknown as Animation
+    }
+
+    try {
+      const text = textOf(200)
+      const user = userEvent.setup({ delay: null })
+      const { container } = render(
+        <MemoryRouter>
+          <TypingTest provider={fixedProvider(text)} />
+        </MemoryRouter>,
+      )
+      await user.keyboard(text.slice(0, 1))
+
+      // Twelve correct keystrokes, as a baseline.
+      probe.renders = 0
+      await user.keyboard(text.slice(1, 13))
+      const correctPerKeystroke = probe.renders / 12
+
+      // Back to where we were, then twelve keystrokes of mistakes and deletions
+      // on one word: six mistakes, two jumps.
+      await user.keyboard('{Backspace}'.repeat(12))
+
+      // Writes a jump could make: anything on a word element, or any inline style.
+      const jumpWrites = (records: readonly MutationRecord[]): number =>
+        records.filter(
+          (record) =>
+            record.attributeName === 'style' ||
+            (record.target instanceof Element && record.target.hasAttribute('data-word')),
+        ).length
+
+      let mutations = 0
+      const observer = new MutationObserver((records) => {
+        mutations += jumpWrites(records)
+      })
+      observer.observe(container, { attributes: true, subtree: true })
+
+      probe.renders = 0
+      await user.keyboard('x{Backspace}'.repeat(6))
+      const jumpingPerKeystroke = probe.renders / 12
+
+      mutations += jumpWrites(observer.takeRecords())
+      observer.disconnect()
+
+      expect(played).toHaveLength(2)
+      expect(jumpingPerKeystroke).toBeLessThanOrEqual(correctPerKeystroke + 1)
+      expect(jumpingPerKeystroke).toBeLessThan(CEILING_PER_KEYSTROKE)
+      // Nothing was written to a word element, or to any style attribute.
+      expect(mutations).toBe(0)
+    } finally {
+      HTMLElement.prototype.animate = originalAnimate
+    }
+  })
+})
