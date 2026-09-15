@@ -26,6 +26,7 @@ export {
 /** Storage keys in use. Centralised so collisions are visible at a glance. */
 export const STORAGE_KEYS = {
   preferences: 'preferences',
+  goldenNuggets: 'golden-nuggets',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]

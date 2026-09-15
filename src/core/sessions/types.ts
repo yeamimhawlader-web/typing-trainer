@@ -11,6 +11,7 @@
  */
 
 import type {
+  HoverDifficulty,
   Milliseconds,
   SessionId,
   SessionMetrics,
@@ -79,21 +80,38 @@ export interface HoverFocusRecord {
   readonly word: string
   /** Its position among the text's words, counting from 0. */
   readonly wordIndex: number
-  /** Clean repetitions needed when the focus ended: 3, plus 3 per failed repetition, to a limit. */
+  /**
+   * The repetitions the focus asked for by its end. For Standard and All In, the
+   * length of its cycles, clean or not: 3 or 6. For Tired, the clean repetitions
+   * required: 3, plus 3 per repetition with a mistake, never more than 10.
+   */
   readonly required: number
-  /** Clean repetitions completed. */
+  /** Cycles of repetitions the focus went through. */
+  readonly cycles: number
+  /** Repetitions typed, clean or not. */
+  readonly attempts: number
+  /** Clean repetitions. */
   readonly successes: number
   /** Repetitions with at least one mistake in them. */
   readonly failures: number
-  /** Whether the required clean repetitions were completed. */
-  readonly completed: boolean
-  /** Whether the focus ended at the attempt limit instead. */
+  /** Wrong keystrokes on the word: in the text, and in every repetition. */
+  readonly mistakes: number
+  /** Whether the word cleared by its difficulty's rule. */
+  readonly cleared: boolean
+  /** Whether the focus stopped at a safety limit rather than clearing. */
   readonly limitReached: boolean
+  /** Whether the word went into Golden Nuggets when the focus ended. */
+  readonly goldenNugget: boolean
   /** From the mistake that started the focus to its end. */
   readonly focusMs: number
 }
 
 export interface HoverSessionRecord {
+  /**
+   * The difficulty the test was typed at. Absent on the few Hover Mode sessions
+   * saved before there were difficulties.
+   */
+  readonly difficulty?: HoverDifficulty
   /** In the order they happened. Empty when nothing needed a focus. */
   readonly focuses: readonly HoverFocusRecord[]
 }

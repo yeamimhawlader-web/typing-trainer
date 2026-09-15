@@ -6,6 +6,7 @@
  * as Hover Mode. The rules are in GGTYPING.md.
  */
 
+import type { GoldenNuggetService } from '@core/nuggets'
 import type { SessionService } from '@core/sessions'
 import type { TelemetryService } from '@core/telemetry'
 import type { TextProvider } from '@core/text'
@@ -19,17 +20,25 @@ export interface GGHoverPageProps {
   readonly provider?: TextProvider
   readonly service?: SessionService
   readonly telemetry?: TelemetryService
+  readonly goldenNuggets?: GoldenNuggetService
 }
 
-export const GGHoverPage = ({ provider, service, telemetry }: GGHoverPageProps = {}) => {
+export const GGHoverPage = ({ provider, service, telemetry, goldenNuggets }: GGHoverPageProps = {}) => {
   useGGDocumentTitle('Hover Mode')
   const initial = useSettingsStore((state) => state.preferences.practiceWordCount)
   const remember = useSettingsStore((state) => state.setPracticeWordCount)
+  const difficulty = useSettingsStore((state) => state.preferences.hoverDifficulty)
+  const rememberDifficulty = useSettingsStore((state) => state.setHoverDifficulty)
 
   return (
     <GGTypingScreen
       heading="Hover Mode"
       mode="hover"
+      hoverDifficulty={difficulty}
+      onHoverDifficultyChange={(next) => {
+        void rememberDifficulty(next)
+      }}
+      {...(goldenNuggets === undefined ? {} : { goldenNuggets })}
       provider={provider}
       service={service}
       telemetry={telemetry}

@@ -15,8 +15,10 @@ import { createStore, type StoreApi } from 'zustand/vanilla'
 import { DEFAULT_PREFERENCES } from '@config'
 import { STORAGE_KEYS, storage, type StorageAdapter } from '@core/persistence'
 import {
+  HOVER_DIFFICULTIES,
   PRACTICE_WORD_COUNTS,
   TEXT_SIZES,
+  type HoverDifficulty,
   type PracticeWordCount,
   type TextSize,
   type ThemePreference,
@@ -35,6 +37,7 @@ export interface SettingsState {
   readonly setTheme: (theme: ThemePreference) => Promise<void>
   readonly setPracticeWordCount: (count: PracticeWordCount) => Promise<void>
   readonly setTextSize: (size: TextSize) => Promise<void>
+  readonly setHoverDifficulty: (difficulty: HoverDifficulty) => Promise<void>
 }
 
 /**
@@ -53,6 +56,7 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
     theme?: ThemePreference
     practiceWordCount?: PracticeWordCount
     textSize?: TextSize
+    hoverDifficulty?: HoverDifficulty
   } = {}
 
   // A theme the registry knows, or one of the two themes earlier versions
@@ -66,6 +70,9 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
 
   const size = TEXT_SIZES.find((option) => option === record['textSize'])
   if (size !== undefined) result.textSize = size
+
+  const difficulty = HOVER_DIFFICULTIES.find((option) => option === record['hoverDifficulty'])
+  if (difficulty !== undefined) result.hoverDifficulty = difficulty
 
   return result
 }
@@ -109,6 +116,8 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
         persist({ ...get().preferences, practiceWordCount }),
 
       setTextSize: (textSize) => persist({ ...get().preferences, textSize }),
+
+      setHoverDifficulty: (hoverDifficulty) => persist({ ...get().preferences, hoverDifficulty }),
     }
   })
 

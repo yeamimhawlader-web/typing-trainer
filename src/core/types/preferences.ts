@@ -21,6 +21,19 @@ export type ThemePreference = string
 export const PRACTICE_WORD_COUNTS = [15, 30, 60] as const
 export type PracticeWordCount = (typeof PRACTICE_WORD_COUNTS)[number]
 
+/**
+ * How persistently Hover Mode repeats a word it has focused.
+ *
+ * - `standard`: one cycle of three repetitions, then the word is released.
+ * - `all-in`: two cycles of three.
+ * - `tired`: three clean repetitions, three more for each repetition with a
+ *   mistake, never more than ten.
+ *
+ * The rules themselves are in `@features/ggtyping`; this is only the choice.
+ */
+export const HOVER_DIFFICULTIES = ['standard', 'all-in', 'tired'] as const
+export type HoverDifficulty = (typeof HOVER_DIFFICULTIES)[number]
+
 /** The sizes the typing text can be set in. */
 export const TEXT_SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const
 export type TextSize = (typeof TEXT_SIZES)[number]
@@ -35,4 +48,6 @@ export interface UserPreferences {
   readonly practiceWordCount: PracticeWordCount
   /** The size of the typing text on the GG.Typing screen. */
   readonly textSize: TextSize
+  /** The Hover Mode difficulty last chosen. */
+  readonly hoverDifficulty: HoverDifficulty
 }

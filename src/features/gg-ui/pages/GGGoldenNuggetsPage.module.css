@@ -1,0 +1,72 @@
+/* A list to read, not a dashboard: the column's width, quiet type, no cards. */
+.page {
+  max-width: 44rem;
+  padding-block: 8px 24px;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 1.375rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--gg-fg);
+}
+
+.intro {
+  margin: 0 0 28px;
+  font-size: var(--gg-text-control);
+  line-height: 1.6;
+  color: var(--gg-muted);
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--gg-text-control);
+  line-height: 1.6;
+  color: var(--gg-muted);
+}
+
+.link {
+  color: var(--gg-fg);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--gg-divider);
+}
+
+.item {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--gg-divider);
+}
+
+.word {
+  margin: 0 0 6px;
+  font-family: var(--gg-font-mono);
+  font-size: 1.125rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gg-fg);
+}
+
+.facts,
+.last {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  font-size: var(--gg-text-pill);
+  line-height: 1.6;
+}
+
+.facts {
+  color: var(--gg-fg);
+}
+
+.last {
+  color: var(--gg-muted);
+}

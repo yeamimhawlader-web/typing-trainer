@@ -16,7 +16,7 @@ import { AppLayout } from '@app/layout/AppLayout.tsx'
 import { NotFoundPage } from '@app/layout/NotFoundPage.tsx'
 import { ROUTES } from '@app/routes.ts'
 import { DrillPage } from '@features/drill'
-import { GGDrillPage, GGHoverPage, GGLayout, GGPracticePage } from '@features/gg-ui'
+import { GGDrillPage, GGGoldenNuggetsPage, GGHoverPage, GGLayout, GGPracticePage } from '@features/gg-ui'
 import { HistoryPage } from '@features/history/pages/HistoryPage.tsx'
 import { historyStore } from '@features/history/state/history.store.ts'
 import { HomePage } from '@features/home/pages/HomePage.tsx'
@@ -35,6 +35,7 @@ export const routeConfig: RouteObject[] = [
     children: [
       { index: true, element: <GGPracticePage /> },
       { path: ROUTES.ggHover, element: <GGHoverPage /> },
+      { path: ROUTES.ggNuggets, element: <GGGoldenNuggetsPage /> },
       { path: ROUTES.ggDrill, element: <GGDrillPage /> },
     ],
   },

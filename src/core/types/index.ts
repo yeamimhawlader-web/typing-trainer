@@ -27,5 +27,11 @@ export type {
   SessionTarget,
 } from './session.ts'
 
-export type { PracticeWordCount, TextSize, ThemePreference, UserPreferences } from './preferences.ts'
-export { PRACTICE_WORD_COUNTS, TEXT_SIZES } from './preferences.ts'
+export type {
+  HoverDifficulty,
+  PracticeWordCount,
+  TextSize,
+  ThemePreference,
+  UserPreferences,
+} from './preferences.ts'
+export { HOVER_DIFFICULTIES, PRACTICE_WORD_COUNTS, TEXT_SIZES } from './preferences.ts'

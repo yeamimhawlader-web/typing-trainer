@@ -53,10 +53,28 @@
   color: var(--color-text-primary);
 }
 
-.flag {
-  margin-left: var(--space-2);
-  font-size: var(--font-size-xs);
+.of {
   color: var(--color-text-tertiary);
+}
+
+.difficulty {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.difficultyName {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.link {
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.link:hover {
+  color: var(--color-text-primary);
 }
 
 .note {

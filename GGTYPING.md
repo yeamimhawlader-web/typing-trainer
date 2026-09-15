@@ -103,36 +103,59 @@ indulges in motion. At `/gg/hover`, beside ordinary practice.
 **Cause.** One mistake on a word, by the engine's own definition.
 
 **Reaction.** The word jumps where it is — the word jump above, after one
-mistake instead of three — and three rings appear under it. The typist finishes
-the word as usual. When they leave it, the word lifts off the line and hovers,
-and every key types the word again until it has gone cleanly the required
-number of times. Then it settles back onto the line and the text carries on.
-
-**Rules.**
-
-| Event | Effect |
-| --- | --- |
-| A mistake, nothing focused | That word is focused: 3 clean repetitions required |
-| A mistake, something already focused | Nothing — one focus at a time |
-| Leaving the focused word in the text | Repetitions begin; the text pauses at the next word |
-| A repetition with no mistake | One clean repetition; a ring fills |
-| A repetition with a mistake | Required +3 (never beyond 12), once per repetition however many mistakes; clean ones already done are kept |
-| Clean repetitions reach the requirement | Released: the text resumes where it was left |
-| 20 repetitions, clean or not | Released as not completed, so no focus can hold a typist indefinitely |
-| The last word focused | The test stays open until it is released |
-| Restart, new text, word count change | Everything cleared |
+mistake instead of three — and a row of rings appears under it. The typist
+finishes the word as usual. When they leave it, the word lifts off the line and
+hovers, and every key types the word again, as many times as the difficulty
+asks. Then it settles back onto the line and the text carries on.
 
 A repetition is the word and the space after it, typed through a second instance
 of the typing engine: its correctness, extras, early spaces and backspace are the
-engine's, and a mistake later corrected still counts, as it does in the engine's
-error count.
+engine's. It is clean when the engine recorded no mistake in it, so a mistake
+put right with backspace still makes it a repetition with a mistake. Several
+mistakes in one repetition are still one failed repetition.
+
+**Difficulties.** Chosen in the toolbar and remembered. Changing it starts a new
+test, so a test is typed, repeated and saved at one difficulty.
+
+| | Standard | All In | Tired |
+| --- | --- | --- | --- |
+| Repetitions | One cycle of 3, clean or not | Two cycles of 3, clean or not: 6 | 3 clean; +3 for each repetition with a mistake |
+| A repetition with a mistake | Recorded; changes nothing else | Recorded; changes nothing else | Required +3, never beyond 10 (3, 6, 9, 10) |
+| Released after | The 3rd repetition | The 6th repetition — never a third cycle | Clean repetitions reach the requirement, or 20 repetitions of any kind |
+| Cleared when | All 3 were clean | The second cycle was all clean | The requirement was met before it reached 10 |
+| Rings | 3, each marked clean (dot) or with a mistake (bar) | 6 in two groups, marked the same way | One per clean repetition required; a miss adds three |
+
+**Rules at every difficulty.**
+
+| Event | Effect |
+| --- | --- |
+| A mistake, nothing focused | That word is focused |
+| A further mistake on the focused word, still in the text | Counted in its mistakes |
+| A mistake on another word, something already focused | Nothing — one focus at a time |
+| Leaving the focused word in the text | Repetitions begin; the text pauses at the next word |
+| The focus is released | The text resumes where it was left; a word that did not clear goes to Golden Nuggets |
+| The last word focused | The test stays open until it is released |
+| Restart, new text, word count or difficulty change | Everything cleared; nothing goes to Golden Nuggets |
+
+**Golden Nuggets.** A word released without clearing — still costing mistakes
+when its difficulty's repetitions ran out — is kept at `/gg/nuggets`, reached
+from Hover Mode's own screen (a line under the hint, and the result) rather than
+the top bar, which has no room for a fourth link on a phone. One record per word per language, whose counts rise each time:
+how often the word was released unresolved, the Hover Mode tests it came up in,
+its mistakes, when it was first and last seen, the last difficulty, and whether
+it cleared or not last time. A word that clears is never added, but a word that
+is already a nugget is updated when it next comes up, cleared or not. The write
+happens as the focus ends, never on a keystroke. A plain list, most recent
+first: no ranking, no score.
 
 **What is recorded.** The session's speed, accuracy and keystroke log are the
 pass through the text, by the engine's unchanged definitions: the session engine
 is paused while a word is repeated, and repetitions never reach it. The session
-is saved with mode `hover` and one record per focus — the word, its position,
-the final requirement, clean repetitions, repetitions with a mistake, whether it
-was completed or hit the limit, and how long it held the typist. Hover Mode
+is saved with mode `hover`, its difficulty, and one record per focus — the word,
+its position, the repetitions asked for, cycles, repetitions typed, clean ones,
+ones with a mistake, mistakes in all, whether it cleared or hit a limit, whether
+it went to Golden Nuggets, and how long it held the typist. Sessions saved before
+difficulties existed are read into the same shape. Hover Mode
 sessions are left out of the slow-sequence analysis and drill baselines, like
 drills, because stopping at every mistake changes the rhythm those measure.
 

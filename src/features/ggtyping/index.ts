@@ -22,9 +22,27 @@ export type { WordJumpController, WordJumpControllerOptions } from './word-jump-
 export { useWordJumps } from './useWordJumps.ts'
 
 export { createHoverController, HOVER_ATTEMPT_SOURCE } from './hover/hover-controller.ts'
-export type { HoverController, HoverSignalEvent, HoverSnapshot } from './hover/hover-controller.ts'
-export { HOVER_RULES, remainingOf, stepHover } from './hover/hover-rules.ts'
-export type { HoverEvent, HoverFocus, HoverSignal, HoverState, HoverStep } from './hover/hover-rules.ts'
+export type {
+  HoverController,
+  HoverControllerOptions,
+  HoverSignalEvent,
+  HoverSnapshot,
+} from './hover/hover-controller.ts'
+export { cyclesOf, HOVER_RULES, progressOf, remainingOf, stepHover } from './hover/hover-rules.ts'
+export type {
+  HoverEvent,
+  HoverFocus,
+  HoverProgress,
+  HoverSignal,
+  HoverState,
+  HoverStep,
+  ProgressNode,
+  RepetitionOutcome,
+} from './hover/hover-rules.ts'
 export { HOVER_FAILURE_JUMP, HOVER_MOTION } from './motion/hover.motion.ts'
+export { HOVER_DIFFICULTY_DETAILS, HOVER_DIFFICULTY_OPTIONS } from './hover/difficulty.ts'
+export type { HoverDifficultyDetails } from './hover/difficulty.ts'
+export { recordGoldenNuggets } from './hover/golden-nuggets.ts'
+export type { GoldenNuggetRecorderOptions } from './hover/golden-nuggets.ts'
 export { createHoverMotion } from './motion/hover.ts'
 export type { HoverElements, HoverMotion } from './motion/hover.ts'

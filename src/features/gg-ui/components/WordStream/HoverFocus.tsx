@@ -16,8 +16,11 @@
  * - The letters of the repetition in progress, with the repetition engine's
  *   state for each and its caret. Each letter subscribes to its own state, as in
  *   the stream, so a keystroke re-renders one or two letters.
- * - One node per clean repetition required, filled for each one done. Shape as
- *   well as colour — a ring against a dot — and read out by a status region.
+ * - A row of nodes for the repetitions the difficulty asks for: a ring for one
+ *   to come, a dot for a clean one, a bar for one with a mistake. Standard and
+ *   All In mark every repetition, grouped by cycle; Tired fills its clean
+ *   repetitions and grows the row for each miss. Shape as well as colour, and
+ *   read out by a status region.
  * - Everything else is motion (see `@features/ggtyping`), played on the layer's
  *   elements when the mode signals a moment. Nothing moves on a keystroke.
  *
@@ -38,6 +41,7 @@ import {
   type HoverController,
   type HoverMotion,
   type HoverSignalEvent,
+  type ProgressNode,
 } from '@features/ggtyping'
 import { useEngineValue } from '@features/typing'
 import { cx } from '@shared/lib'
@@ -105,7 +109,7 @@ interface FocusLayerProps {
 }
 
 const FocusLayer = memo(({ layer, attempt, cursor, layers }: FocusLayerProps) => {
-  const { id, word, wordIndex, start, stage, required, successes, completed, pulse } = layer
+  const { id, word, wordIndex, start, stage, progress, cleared, pulse } = layer
 
   const [origin, setOrigin] = useState(() => cursor.originOf(start))
   // A resize or a new text size moves the word, and the layer with it.
@@ -162,14 +166,14 @@ const FocusLayer = memo(({ layer, attempt, cursor, layers }: FocusLayerProps) =>
     if (stage === 'repeating') motion.current?.enter()
   }, [stage])
 
-  // A clean repetition or a miss, once the nodes it changed are on the page.
+  // A repetition or a miss, once the nodes it changed are on the page.
   useLayoutEffect(() => {
     if (pulse === null || pulse.seq === handledPulse.current) return
     handledPulse.current = pulse.seq
     const all = childrenOf(nodes.current)
     if (pulse.kind === 'failure') motion.current?.fail(all.slice(all.length - pulse.added))
-    else motion.current?.succeed(all[successes - 1] ?? null)
-  }, [pulse, successes])
+    else if (pulse.clean && stage === 'repeating') motion.current?.succeed(all[pulse.index] ?? null)
+  }, [pulse, stage])
 
   // Release: down to the line, then the layer goes and the word is back.
   useLayoutEffect(() => {
@@ -194,11 +198,23 @@ const FocusLayer = memo(({ layer, attempt, cursor, layers }: FocusLayerProps) =>
   if (origin === null) return null
 
   const letters = Array.from(word)
-  const settled: CharacterState | null = stage === 'repeating' ? null : completed ? 'correct' : 'pending'
+  const settled: CharacterState | null = stage === 'repeating' ? null : cleared ? 'correct' : 'pending'
   /* Position is a letter's identity, as in the stream: the word never changes
      for the life of a focus, and each letter subscribes by its index. */
   const letterAt = (character: string, position: number) => (
     <Letter key={position} attempt={attempt} index={position} character={character} settled={settled} />
+  )
+  /* A node is its repetition's place in the row, the same way. */
+  const nodeAt = (node: ProgressNode, position: number) => (
+    <span
+      key={position}
+      className={cx(
+        styles.node,
+        progress.groupSize !== null && position > 0 && position % progress.groupSize === 0 && styles.groupStart,
+      )}
+      data-node={node}
+      data-filled={node !== 'open'}
+    />
   )
 
   return (
@@ -221,9 +237,7 @@ const FocusLayer = memo(({ layer, attempt, cursor, layers }: FocusLayerProps) =>
                   <span className={styles.word}>
                     {letters.map(letterAt)}
                     <span ref={nodes} className={styles.nodes}>
-                      {Array.from({ length: required }, (_, index) => (
-                        <span key={index} className={styles.node} data-filled={index < successes} />
-                      ))}
+                      {progress.nodes.map(nodeAt)}
                     </span>
                   </span>
                   <Letter attempt={attempt} index={letters.length} character=" " settled={settled} />
@@ -241,23 +255,41 @@ FocusLayer.displayName = 'FocusLayer'
 
 // --- All focuses ---------------------------------------------------------
 
-const clean = (n: number): string => `${n} clean ${n === 1 ? 'repetition' : 'repetitions'}`
+const plural = (n: number, noun: string): string => `${n} ${noun}${n === 1 ? '' : 's'}`
+
+/** How many are left, in the terms the difficulty counts them. */
+const left = (snapshot: HoverSignalEvent['snapshot']): string =>
+  snapshot.difficulty === 'tired'
+    ? `${plural(snapshot.remaining, 'clean repetition')} to go`
+    : `${plural(snapshot.remaining, 'repetition')} to go`
+
+const INTRODUCTIONS = {
+  standard: 'type it 3 times',
+  'all-in': 'type it 3 times, twice over',
+  tired: 'type it cleanly 3 times',
+} as const
 
 /** What a screen reader hears. The nodes say the same thing to the eye. */
 const announce = ({ signal, snapshot, record }: HoverSignalEvent): string => {
   const { focus } = snapshot
   switch (signal) {
     case 'activated':
-      return focus === null ? '' : `Focused on “${focus.word}”. Finish it, then type it ${clean(focus.required)}.`
+      return focus === null ? '' : `Focused on “${focus.word}”. Finish it, then ${INTRODUCTIONS[focus.difficulty]}.`
     case 'repeating':
-      return focus === null ? '' : `Repeat “${focus.word}”: ${clean(snapshot.remaining)} to go.`
+      return focus === null ? '' : `Repeat “${focus.word}”: ${left(snapshot)}.`
     case 'success':
-      return `${clean(snapshot.remaining)} to go.`
+      return `${left(snapshot)}.`
+    case 'missed':
+      return `That one had a mistake. ${left(snapshot)}.`
+    case 'cycle':
+      return `First cycle done. ${left(snapshot)}.`
     case 'failure':
-      return `A mistake in that one. ${clean(snapshot.remaining)} to go.`
+      return snapshot.difficulty === 'tired' ? `A mistake. ${left(snapshot)}.` : 'A mistake in this one.'
     case 'released':
       if (record === null) return ''
-      return record.completed ? `“${record.word}” done. Carry on.` : `Moving on from “${record.word}”.`
+      return record.cleared
+        ? `“${record.word}” cleared. Carry on.`
+        : `Moving on from “${record.word}”. It is kept in Golden Nuggets.`
     case 'ended':
       return ''
   }

@@ -87,7 +87,8 @@
   gap: 0.17em;
 }
 
-/* A ring for a repetition to come, a dot for one done: told apart by shape. */
+/* A ring for a repetition to come, a dot for a clean one, a bar for one with a
+   mistake: told apart by shape, not only colour. */
 .node {
   display: block;
   /* Never smaller than 4px: the phone-size text would otherwise make them specks. */
@@ -97,9 +98,22 @@
   box-shadow: inset 0 0 0 max(0.045em, 1px) var(--gg-muted);
 }
 
-.node[data-filled='true'] {
+.node[data-node='clean'] {
   background-color: var(--gg-accent);
   box-shadow: none;
+}
+
+.node[data-node='missed'] {
+  align-self: center;
+  height: max(0.07em, 2px);
+  border-radius: 1px;
+  background-color: var(--gg-muted);
+  box-shadow: none;
+}
+
+/* The start of a new cycle, a little apart from the one before. */
+.groupStart {
+  margin-left: 0.22em;
 }
 
 /*

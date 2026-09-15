@@ -17,10 +17,11 @@
  * the helpers.
  */
 
-import type { SessionMetrics } from '@core/types'
+import { HOVER_DIFFICULTIES, type SessionMetrics } from '@core/types'
 
 import type {
   HoverFocusRecord,
+  HoverSessionRecord,
   KeyboardLayout,
   SessionContext,
   SessionDifficulty,
@@ -70,19 +71,64 @@ const parseMetrics = (value: unknown): SessionMetrics | null => {
   return value as unknown as SessionMetrics
 }
 
-const isFocusRecord = (value: unknown): value is HoverFocusRecord =>
-  isRecord(value) &&
-  isNonEmptyString(value['word']) &&
-  isCount(value['wordIndex']) &&
-  isCount(value['required']) &&
-  isCount(value['successes']) &&
-  isCount(value['failures']) &&
-  isCount(value['focusMs']) &&
-  typeof value['completed'] === 'boolean' &&
-  typeof value['limitReached'] === 'boolean'
+/**
+ * A focus record, or null.
+ *
+ * Hover Mode first saved records without difficulties: no cycles, attempts,
+ * mistakes or Golden Nugget flag, and `completed` where `cleared` is now. Those
+ * are read into the current shape rather than dropped — `completed` meant the
+ * word cleared, attempts were the clean ones plus the missed ones, and none of
+ * them could have gone into Golden Nuggets, which did not exist.
+ */
+const parseFocusRecord = (value: unknown): HoverFocusRecord | null => {
+  if (!isRecord(value)) return null
 
-const isHoverRecord = (value: unknown): boolean =>
-  isRecord(value) && Array.isArray(value['focuses']) && value['focuses'].every(isFocusRecord)
+  const counts = ['wordIndex', 'required', 'successes', 'failures', 'focusMs'] as const
+  if (!isNonEmptyString(value['word']) || !counts.every((field) => isCount(value[field]))) return null
+  if (typeof value['limitReached'] !== 'boolean') return null
+
+  if (typeof value['cleared'] === 'boolean') {
+    const current = ['cycles', 'attempts', 'mistakes'] as const
+    if (!current.every((field) => isCount(value[field]))) return null
+    if (typeof value['goldenNugget'] !== 'boolean') return null
+    return value as unknown as HoverFocusRecord
+  }
+
+  if (typeof value['completed'] !== 'boolean') return null
+  const required = value['required'] as number
+  const successes = value['successes'] as number
+  const failures = value['failures'] as number
+  return {
+    word: value['word'],
+    wordIndex: value['wordIndex'] as number,
+    required,
+    cycles: Math.max(1, Math.ceil(required / 3)),
+    attempts: successes + failures,
+    successes,
+    failures,
+    mistakes: failures,
+    cleared: value['completed'],
+    limitReached: value['limitReached'],
+    goldenNugget: false,
+    focusMs: value['focusMs'] as number,
+  }
+}
+
+const parseHoverRecord = (value: unknown): HoverSessionRecord | null => {
+  if (!isRecord(value) || !Array.isArray(value['focuses'])) return null
+
+  const difficulty = value['difficulty']
+  if (difficulty !== undefined && !isOneOf(difficulty, HOVER_DIFFICULTIES)) return null
+
+  const focuses: HoverFocusRecord[] = []
+  for (const entry of value['focuses']) {
+    const focus = parseFocusRecord(entry)
+    if (focus === null) return null
+    focuses.push(focus)
+  }
+
+  return difficulty === undefined ? { focuses } : { difficulty, focuses }
+}
 
 const parseContext = (value: unknown): SessionContext | null => {
   if (!isRecord(value)) return null
@@ -96,10 +142,11 @@ const parseContext = (value: unknown): SessionContext | null => {
   const target = value['targetSequence']
   if (target !== undefined && !isNonEmptyString(target)) return null
 
-  const hover = value['hover']
-  if (hover !== undefined && !isHoverRecord(hover)) return null
+  if (value['hover'] === undefined) return value as unknown as SessionContext
 
-  return value as unknown as SessionContext
+  const hover = parseHoverRecord(value['hover'])
+  if (hover === null) return null
+  return { ...(value as unknown as SessionContext), hover }
 }
 
 /**
@@ -119,10 +166,13 @@ export const parseTypingSession = (value: unknown): TypingSession | null => {
   if (!isCount(value['durationMs'])) return null
   if (!isOneOf(value['status'], STATUSES)) return null
 
-  if (parseContext(value['context']) === null) return null
+  const context = parseContext(value['context'])
+  if (context === null) return null
   if (parseMetrics(value['metrics']) === null) return null
 
-  return value as unknown as TypingSession
+  // The context as read, which may have brought an older Hover Mode record
+  // into the current shape.
+  return { ...(value as unknown as TypingSession), context }
 }
 
 export class InvalidSessionError extends Error {

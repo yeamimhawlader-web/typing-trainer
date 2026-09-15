@@ -1,10 +1,12 @@
 /**
- * Hover Mode through the GG.Typing screen, end to end in jsdom.
+ * Hover Mode through the GG.Typing screen, end to end in jsdom, at each
+ * difficulty, with Golden Nuggets.
  *
- * Real shell, session, engines, Hover Mode controller, storage and settings;
- * storage in memory and the text predictable. Typing arrives as input events,
- * as it does from a keyboard. The rules and the motion have their own tests;
- * these check that the screen, the session and what gets saved agree with them.
+ * Real shell, session, engines, Hover Mode controller, storage, settings and
+ * Golden Nuggets; storage in memory and the text predictable. Typing arrives as
+ * input events, as it does from a keyboard. The rules, the merge of Golden
+ * Nuggets and the motion have their own tests; these check that the screen, the
+ * session and what gets saved agree with them.
  *
  * jsdom cannot animate, so every motion resolves at once here — which is also
  * exactly the reduced-motion path.
@@ -17,13 +19,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ROUTES } from '@app/routes.ts'
 import { DEFAULT_PREFERENCES } from '@config'
-import { createMemoryAdapter } from '@core/persistence'
+import { createMemoryAdapter, type StorageAdapter } from '@core/persistence'
+import { createGoldenNuggetService, type GoldenNuggetService } from '@core/nuggets'
 import { createSessionServiceOver, type SessionService } from '@core/sessions'
 import { createTelemetryServiceOver, type TelemetryService } from '@core/telemetry'
 import type { TextProvider } from '@core/text'
+import type { HoverDifficulty } from '@core/types'
 import { settingsStore } from '@features/settings/state/settings.store.ts'
 
 import { GGLayout } from './layout/GGLayout.tsx'
+import { GGGoldenNuggetsPage } from './pages/GGGoldenNuggetsPage.tsx'
 import { GGHoverPage } from './pages/GGHoverPage.tsx'
 import { GGPracticePage } from './pages/GGPracticePage.tsx'
 import { removeTheme } from './themes/apply-theme.ts'
@@ -36,15 +41,25 @@ const fixed = (text = TEXT): TextProvider => ({
   provide: () => ({ text, sourceId: 'fixed' }),
 })
 
+let adapter: StorageAdapter
 let sessions: SessionService
 let telemetry: TelemetryService
+let nuggets: GoldenNuggetService
 let now = 10_000
 
+const preferDifficulty = (hoverDifficulty: HoverDifficulty) => {
+  settingsStore.setState({
+    preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15, hoverDifficulty },
+    status: 'ready',
+  })
+}
+
 beforeEach(() => {
-  const adapter = createMemoryAdapter()
+  adapter = createMemoryAdapter()
   sessions = createSessionServiceOver(adapter)
   telemetry = createTelemetryServiceOver(adapter)
-  settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15 }, status: 'ready' })
+  nuggets = createGoldenNuggetService(adapter)
+  preferDifficulty('standard')
   now = 10_000
   vi.spyOn(performance, 'now').mockImplementation(() => now)
 })
@@ -60,15 +75,23 @@ const renderAt = (path: string, text = TEXT) =>
       <Routes>
         <Route path={ROUTES.gg} element={<GGLayout />}>
           <Route index element={<GGPracticePage provider={fixed(text)} service={sessions} telemetry={telemetry} />} />
-          <Route path={ROUTES.ggHover} element={<GGHoverPage provider={fixed(text)} service={sessions} telemetry={telemetry} />} />
+          <Route
+            path={ROUTES.ggHover}
+            element={
+              <GGHoverPage provider={fixed(text)} service={sessions} telemetry={telemetry} goldenNuggets={nuggets} />
+            }
+          />
+          <Route path={ROUTES.ggNuggets} element={<GGGoldenNuggetsPage service={nuggets} />} />
         </Route>
       </Routes>
     </MemoryRouter>,
   )
 
-const openHover = async (text = TEXT) => {
-  renderAt(ROUTES.ggHover, text)
+const openHover = async (difficulty: HoverDifficulty = 'standard', text = TEXT) => {
+  preferDifficulty(difficulty)
+  const rendered = renderAt(ROUTES.ggHover, text)
   await screen.findByRole('region', { name: 'Words to type' })
+  return rendered
 }
 
 // --- Reading the screen ------------------------------------------------
@@ -82,9 +105,9 @@ const layer = () => {
   if (only === undefined || others.length > 0) throw new Error(`expected one focus layer, found ${layers().length}`)
   return only
 }
-const nodes = () => Array.from(layer().querySelectorAll<HTMLElement>('[data-filled]'))
-const filled = () => nodes().filter((node) => node.dataset.filled === 'true').length
-const attemptStates = () => Array.from(layer().querySelectorAll<HTMLElement>('[data-hover-state]')).map((letter) => letter.dataset.hoverState)
+const nodes = () => Array.from(layer().querySelectorAll<HTMLElement>('[data-node]')).map((node) => node.dataset.node)
+const attemptStates = () =>
+  Array.from(layer().querySelectorAll<HTMLElement>('[data-hover-state]')).map((letter) => letter.dataset.hoverState)
 const field = () => screen.getByRole('textbox', { name: 'Type the words above' }) as HTMLTextAreaElement
 const figure = (unit: string) =>
   Array.from(screen.getByRole('status', { name: 'Live statistics' }).children).find(
@@ -111,8 +134,10 @@ const backspace = () => {
   })
 }
 
-/** Lets a released layer's (instant, in jsdom) landing finish. */
+/** Lets a released layer's (instant, in jsdom) landing, and any write, finish. */
 const settle = () => act(async () => {})
+
+const storedNuggets = async () => (await createGoldenNuggetService(adapter).getAll()).map(({ word, timesUnresolved, hoverSessions }) => ({ word, timesUnresolved, hoverSessions }))
 
 describe('Hover Mode on the GG.Typing screen', () => {
   describe('finding it', () => {
@@ -122,26 +147,57 @@ describe('Hover Mode on the GG.Typing screen', () => {
       const modes = screen.getByRole('navigation', { name: 'Mode' })
 
       expect(within(modes).getByRole('link', { name: /^Standard/ })).toHaveAttribute('aria-current', 'page')
-      expect(within(modes).getByRole('link', { name: 'Hover Mode: Target mistakes and repeat them' })).toHaveAttribute(
-        'href',
-        ROUTES.ggHover,
-      )
+      expect(screen.queryByRole('radiogroup', { name: 'Hover difficulty' })).not.toBeInTheDocument()
 
       await userEvent.setup().click(within(modes).getByRole('link', { name: /^Hover Mode/ }))
 
       expect(await screen.findByRole('heading', { level: 1, name: 'Hover Mode' })).toBeInTheDocument()
-      expect(within(screen.getByRole('navigation', { name: 'Mode' })).getByRole('link', { name: /^Hover Mode/ })).toHaveAttribute(
-        'aria-current',
-        'page',
-      )
       expect(screen.getByText('Target mistakes and repeat them', { selector: 'span' })).toBeInTheDocument()
       expect(document.title).toBe('Hover Mode · GG.Typing')
+    })
+
+    it('leads to Golden Nuggets from Hover Mode only, not from ordinary practice or the top bar', async () => {
+      const practice = renderAt(ROUTES.gg)
+      await screen.findByRole('region', { name: 'Words to type' })
+      expect(screen.queryByRole('link', { name: 'Golden Nuggets' })).not.toBeInTheDocument()
+      practice.unmount()
+
+      await openHover('standard')
+      const links = screen.getAllByRole('link', { name: 'Golden Nuggets' })
+      expect(links).toHaveLength(1)
+      expect(links[0]).toHaveAttribute('href', ROUTES.ggNuggets)
+      expect(within(screen.getByRole('navigation', { name: 'Main' })).queryByRole('link', { name: 'Golden Nuggets' })).not.toBeInTheDocument()
+    })
+
+    it('offers its three difficulties, opening on the one last chosen', async () => {
+      await openHover('all-in')
+      const difficulties = screen.getByRole('radiogroup', { name: 'Hover difficulty' })
+
+      expect(within(difficulties).getAllByRole('radio').map((radio) => radio.getAttribute('aria-label'))).toEqual([
+        'Standard: One cycle of three repetitions',
+        'All In: Two cycles of three repetitions',
+        'Tired: Until it clears, up to ten clean repetitions',
+      ])
+      expect(within(difficulties).getByRole('radio', { name: /^All In/ })).toBeChecked()
+    })
+
+    it('starts a new test at a newly chosen difficulty, and remembers it', async () => {
+      await openHover('standard')
+      typeText('alpxa ')
+      expect(nodes()).toHaveLength(3)
+
+      await userEvent.setup().click(screen.getByRole('radio', { name: /^Tired/ }))
+
+      expect(layers()).toEqual([])
+      expect(settingsStore.getState().preferences.hoverDifficulty).toBe('tired')
+      typeText('alpxa alxha ')
+      expect(nodes()).toHaveLength(6)
     })
   })
 
   describe('before any mistake', () => {
     it('types exactly like ordinary practice', async () => {
-      await openHover()
+      await openHover('tired')
 
       typeText('alpha bra')
 
@@ -152,18 +208,16 @@ describe('Hover Mode on the GG.Typing screen', () => {
   })
 
   describe('one mistake', () => {
-    it('focuses the word at once, with three repetitions to come', async () => {
+    it('focuses the word at once', async () => {
       await openHover()
 
       typeText('alpx')
 
       expect(layer()).toHaveAttribute('data-focus-word', 'alpha')
       expect(layer()).toHaveAttribute('data-stage', 'pending')
-      expect(nodes()).toHaveLength(3)
-      expect(filled()).toBe(0)
-      // The typist is still on the word in the text.
+      expect(nodes()).toEqual(['open', 'open', 'open'])
       expect(stateAt(3)).toBe('incorrect')
-      expect(screen.getByText(/Focused on “alpha”/)).toBeInTheDocument()
+      expect(screen.getByText(/Focused on “alpha”\. Finish it, then type it 3 times\./)).toBeInTheDocument()
       expect(screen.getByText(/then type it again/)).toBeInTheDocument()
     })
 
@@ -175,7 +229,6 @@ describe('Hover Mode on the GG.Typing screen', () => {
       expect(layer()).toHaveAttribute('data-stage', 'repeating')
       expect(wordElement(0)).toHaveStyle({ visibility: 'hidden' })
       expect(stream()).toHaveAttribute('data-hover', 'repeating')
-      // The text has not moved on: its next word is untouched.
       expect(stateAt(6)).toBe('pending')
       expect(attemptStates()).toEqual(['pending', 'pending', 'pending', 'pending', 'pending', 'pending'])
       expect(screen.getByText(/until its dots are filled/)).toBeInTheDocument()
@@ -189,20 +242,18 @@ describe('Hover Mode on the GG.Typing screen', () => {
 
       expect(attemptStates().slice(0, 4)).toEqual(['correct', 'correct', 'incorrect', 'pending'])
       expect(layer().querySelector('[data-caret="true"]')?.textContent).toBe('h')
-      // Nothing reached the text.
       expect(stateAt(6)).toBe('pending')
     })
   })
 
-  describe('repetitions', () => {
-    it('fills a node for each clean one and releases the word after three', async () => {
-      await openHover()
+  describe('Standard', () => {
+    it('releases the word after three clean repetitions, cleared and not kept', async () => {
+      await openHover('standard')
       typeText('alpxa ')
 
       typeText('alpha ')
-      expect(filled()).toBe(1)
       typeText('alpha ')
-      expect(filled()).toBe(2)
+      expect(nodes()).toEqual(['clean', 'clean', 'open'])
       typeText('alpha ')
       await settle()
 
@@ -211,69 +262,124 @@ describe('Hover Mode on the GG.Typing screen', () => {
       expect(stream()).toHaveAttribute('data-hover', 'normal')
       // The mistake that started it is still marked in the text.
       expect(stateAt(3)).toBe('incorrect')
+      expect(await storedNuggets()).toEqual([])
     })
 
-    it('carries on with the text where it was left', async () => {
-      await openHover()
-      typeText('alpxa alpha alpha alpha ')
+    it('releases after three repetitions even with a mistake in one, and keeps the word in Golden Nuggets', async () => {
+      await openHover('standard')
+      typeText('alpxa ')
+
+      typeText('alpha alxha ')
+      expect(nodes()).toEqual(['clean', 'missed', 'open'])
+      typeText('alpha ')
       await settle()
 
-      typeText('bravo')
+      expect(layers()).toEqual([])
+      expect(screen.getByText(/Moving on from “alpha”\. It is kept in Golden Nuggets\./)).toBeInTheDocument()
+      await waitFor(async () => {
+        expect(await storedNuggets()).toEqual([{ word: 'alpha', timesUnresolved: 1, hoverSessions: 1 }])
+      })
 
+      // No second cycle: the next keys are the text's.
+      typeText('bravo')
       expect([6, 7, 8, 9, 10].map(stateAt)).toEqual(['correct', 'correct', 'correct', 'correct', 'correct'])
-      // Two words behind the cursor: the focused one and this one.
       expect(figure('words')).toBe('2/15')
     })
+  })
 
-    it('adds three nodes for a repetition with a mistake, keeping the filled ones', async () => {
-      await openHover()
+  describe('All In', () => {
+    it('shows two cycles of three, runs the second after a clean first, and releases after six', async () => {
+      await openHover('all-in')
+      typeText('alpxa ')
+      expect(nodes()).toHaveLength(6)
+      expect(layer().querySelectorAll('[data-node]')[3]?.className).toMatch(/groupStart/)
+
+      typeText('alpha alpha alpha ')
+      expect(layer()).toHaveAttribute('data-stage', 'repeating')
+      expect(nodes()).toEqual(['clean', 'clean', 'clean', 'open', 'open', 'open'])
+      expect(screen.getByText(/First cycle done\. 3 repetitions to go\./)).toBeInTheDocument()
+
+      typeText('alpha alpha alpha ')
+      await settle()
+
+      expect(layers()).toEqual([])
+      expect(await storedNuggets()).toEqual([])
+    })
+
+    it('keeps a word with a mistake in its second cycle, and runs no third', async () => {
+      await openHover('all-in')
+      typeText('alpxa ')
+
+      typeText('alpha alpha alpha alpha alxha alpha ')
+      await settle()
+
+      expect(layers()).toEqual([])
+      await waitFor(async () => {
+        expect(await storedNuggets()).toEqual([{ word: 'alpha', timesUnresolved: 1, hoverSessions: 1 }])
+      })
+      typeText('b')
+      expect(stateAt(6)).toBe('correct')
+    })
+  })
+
+  describe('Tired', () => {
+    it('adds three to the row for a repetition with a mistake, keeping the clean ones', async () => {
+      await openHover('tired')
       typeText('alpxa ')
 
       typeText('alpha ')
       typeText('alxha ')
 
-      expect(nodes()).toHaveLength(6)
-      expect(filled()).toBe(1)
-      expect(screen.getByText(/A mistake in that one\. 5 clean repetitions to go\./)).toBeInTheDocument()
+      expect(nodes()).toEqual(['clean', 'open', 'open', 'open', 'open', 'open'])
+      expect(screen.getByText(/That one had a mistake\. 5 clean repetitions to go\./)).toBeInTheDocument()
 
       typeText('alpha alpha alpha alpha ')
-      expect(filled()).toBe(5)
+      expect(nodes().filter((node) => node === 'clean')).toHaveLength(5)
       typeText('alpha ')
       await settle()
       expect(layers()).toEqual([])
+      expect(await storedNuggets()).toEqual([])
     })
 
     it('counts a mistake put right with backspace as a repetition with a mistake', async () => {
-      await openHover()
+      await openHover('tired')
       typeText('alpxa ')
 
       typeText('alx')
       backspace()
       typeText('pha ')
 
-      expect(nodes()).toHaveLength(6)
-      expect(filled()).toBe(0)
+      expect(nodes()).toEqual(['open', 'open', 'open', 'open', 'open', 'open'])
     })
 
-    it('keeps the requirement to twelve however many repetitions go wrong', async () => {
-      await openHover()
+    it('never asks for more than ten, and keeps a word that reached the ceiling', async () => {
+      await openHover('tired')
       typeText('alpxa ')
 
       for (let repetition = 0; repetition < 6; repetition += 1) typeText('xlpha ')
+      expect(nodes()).toHaveLength(10)
 
-      expect(nodes()).toHaveLength(12)
+      for (let repetition = 0; repetition < 10; repetition += 1) typeText('alpha ')
+      await settle()
+
+      expect(layers()).toEqual([])
+      await waitFor(async () => {
+        expect(await storedNuggets()).toEqual([{ word: 'alpha', timesUnresolved: 1, hoverSessions: 1 }])
+      })
     })
   })
 
   describe('the end of a focus, and of a test', () => {
-    it('clears Hover Mode on restart', async () => {
-      await openHover()
-      typeText('alpxa alp')
+    it('clears Hover Mode on restart, keeping nothing in Golden Nuggets', async () => {
+      await openHover('tired')
+      typeText('alpxa xlpha alp')
 
       await userEvent.setup().click(screen.getByRole('button', { name: 'Restart test' }))
+      await settle()
 
       expect(layers()).toEqual([])
       expect(stream()).toHaveAttribute('data-hover', 'normal')
+      expect(await storedNuggets()).toEqual([])
       typeText('alpha')
       expect([0, 1, 2, 3, 4].map(stateAt)).toEqual(['correct', 'correct', 'correct', 'correct', 'correct'])
     })
@@ -288,14 +394,14 @@ describe('Hover Mode on the GG.Typing screen', () => {
       expect(stateAt(0)).toBe('pending')
     })
 
-    it('saves the test as Hover Mode, with each focus, its telemetry and a result that says what happened', async () => {
-      await openHover('one two three')
+    it('saves the test with its difficulty, each focus and its telemetry, and shows what happened', async () => {
+      await openHover('standard', 'one two three')
 
       typeText('onx ')
       typeText('one one one ')
       await settle()
       typeText('two thrxe ')
-      typeText('three three three ')
+      typeText('three thrxe three ')
       await settle()
 
       await waitFor(async () => {
@@ -304,9 +410,10 @@ describe('Hover Mode on the GG.Typing screen', () => {
       const [stored] = await sessions.getAll()
       expect(stored?.context.mode).toBe('hover')
       expect(stored?.text).toBe('one two three')
+      expect(stored?.context.hover?.difficulty).toBe('standard')
       expect(stored?.context.hover?.focuses).toEqual([
-        expect.objectContaining({ word: 'one', wordIndex: 0, required: 3, successes: 3, failures: 0, completed: true }),
-        expect.objectContaining({ word: 'three', wordIndex: 2, required: 3, successes: 3, failures: 0, completed: true }),
+        expect.objectContaining({ word: 'one', cycles: 1, attempts: 3, successes: 3, failures: 0, cleared: true, goldenNugget: false }),
+        expect.objectContaining({ word: 'three', cycles: 1, attempts: 3, successes: 2, failures: 1, mistakes: 2, cleared: false, goldenNugget: true }),
       ])
       await waitFor(async () => {
         expect(await telemetry.getStored(stored!.id)).not.toBeNull()
@@ -316,16 +423,17 @@ describe('Hover Mode on the GG.Typing screen', () => {
       expect(figure('wpm')).toBe(String(Math.round(stored?.metrics.netWpm ?? -1)))
 
       const result = screen.getByRole('region', { name: 'Hover Mode' })
+      expect(result).toHaveTextContent('Difficulty Standard')
       const rows = within(result).getAllByRole('row').slice(1)
       expect(rows.map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent))).toEqual([
-        ['one', '3', '0', '3', expect.stringMatching(/ s$/)],
-        ['three', '3', '0', '3', expect.stringMatching(/ s$/)],
+        ['one', '1', '3 of 3', '0', 'Yes', '—', expect.stringMatching(/ s$/)],
+        ['three', '1', '2 of 3', '1', 'Not yet', 'Kept', expect.stringMatching(/ s$/)],
       ])
-      expect(result).toHaveTextContent('2 words focused')
+      expect(within(result).getByRole('link', { name: 'Golden Nuggets' })).toHaveAttribute('href', ROUTES.ggNuggets)
     })
 
     it('holds the end of the text open for a focused last word', async () => {
-      await openHover('one two')
+      await openHover('standard', 'one two')
 
       typeText('one twx')
 
@@ -341,14 +449,70 @@ describe('Hover Mode on the GG.Typing screen', () => {
     })
 
     it('says so plainly when nothing needed a focus', async () => {
-      await openHover('one two')
+      await openHover('all-in', 'one two')
 
       typeText('one two')
 
       const result = await screen.findByRole('region', { name: 'Hover Mode' })
       expect(result).toHaveTextContent('No word needed a focus: nothing was mistyped.')
       const [stored] = await sessions.getAll()
-      expect(stored?.context.hover).toEqual({ focuses: [] })
+      expect(stored?.context.hover).toEqual({ difficulty: 'all-in', focuses: [] })
+    })
+  })
+
+  describe('Golden Nuggets', () => {
+    it('keeps several words as separate records, and one word as one record across tests', async () => {
+      await openHover('standard', 'one two three')
+
+      typeText('onx one onx one ')
+      await settle()
+      typeText('twx two twx two ')
+      await settle()
+      typeText('three')
+      await screen.findByRole('region', { name: 'Hover Mode' })
+
+      // A second test: "one" slips again.
+      fireEvent.keyDown(field(), { key: 'Enter' })
+      typeText('onx onx one one ')
+      await settle()
+
+      await waitFor(async () => {
+        const all = await storedNuggets()
+        expect(all.toSorted((a, b) => a.word.localeCompare(b.word))).toEqual([
+          { word: 'one', timesUnresolved: 2, hoverSessions: 2 },
+          { word: 'two', timesUnresolved: 1, hoverSessions: 1 },
+        ])
+      })
+    })
+
+    it('are still there after a reload, on their own page', async () => {
+      const { unmount } = await openHover('standard', 'one two')
+      typeText('onx one onx one ')
+      await settle()
+      await waitFor(async () => {
+        expect(await storedNuggets()).toHaveLength(1)
+      })
+
+      // A reload: everything unmounted, and the page read by a new service over
+      // the same storage.
+      unmount()
+      nuggets = createGoldenNuggetService(adapter)
+      renderAt(ROUTES.ggNuggets)
+
+      const item = await screen.findByRole('listitem')
+      expect(within(item).getByRole('heading', { name: 'one' })).toBeInTheDocument()
+      expect(item).toHaveTextContent('Failed 1 time')
+      expect(item).toHaveTextContent('Seen in 1 Hover session')
+      expect(item).toHaveTextContent('Last difficulty: Standard')
+      expect(item).toHaveTextContent('Still unresolved last time')
+      expect(document.title).toBe('Golden Nuggets · GG.Typing')
+    })
+
+    it('say how to get some when there are none', async () => {
+      renderAt(ROUTES.ggNuggets)
+
+      expect(await screen.findByText(/None yet/)).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Hover Mode' })).toHaveAttribute('href', ROUTES.ggHover)
     })
   })
 
@@ -365,13 +529,12 @@ describe('Hover Mode on the GG.Typing screen', () => {
       const originalAnimate = HTMLElement.prototype.animate
       HTMLElement.prototype.animate = animate as unknown as typeof HTMLElement.prototype.animate
       try {
-        await openHover()
+        await openHover('tired')
 
         typeText('alpxa ')
         expect(layer()).toHaveAttribute('data-stage', 'repeating')
         typeText('alpha alxha ')
-        expect(nodes()).toHaveLength(6)
-        expect(filled()).toBe(1)
+        expect(nodes()).toEqual(['clean', 'open', 'open', 'open', 'open', 'open'])
 
         expect(animate).not.toHaveBeenCalled()
       } finally {
@@ -391,6 +554,8 @@ describe('Hover Mode on the GG.Typing screen', () => {
       expect(layers()).toEqual([])
       expect(stateAt(6)).toBe('correct')
       expect(stream()).not.toHaveAttribute('data-hover')
+      await settle()
+      expect(await storedNuggets()).toEqual([])
     })
   })
 })

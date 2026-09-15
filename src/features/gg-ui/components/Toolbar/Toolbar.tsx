@@ -1,5 +1,5 @@
 /**
- * The toolbar: the mode, text size and test length.
+ * The toolbar: the mode, Hover Mode's difficulty, text size and test length.
  *
  * The mode is a route rather than a setting — ordinary practice at `/gg`, Hover
  * Mode at `/gg/hover` — so a mode is a page that can be linked to and returned
@@ -17,7 +17,8 @@
  */
 
 import { ROUTES } from '@app/routes.ts'
-import { TEXT_SIZES, type TextSize } from '@core/types'
+import { TEXT_SIZES, type HoverDifficulty, type TextSize } from '@core/types'
+import { HOVER_DIFFICULTY_OPTIONS } from '@features/ggtyping'
 import { WORD_COUNT_OPTIONS, type WordCount } from '@features/typing'
 
 import { PillGroup, PillLink, Separator, type PillOption } from '../controls/controls.tsx'
@@ -38,6 +39,12 @@ const SIZE_OPTIONS: readonly PillOption<TextSize>[] = TEXT_SIZES.map((size) => (
   accessibleLabel: SIZE_NAMES[size],
 }))
 
+const DIFFICULTY_OPTIONS: readonly PillOption<HoverDifficulty>[] = HOVER_DIFFICULTY_OPTIONS.map((option) => ({
+  value: option.value,
+  label: option.label,
+  accessibleLabel: `${option.label}: ${option.description}`,
+}))
+
 const LENGTH_OPTIONS: readonly PillOption<WordCount>[] = WORD_COUNT_OPTIONS.map((count) => ({
   value: count,
   label: String(count),
@@ -54,6 +61,8 @@ const MODES: readonly { readonly mode: GGMode; readonly to: string; readonly lab
 export interface ToolbarProps {
   /** The mode on screen. Null where there is no choice, such as a drill. */
   readonly mode: GGMode | null
+  /** Hover Mode's difficulty, and how to change it. Absent outside Hover Mode. */
+  readonly hoverDifficulty?: { readonly value: HoverDifficulty; readonly onChange: (difficulty: HoverDifficulty) => void } | undefined
   readonly size: TextSize
   readonly onSizeChange: (size: TextSize) => void
   /** Null for a drill, which has no length to choose. */
@@ -61,7 +70,7 @@ export interface ToolbarProps {
   readonly onWordCountChange: (count: WordCount) => void
 }
 
-export const Toolbar = ({ mode, size, onSizeChange, wordCount, onWordCountChange }: ToolbarProps) => (
+export const Toolbar = ({ mode, hoverDifficulty, size, onSizeChange, wordCount, onWordCountChange }: ToolbarProps) => (
   <div className={styles.toolbar}>
     {mode !== null && (
       <>
@@ -76,6 +85,19 @@ export const Toolbar = ({ mode, size, onSizeChange, wordCount, onWordCountChange
             />
           ))}
         </nav>
+        <Separator />
+      </>
+    )}
+
+    {hoverDifficulty !== undefined && (
+      <>
+        <PillGroup
+          name="gg-hover-difficulty"
+          label="Hover difficulty"
+          options={DIFFICULTY_OPTIONS}
+          value={hoverDifficulty.value}
+          onChange={hoverDifficulty.onChange}
+        />
         <Separator />
       </>
     )}

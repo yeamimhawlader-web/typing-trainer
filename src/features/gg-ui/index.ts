@@ -13,6 +13,8 @@
 export { GGLayout } from './layout/GGLayout.tsx'
 export { GG_TITLE_SUFFIX, useGGDocumentTitle } from './layout/useGGDocumentTitle.ts'
 export { GGDrillPage } from './pages/GGDrillPage.tsx'
+export { GGGoldenNuggetsPage } from './pages/GGGoldenNuggetsPage.tsx'
+export type { GGGoldenNuggetsPageProps } from './pages/GGGoldenNuggetsPage.tsx'
 export { GGHoverPage } from './pages/GGHoverPage.tsx'
 export type { GGHoverPageProps } from './pages/GGHoverPage.tsx'
 export type { GGDrillPageProps } from './pages/GGDrillPage.tsx'

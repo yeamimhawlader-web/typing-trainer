@@ -6,7 +6,12 @@ import type { UserPreferences } from '@core/types'
 
 import { createSettingsStore } from './settings.store.ts'
 
-const DEFAULTS: UserPreferences = { theme: 'default-dark', practiceWordCount: 30, textSize: 'sm' }
+const DEFAULTS: UserPreferences = {
+  theme: 'default-dark',
+  practiceWordCount: 30,
+  textSize: 'sm',
+  hoverDifficulty: 'standard',
+}
 
 describe('settings store', () => {
   let adapter: StorageAdapter
@@ -27,12 +32,18 @@ describe('settings store', () => {
       theme: 'lemondrop',
       practiceWordCount: 60,
       textSize: 'lg',
+      hoverDifficulty: 'tired',
     })
     const store = createSettingsStore(adapter)
 
     await store.getState().hydrate()
 
-    expect(store.getState().preferences).toEqual({ theme: 'lemondrop', practiceWordCount: 60, textSize: 'lg' })
+    expect(store.getState().preferences).toEqual({
+      theme: 'lemondrop',
+      practiceWordCount: 60,
+      textSize: 'lg',
+      hoverDifficulty: 'tired',
+    })
     expect(store.getState().status).toBe('ready')
   })
 
@@ -61,7 +72,7 @@ describe('settings store', () => {
     const light = createSettingsStore(adapter)
     await light.getState().hydrate()
 
-    expect(light.getState().preferences).toEqual({ theme: 'default-light', practiceWordCount: 15, textSize: 'sm' })
+    expect(light.getState().preferences).toEqual({ ...DEFAULTS, theme: 'default-light', practiceWordCount: 15 })
 
     await adapter.write(STORAGE_KEYS.preferences, { theme: 'dark' })
     const dark = createSettingsStore(adapter)
@@ -106,16 +117,27 @@ describe('settings store', () => {
     expect(reloaded.getState().preferences.textSize).toBe('xl')
   })
 
+  it('remembers the Hover Mode difficulty across a reload', async () => {
+    await createSettingsStore(adapter).getState().setHoverDifficulty('all-in')
+
+    const reloaded = createSettingsStore(adapter)
+    await reloaded.getState().hydrate()
+
+    expect(reloaded.getState().preferences.hoverDifficulty).toBe('all-in')
+  })
+
   it('keeps the preferences independent of each other', async () => {
     const store = createSettingsStore(adapter)
     await store.getState().setPracticeWordCount(15)
     await store.getState().setTheme('classic')
     await store.getState().setTextSize('xs')
+    await store.getState().setHoverDifficulty('tired')
 
     await expect(adapter.read(STORAGE_KEYS.preferences)).resolves.toEqual({
       theme: 'classic',
       practiceWordCount: 15,
       textSize: 'xs',
+      hoverDifficulty: 'tired',
     })
   })
 
@@ -124,6 +146,7 @@ describe('settings store', () => {
       theme: 'neon-purple',
       practiceWordCount: 9999,
       textSize: 'huge',
+      hoverDifficulty: 'exhausted',
     })
     const store = createSettingsStore(adapter)
 

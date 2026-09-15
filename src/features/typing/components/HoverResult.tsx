@@ -6,12 +6,17 @@
  * while the text is paused — and this section describes the repetitions, one
  * row per focused word, from the record saved with the session.
  *
- * Flat wording, and no score. It says which words were caught, how many clean
- * repetitions each needed by the end, how many were clean, how many had a
- * mistake in them, and how long each focus held the typist.
+ * Flat wording, and no score. It says the difficulty, which words were caught,
+ * the cycles each went through, how many repetitions were clean and how many
+ * had a mistake, whether the word cleared, and whether it was kept in Golden
+ * Nuggets to come back to.
  */
 
+import { Link } from 'react-router'
+
+import { ROUTES } from '@app/routes.ts'
 import type { HoverSessionRecord } from '@core/sessions'
+import { HOVER_DIFFICULTY_DETAILS } from '@features/ggtyping'
 
 import styles from './HoverResult.module.css'
 
@@ -22,8 +27,9 @@ export interface HoverResultProps {
 const formatSeconds = (milliseconds: number): string => `${(milliseconds / 1000).toFixed(1)} s`
 
 export const HoverResult = ({ record }: HoverResultProps) => {
-  const { focuses } = record
+  const { focuses, difficulty } = record
   const totalMs = focuses.reduce((sum, focus) => sum + focus.focusMs, 0)
+  const kept = focuses.filter((focus) => focus.goldenNugget).length
 
   // A word can be focused more than once in a test; its position and how many
   // times it came before make each row's identity.
@@ -40,6 +46,13 @@ export const HoverResult = ({ record }: HoverResultProps) => {
         Hover Mode
       </h3>
 
+      {difficulty !== undefined && (
+        <p className={styles.difficulty}>
+          Difficulty <span className={styles.difficultyName}>{HOVER_DIFFICULTY_DETAILS[difficulty].label}</span>
+          <span className={styles.note}> — {HOVER_DIFFICULTY_DETAILS[difficulty].description.toLowerCase()}</span>
+        </p>
+      )}
+
       {focuses.length === 0 ? (
         <p className={styles.note}>No word needed a focus: nothing was mistyped.</p>
       ) : (
@@ -51,14 +64,16 @@ export const HoverResult = ({ record }: HoverResultProps) => {
                 <tr>
                   <th scope="col">Word</th>
                   <th scope="col" className={styles.numeric}>
-                    Clean repetitions
+                    Cycles
+                  </th>
+                  <th scope="col" className={styles.numeric}>
+                    Clean
                   </th>
                   <th scope="col" className={styles.numeric}>
                     With a mistake
                   </th>
-                  <th scope="col" className={styles.numeric}>
-                    Required
-                  </th>
+                  <th scope="col">Cleared</th>
+                  <th scope="col">Golden Nuggets</th>
                   <th scope="col" className={styles.numeric}>
                     Focus time
                   </th>
@@ -69,13 +84,15 @@ export const HoverResult = ({ record }: HoverResultProps) => {
                   <tr key={key}>
                     <td>
                       <span className={styles.word}>{focus.word}</span>
-                      {!focus.completed && (
-                        <span className={styles.flag}>{focus.limitReached ? 'limit reached' : 'unfinished'}</span>
-                      )}
                     </td>
-                    <td className={styles.numeric}>{focus.successes}</td>
+                    <td className={styles.numeric}>{focus.cycles}</td>
+                    <td className={styles.numeric}>
+                      {focus.successes}
+                      <span className={styles.of}> of {focus.attempts}</span>
+                    </td>
                     <td className={styles.numeric}>{focus.failures}</td>
-                    <td className={styles.numeric}>{focus.required}</td>
+                    <td>{focus.cleared ? 'Yes' : focus.limitReached ? 'Not yet — limit reached' : 'Not yet'}</td>
+                    <td>{focus.goldenNugget ? 'Kept' : '—'}</td>
                     <td className={styles.numeric}>{formatSeconds(focus.focusMs)}</td>
                   </tr>
                 ))}
@@ -86,6 +103,16 @@ export const HoverResult = ({ record }: HoverResultProps) => {
           <p className={styles.note}>
             {focuses.length} {focuses.length === 1 ? 'word' : 'words'} focused, {formatSeconds(totalMs)} in all. Speed
             and accuracy above are for the text; the repetitions are counted here.
+            {kept > 0 && (
+              <>
+                {' '}
+                {kept === 1 ? 'One word was' : `${kept} words were`} kept in{' '}
+                <Link to={ROUTES.ggNuggets} className={styles.link}>
+                  Golden Nuggets
+                </Link>{' '}
+                to come back to.
+              </>
+            )}
           </p>
         </>
       )}

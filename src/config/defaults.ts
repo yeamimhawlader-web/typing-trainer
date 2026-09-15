@@ -12,4 +12,6 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   theme: 'default-dark',
   practiceWordCount: 30,
   textSize: 'sm',
+  // The least persistent: a word is repeated for one cycle and let go.
+  hoverDifficulty: 'standard',
 }

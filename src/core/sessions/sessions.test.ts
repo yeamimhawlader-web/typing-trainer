@@ -433,35 +433,69 @@ describe('parseTypingSession', () => {
     expect(parseTypingSession(broken)).toBeNull()
   })
 
-  it('accepts a Hover Mode session and its focus records', () => {
+  const focusRecord = {
+    word: 'brown',
+    wordIndex: 2,
+    required: 6,
+    cycles: 2,
+    attempts: 6,
+    successes: 5,
+    failures: 1,
+    mistakes: 3,
+    cleared: true,
+    limitReached: false,
+    goldenNugget: false,
+    focusMs: 5_400,
+  }
+  const hoverSession = (hover: unknown) => {
     const session = makeSession()
-    const hover = {
-      ...session,
-      context: {
-        ...session.context,
-        mode: 'hover',
-        hover: {
-          focuses: [
-            { word: 'brown', wordIndex: 2, required: 6, successes: 6, failures: 1, completed: true, limitReached: false, focusMs: 5_400 },
-          ],
-        },
-      },
-    }
+    return { ...session, context: { ...session.context, mode: 'hover', hover } }
+  }
 
-    expect(parseTypingSession(hover)).not.toBeNull()
-    expect(parseTypingSession({ ...hover, context: { ...hover.context, hover: { focuses: [] } } })).not.toBeNull()
+  it('accepts a Hover Mode session, its difficulty and its focus records', () => {
+    const parsed = parseTypingSession(hoverSession({ difficulty: 'all-in', focuses: [focusRecord] }))
+
+    expect(parsed?.context.hover).toEqual({ difficulty: 'all-in', focuses: [focusRecord] })
+    expect(parseTypingSession(hoverSession({ difficulty: 'tired', focuses: [] }))).not.toBeNull()
+  })
+
+  it('reads a Hover Mode record saved before difficulties into the current shape', () => {
+    const legacy = { word: 'brown', wordIndex: 2, required: 6, successes: 6, failures: 1, completed: true, limitReached: false, focusMs: 5_400 }
+
+    const parsed = parseTypingSession(hoverSession({ focuses: [legacy] }))
+
+    expect(parsed?.context.hover).toEqual({
+      focuses: [
+        {
+          word: 'brown',
+          wordIndex: 2,
+          required: 6,
+          cycles: 2,
+          attempts: 7,
+          successes: 6,
+          failures: 1,
+          mistakes: 1,
+          cleared: true,
+          limitReached: false,
+          goldenNugget: false,
+          focusMs: 5_400,
+        },
+      ],
+    })
   })
 
   it.each([
     ['not an object', 'focus'],
     ['focuses missing', {}],
-    ['a focus without its word', { focuses: [{ wordIndex: 0, required: 3, successes: 3, failures: 0, completed: true, limitReached: false, focusMs: 1 }] }],
-    ['a negative count', { focuses: [{ word: 'fox', wordIndex: 0, required: 3, successes: -1, failures: 0, completed: true, limitReached: false, focusMs: 1 }] }],
-    ['a completion that is not a boolean', { focuses: [{ word: 'fox', wordIndex: 0, required: 3, successes: 3, failures: 0, completed: 'yes', limitReached: false, focusMs: 1 }] }],
+    ['an unknown difficulty', { difficulty: 'exhausting', focuses: [] }],
+    ['a focus without its word', { focuses: [{ ...focusRecord, word: '' }] }],
+    ['a negative count', { focuses: [{ ...focusRecord, successes: -1 }] }],
+    ['a clearing that is not a boolean', { focuses: [{ ...focusRecord, cleared: 'yes' }] }],
+    ['a current record missing its cycles', { focuses: [{ ...focusRecord, cycles: undefined }] }],
+    ['a Golden Nugget flag that is not a boolean', { focuses: [{ ...focusRecord, goldenNugget: 1 }] }],
+    ['an old record whose completion is not a boolean', { focuses: [{ word: 'fox', wordIndex: 0, required: 3, successes: 3, failures: 0, completed: 'yes', limitReached: false, focusMs: 1 }] }],
   ])('rejects a Hover Mode record with %s', (_label, record) => {
-    const session = makeSession()
-
-    expect(parseTypingSession({ ...session, context: { ...session.context, mode: 'hover', hover: record } })).toBeNull()
+    expect(parseTypingSession(hoverSession(record))).toBeNull()
   })
 
   it('rejects an unknown keyboard layout', () => {

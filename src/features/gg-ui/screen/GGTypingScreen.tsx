@@ -21,14 +21,22 @@
  * session: keys go to the text, or to the focused word's repetitions, and the
  * session saves the test as Hover Mode with its focus records. The controller
  * lives for the life of the screen, like the session.
+ *
+ * Its difficulty is the page's to choose. A change starts a new test, so a test
+ * is always typed, repeated and saved at one difficulty. Every focus that ends is
+ * handed to Golden Nuggets as it ends, and the way there is on this screen,
+ * not in the top bar: Golden Nuggets belong to Hover Mode.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
+import { Link } from 'react-router'
 
-import { PRACTICE_PATH } from '@app/routes.ts'
+import { PRACTICE_PATH, ROUTES } from '@app/routes.ts'
 import { computeWordRanges, toCharacters } from '@core/engine'
-import type { Timestamp } from '@core/types'
-import { createHoverController } from '@features/ggtyping'
+import { goldenNuggetService, type GoldenNuggetService } from '@core/nuggets'
+import { DEFAULT_SESSION_CONTEXT } from '@core/sessions'
+import type { HoverDifficulty, Timestamp } from '@core/types'
+import { createHoverController, recordGoldenNuggets } from '@features/ggtyping'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import {
   ResultAnnouncement,
@@ -52,10 +60,23 @@ export interface GGTypingScreenProps extends Omit<TypingScreenOptions, 'training
   readonly heading: string
   /** Which mode this screen is. Read once. Standard when absent. */
   readonly mode?: GGMode
+  /** Hover Mode's difficulty. Standard when absent. */
+  readonly hoverDifficulty?: HoverDifficulty
+  /** Called with a newly chosen difficulty, to remember it. */
+  readonly onHoverDifficultyChange?: (difficulty: HoverDifficulty) => void
+  /** Injectable for tests; defaults to the application's Golden Nuggets. */
+  readonly goldenNuggets?: GoldenNuggetService
 }
 
-export const GGTypingScreen = ({ heading, mode = 'standard', ...options }: GGTypingScreenProps) => {
-  const [hover] = useState(() => (mode === 'hover' ? createHoverController() : null))
+export const GGTypingScreen = ({
+  heading,
+  mode = 'standard',
+  hoverDifficulty = 'standard',
+  onHoverDifficultyChange,
+  goldenNuggets = goldenNuggetService,
+  ...options
+}: GGTypingScreenProps) => {
+  const [hover] = useState(() => (mode === 'hover' ? createHoverController({ difficulty: hoverDifficulty }) : null))
   const training = useMemo(() => (hover === null ? undefined : { mode: 'hover' as const, hooks: hover }), [hover])
   const screen = useTypingScreen({ ...options, training })
   const {
@@ -77,6 +98,14 @@ export const GGTypingScreen = ({ heading, mode = 'standard', ...options }: GGTyp
   const wordTotal = useMemo(() => computeWordRanges(toCharacters(target.text)).length, [target])
 
   useEffect(() => hover?.connect(engine), [engine, hover])
+
+  useEffect(
+    () =>
+      hover === null
+        ? undefined
+        : recordGoldenNuggets(hover, goldenNuggets, { language: DEFAULT_SESSION_CONTEXT.language }),
+    [goldenNuggets, hover],
+  )
 
   // Keys reach the session through Hover Mode when it is on, and directly when not.
   const typeKey = useCallback(
@@ -115,6 +144,20 @@ export const GGTypingScreen = ({ heading, mode = 'standard', ...options }: GGTyp
 
   const changeWordCount = useCallback((count: WordCount) => setWordCount(count), [setWordCount])
 
+  // A new difficulty starts a new test, typed at it from the first key.
+  const changeHoverDifficulty = useCallback(
+    (next: HoverDifficulty) => {
+      hover?.setDifficulty(next)
+      onHoverDifficultyChange?.(next)
+      restart()
+    },
+    [hover, onHoverDifficultyChange, restart],
+  )
+  const hoverDifficultyControl = useMemo(
+    () => (hover === null || drillSequence !== null ? undefined : { value: hoverDifficulty, onChange: changeHoverDifficulty }),
+    [changeHoverDifficulty, drillSequence, hover, hoverDifficulty],
+  )
+
   // A pointer click on a control means the typist is about to type again. A
   // click the keyboard produced (detail 0) leaves focus where it is, so arrow
   // keys keep moving through the group.
@@ -137,6 +180,7 @@ export const GGTypingScreen = ({ heading, mode = 'standard', ...options }: GGTyp
       <div onClick={returnFocusAfterClick}>
         <Toolbar
           mode={drillSequence === null ? mode : null}
+          hoverDifficulty={hoverDifficultyControl}
           size={size}
           onSizeChange={changeSize}
           wordCount={drillSequence === null ? wordCount : null}
@@ -159,6 +203,16 @@ export const GGTypingScreen = ({ heading, mode = 'standard', ...options }: GGTyp
       <div className={styles.hint}>
         {hover === null ? <SessionHint engine={engine} /> : <HoverHint engine={engine} hover={hover} />}
       </div>
+
+      {hover !== null && (
+        <p className={styles.nuggets}>
+          A word that does not clear is kept in{' '}
+          <Link to={ROUTES.ggNuggets} className={styles.nuggetsLink}>
+            Golden Nuggets
+          </Link>
+          .
+        </p>
+      )}
 
       {/* Shown only where the primary pointer is a finger and nothing hovers,
           by CSS. The field takes what an on-screen keyboard sends, but input

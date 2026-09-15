@@ -9,11 +9,16 @@
  */
 
 import type { Unsubscribe } from '@core/engine'
-import type { HoverController } from '@features/ggtyping'
+import type { HoverController, HoverProgress } from '@features/ggtyping'
 
 import type { HoverView } from './hover-view.ts'
 
 export type LayerStage = 'pending' | 'repeating' | 'releasing'
+
+/** A moment to play once, numbered so it is. */
+export type LayerPulse =
+  | { readonly seq: number; readonly kind: 'failure'; readonly added: number }
+  | { readonly seq: number; readonly kind: 'repetition'; readonly clean: boolean; readonly index: number }
 
 export interface FocusLayerState {
   readonly id: number
@@ -22,12 +27,10 @@ export interface FocusLayerState {
   /** Position of the word's first character in the text. */
   readonly start: number
   readonly stage: LayerStage
-  readonly required: number
-  readonly successes: number
-  /** Whether the release was the requirement met, rather than the limit. */
-  readonly completed: boolean
-  /** The latest moment to react to, numbered so each is played once. */
-  readonly pulse: { readonly seq: number; readonly kind: 'failure' | 'success'; readonly added: number } | null
+  readonly progress: HoverProgress
+  /** Whether the release was the word clearing. */
+  readonly cleared: boolean
+  readonly pulse: LayerPulse | null
 }
 
 export interface HoverLayers {
@@ -40,6 +43,11 @@ export interface HoverLayers {
   /** Everything off the screen at once: a new text. */
   clear(): void
 }
+
+const EMPTY: HoverProgress = { nodes: [], groupSize: null }
+
+/** Repetitions shown as done — clean or missed. */
+const markedOf = (progress: HoverProgress): number => progress.nodes.filter((node) => node !== 'open').length
 
 export const createHoverLayers = (hover: HoverController, view: HoverView): HoverLayers => {
   let layers: readonly FocusLayerState[] = []
@@ -71,9 +79,10 @@ export const createHoverLayers = (hover: HoverController, view: HoverView): Hove
     },
 
     connect: () =>
-      hover.onSignal(({ signal, snapshot, record }) => {
+      hover.onSignal(({ signal, snapshot, record, progress }) => {
         const id = snapshot.focusId
         const focus = snapshot.focus
+        const shown = progress ?? EMPTY
 
         switch (signal) {
           case 'activated':
@@ -86,9 +95,8 @@ export const createHoverLayers = (hover: HoverController, view: HoverView): Hove
                 wordIndex: focus.wordIndex,
                 start: focus.start,
                 stage: 'pending',
-                required: focus.required,
-                successes: focus.successes,
-                completed: false,
+                progress: shown,
+                cleared: false,
                 pulse: null,
               },
             ])
@@ -100,34 +108,40 @@ export const createHoverLayers = (hover: HoverController, view: HoverView): Hove
             return
 
           case 'failure':
-            if (focus === null) return
             seq += 1
             update(id, (layer) => ({
               ...layer,
-              required: focus.required,
-              pulse: { seq, kind: 'failure', added: focus.required - layer.required },
+              progress: shown,
+              pulse: { seq, kind: 'failure', added: Math.max(0, shown.nodes.length - layer.progress.nodes.length) },
             }))
             return
 
           case 'success':
-            if (focus === null) return
+          case 'missed':
+          case 'cycle': {
             seq += 1
+            const index = markedOf(shown) - 1
             update(id, (layer) => ({
               ...layer,
-              successes: focus.successes,
-              pulse: { seq, kind: 'success', added: 0 },
+              progress: shown,
+              // Tired shows only clean repetitions, so a missed one marks nothing.
+              pulse: { seq, kind: 'repetition', clean: shown.nodes[index] === 'clean' && markedOf(shown) > markedOf(layer.progress), index },
             }))
             return
+          }
 
-          case 'released':
+          case 'released': {
+            seq += 1
+            const index = markedOf(shown) - 1
             update(id, (layer) => ({
               ...layer,
               stage: 'releasing',
-              required: record?.required ?? layer.required,
-              successes: record?.successes ?? layer.successes,
-              completed: record?.completed ?? false,
+              progress: shown,
+              cleared: record?.cleared ?? false,
+              pulse: { seq, kind: 'repetition', clean: shown.nodes[index] === 'clean', index },
             }))
             return
+          }
 
           case 'ended':
             remove(id)

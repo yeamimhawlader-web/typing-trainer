@@ -32,6 +32,13 @@
  * The only calls into the session engine are `pause` and `resume`, at the start
  * and end of the repetitions. It never types into it.
  *
+ * ## Difficulty
+ *
+ * Chosen for the controller and changeable between tests. A test is saved with
+ * the difficulty it started at, and each focus follows the difficulty it began
+ * under; the screen restarts the test when the difficulty changes, so the two
+ * are always the same.
+ *
  * ## The end of the text
  *
  * A mistake on the last word would otherwise end the test on its last letter,
@@ -50,15 +57,17 @@ import {
   type WordRange,
 } from '@core/engine'
 import type { HoverFocusRecord, SessionContext } from '@core/sessions'
-import { timestamp, type SessionTarget, type Timestamp } from '@core/types'
+import { timestamp, type HoverDifficulty, type SessionTarget, type Timestamp } from '@core/types'
 
 import { wordOwning } from '../mistake-streak.ts'
 import {
   NORMAL,
+  progressOf,
   remainingOf,
   stepHover,
   type HoverEvent,
   type HoverFocus,
+  type HoverProgress,
   type HoverSignal,
   type HoverState,
 } from './hover-rules.ts'
@@ -67,18 +76,36 @@ export interface HoverSnapshot {
   readonly phase: HoverState['phase']
   /** The focused word with its range in the text, or null. */
   readonly focus: (HoverFocus & { readonly start: number; readonly end: number }) | null
-  /** Clean repetitions still needed. */
+  /** Repetitions still to come, as the difficulty counts them. */
   readonly remaining: number
+  /** What the progress row shows, or null with nothing focused. */
+  readonly progress: HoverProgress | null
   /** Whether the repetition in progress already has a mistake in it. */
   readonly attemptFailed: boolean
   /** Counts focuses, so one can be told from the next. */
   readonly focusId: number
+  /** The difficulty the current test is typed at. */
+  readonly difficulty: HoverDifficulty
+  /** Identifies the current test, so what happens in it can be told from another test's. */
+  readonly testId: string
 }
 
 export interface HoverSignalEvent {
   readonly signal: HoverSignal
   readonly snapshot: HoverSnapshot
   readonly record: HoverFocusRecord | null
+  /**
+   * The progress row as of this moment. For a release, as the focus ended —
+   * its last repetition included — though the snapshot has nothing focused.
+   */
+  readonly progress: HoverProgress | null
+}
+
+export interface HoverControllerOptions {
+  /** Where a new controller starts. Standard when absent. */
+  readonly difficulty?: HoverDifficulty
+  /** Injectable for tests; defaults to a random UUID. */
+  readonly createTestId?: () => string
 }
 
 export interface HoverController {
@@ -100,16 +127,28 @@ export interface HoverController {
   onSignal(listener: (event: HoverSignalEvent) => void): Unsubscribe
   /** Focuses finished so far in this test. */
   records(): readonly HoverFocusRecord[]
+  /**
+   * The difficulty for the next test. The test under way keeps the one it
+   * started with, so the screen restarts it when this changes.
+   */
+  setDifficulty(difficulty: HoverDifficulty): void
   /** The session's completion rule: every character typed, and nothing focused. */
   isComplete(snapshot: EngineSnapshot): boolean
-  /** The context the finished test is saved with: the focus records added. */
+  /** The context the finished test is saved with: its difficulty and focus records added. */
   finalContext(context: SessionContext): SessionContext
 }
 
 /** Source id of the text a repetition is typed against. Never saved. */
 export const HOVER_ATTEMPT_SOURCE = 'hover-repetition'
 
-export const createHoverController = (): HoverController => {
+const randomTestId = (): string =>
+  (globalThis as { crypto?: { randomUUID?: () => string } }).crypto?.randomUUID?.() ??
+  `test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+export const createHoverController = ({
+  difficulty: initialDifficulty = 'standard',
+  createTestId = randomTestId,
+}: HoverControllerOptions = {}): HoverController => {
   const attempt = createTypingEngine()
   const listeners = new Set<() => void>()
   const signalListeners = new Set<(event: HoverSignalEvent) => void>()
@@ -120,18 +159,25 @@ export const createHoverController = (): HoverController => {
   let words: readonly WordRange[] = []
   let characters: readonly string[] = []
   let focusId = 0
+  /** The difficulty chosen for the next test. */
+  let nextDifficulty: HoverDifficulty = initialDifficulty
+  /** The difficulty the current test started at. */
+  let testDifficulty: HoverDifficulty = initialDifficulty
+  let testId = createTestId()
 
   const build = (): HoverSnapshot => {
+    const common = { focusId, difficulty: testDifficulty, testId }
     if (state.phase === 'normal') {
-      return { phase: 'normal', focus: null, remaining: 0, attemptFailed: false, focusId }
+      return { ...common, phase: 'normal', focus: null, remaining: 0, progress: null, attemptFailed: false }
     }
     const range = words[state.focus.wordIndex]
     return {
+      ...common,
       phase: state.phase,
       focus: { ...state.focus, start: range?.start ?? 0, end: range?.end ?? 0 },
       remaining: remainingOf(state.focus),
+      progress: progressOf(state.focus),
       attemptFailed: state.phase === 'repeating' && state.attemptFailed,
-      focusId,
     }
   }
 
@@ -154,7 +200,10 @@ export const createHoverController = (): HoverController => {
 
     for (const listener of listeners) listener()
     if (step.signal !== null) {
-      for (const listener of signalListeners) listener({ signal: step.signal, snapshot, record: step.record })
+      const progress = step.final === null ? snapshot.progress : progressOf(step.final)
+      for (const listener of signalListeners) {
+        listener({ signal: step.signal, snapshot, record: step.record, progress })
+      }
     }
 
     switch (step.signal) {
@@ -203,12 +252,17 @@ export const createHoverController = (): HoverController => {
           case 'started':
             apply({ type: 'end', at: event.at })
             records = []
+            testDifficulty = nextDifficulty
+            testId = createTestId()
+            snapshot = build()
             learnText(engine)
             return
 
           case 'keystroke': {
             const { keystroke } = event
-            if (state.phase !== 'normal' || keystroke.kind !== 'character' || keystroke.correct) return
+            // In the text: a first mistake focuses its word, and a further one on
+            // the focused word is counted. The rules tell the two apart.
+            if (state.phase === 'repeating' || keystroke.kind !== 'character' || keystroke.correct) return
             const wordIndex = wordOwning(words, keystroke.index)
             const range = words[wordIndex]
             if (range === undefined) return
@@ -216,6 +270,7 @@ export const createHoverController = (): HoverController => {
               type: 'mistake',
               wordIndex,
               word: characters.slice(range.start, range.end).join(''),
+              difficulty: testDifficulty,
               at: event.at,
             })
             return
@@ -254,7 +309,9 @@ export const createHoverController = (): HoverController => {
       attempt.input(key, at)
       const after = attempt.getSnapshot()
 
-      if (after.errorCount > errorsBefore) apply({ type: 'attempt-mistake', at })
+      // One event per wrong keystroke: the rules count them all and fail the
+      // repetition on the first.
+      for (let error = errorsBefore; error < after.errorCount; error += 1) apply({ type: 'attempt-mistake', at })
       if (after.status === 'completed') apply({ type: 'attempt-completed', at })
       return true
     },
@@ -283,8 +340,19 @@ export const createHoverController = (): HoverController => {
 
     records: () => records,
 
+    setDifficulty: (difficulty) => {
+      nextDifficulty = difficulty
+      // Before a test is under way there is nothing to keep: the choice applies now.
+      const status = main?.getSnapshot().status
+      if (status !== 'running' && status !== 'paused') {
+        testDifficulty = difficulty
+        snapshot = build()
+        for (const listener of listeners) listener()
+      }
+    },
+
     isComplete: (current) => current.cursorIndex >= current.characters.length && state.phase === 'normal',
 
-    finalContext: (context) => ({ ...context, hover: { focuses: records } }),
+    finalContext: (context) => ({ ...context, hover: { difficulty: testDifficulty, focuses: records } }),
   }
 }
