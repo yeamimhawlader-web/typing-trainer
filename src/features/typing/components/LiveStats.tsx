@@ -16,6 +16,7 @@ import type { TypingEngine } from '@core/engine'
 import { cx } from '@shared/lib'
 
 import { useEngineValue } from '../hooks/useEngineValue.ts'
+import { selectAccuracyPercent, selectElapsedSeconds, selectLiveWpm } from '../live-values.ts'
 
 import styles from './LiveStats.module.css'
 
@@ -39,40 +40,18 @@ const Stat = ({ value, unit, width, primary = false }: StatProps) => (
   </div>
 )
 
-/**
- * Live speed is meaningless for the first moment of a test.
- *
- * The clock starts on the first keystroke, so after N characters only N-1
- * intervals have actually been measured — the first character is free. Early on
- * that inflates the figure badly: a typist holding a steady 130 WPM sees 229 on
- * their third keystroke, falling through 176 and 153 before it settles.
- *
- * Over a whole test the same bias is worth about 0.3%, so the engine's
- * definition stays as it is. This only withholds the number until there is
- * enough signal to be worth showing, which a dash says honestly and a
- * confidently wrong "229" does not.
- */
-const MIN_ELAPSED_FOR_WPM_MS = 1_000
-
 const WpmStat = ({ engine }: { engine: TypingEngine }) => {
-  const wpm = useEngineValue(engine, (snapshot) =>
-    snapshot.elapsedMs < MIN_ELAPSED_FOR_WPM_MS ? null : Math.round(snapshot.netWpm),
-  )
-
+  const wpm = useEngineValue(engine, selectLiveWpm)
   return <Stat value={wpm === null ? '—' : String(wpm)} unit="wpm" width={3} primary />
 }
 
 const AccuracyStat = ({ engine }: { engine: TypingEngine }) => {
-  const percent = useEngineValue(engine, (snapshot) =>
-    Math.round(snapshot.accuracy * 100),
-  )
+  const percent = useEngineValue(engine, selectAccuracyPercent)
   return <Stat value={`${percent}%`} unit="acc" width={4} />
 }
 
 const TimerStat = ({ engine }: { engine: TypingEngine }) => {
-  const seconds = useEngineValue(engine, (snapshot) =>
-    Math.floor(snapshot.elapsedMs / 1000),
-  )
+  const seconds = useEngineValue(engine, selectElapsedSeconds)
   // The same formatter as the result, so a finished test shows one time.
   return <Stat value={formatDuration(seconds * 1000)} unit="time" width={4} />
 }

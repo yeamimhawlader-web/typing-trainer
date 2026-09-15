@@ -35,19 +35,28 @@
 }
 
 .viewport {
+  /* Room above the first line for a word that jumps on it (the GGTyping word
+     jump peaks 0.43em up). Shifted up rather than given a negative margin,
+     which would collapse through the block and move everything below it. The
+     line before, which this strip would otherwise show the bottom of, is hidden
+     by the cursor controller while it sits there. */
+  --gg-stream-overhang: 0.5em;
+
   position: relative;
+  top: calc(-1 * var(--gg-stream-overhang));
   overflow: hidden;
+  padding-top: var(--gg-stream-overhang);
   font-size: calc(var(--gg-stream-size) * var(--gg-stream-scale));
   line-height: var(--gg-stream-line-height);
   letter-spacing: var(--gg-stream-tracking);
-  height: calc(var(--gg-stream-lines) * var(--gg-stream-line-height) * 1em);
+  height: calc(var(--gg-stream-lines) * var(--gg-stream-line-height) * 1em + var(--gg-stream-overhang));
 
   /* Words two lines ahead fade to 55%, so the eye anchors on the next line.
      A mask rather than per-word opacity: the current line is always the first
      line, so "two lines ahead" is a fixed band, and moving on a line costs no
      restyling at all. With two lines visible the band starts at the bottom
      edge and nothing fades. */
-  --gg-fade-from: calc(2 * var(--gg-stream-line-height) * 1em);
+  --gg-fade-from: calc(var(--gg-stream-overhang) + 2 * var(--gg-stream-line-height) * 1em);
   mask-image: linear-gradient(
     to bottom,
     black var(--gg-fade-from),
@@ -64,7 +73,11 @@
   position: relative;
 }
 
+/* Inline-block so the word jump's transform applies, and always inline-block,
+   never switched on for a jump, so a line never reflows. No will-change: that
+   would hold a compositor layer open for every word on screen. */
 .word {
+  display: inline-block;
   white-space: nowrap;
 }
 
@@ -85,11 +98,18 @@
   box-shadow: inset 0 -0.085em 0 var(--gg-error);
 }
 
+/* Wrong, then fixed: passed like any other, with a trace of the underline so a
+   look back over the line still shows where the fixes were. */
+.corrected {
+  color: var(--gg-passed);
+  box-shadow: inset 0 -0.05em 0 var(--gg-error-trace);
+}
+
 /* --- Cursor: one block that slides ------------------------------------ */
 
 .cursor {
   position: absolute;
-  top: 0;
+  top: var(--gg-stream-overhang);
   left: 0;
   width: 0.6em;
   height: 1.2em;
@@ -99,6 +119,7 @@
   pointer-events: none;
 }
 
-.cursor[data-placed='false'] {
+.cursor[data-placed='false'],
+.block[data-status='completed'] .cursor {
   opacity: 0;
 }

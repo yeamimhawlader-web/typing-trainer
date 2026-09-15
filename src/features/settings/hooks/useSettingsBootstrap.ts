@@ -9,6 +9,8 @@
 
 import { useEffect, useLayoutEffect } from 'react'
 
+import { themeById } from '@features/gg-ui/themes/themes.ts'
+
 import { settingsStore, useSettingsStore } from '../state/settings.store.ts'
 
 export const useSettingsBootstrap = (): void => {
@@ -19,8 +21,10 @@ export const useSettingsBootstrap = (): void => {
   }, [])
 
   // A layout effect, so the theme is on the page before the first paint rather
-  // than one frame after it.
+  // than one frame after it. The classic pages have a dark and a light palette;
+  // they follow the scheme of whichever GG.Typing theme is chosen, which the
+  // GG.Typing screens then apply in full.
   useLayoutEffect(() => {
-    document.documentElement.dataset['theme'] = theme
+    document.documentElement.dataset['theme'] = themeById(theme).scheme
   }, [theme])
 }

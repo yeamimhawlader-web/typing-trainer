@@ -16,10 +16,15 @@ import { DEFAULT_PREFERENCES } from '@config'
 import { STORAGE_KEYS, storage, type StorageAdapter } from '@core/persistence'
 import {
   PRACTICE_WORD_COUNTS,
+  TEXT_SIZES,
   type PracticeWordCount,
+  type TextSize,
   type ThemePreference,
   type UserPreferences,
 } from '@core/types'
+// The theme registry itself, not the GG.Typing feature's entry point: a leaf
+// module with no imports, so settings and the shell cannot form a cycle.
+import { themeIdFromStored } from '@features/gg-ui/themes/themes.ts'
 
 export type SettingsStatus = 'idle' | 'loading' | 'ready'
 
@@ -29,6 +34,7 @@ export interface SettingsState {
   readonly hydrate: () => Promise<void>
   readonly setTheme: (theme: ThemePreference) => Promise<void>
   readonly setPracticeWordCount: (count: PracticeWordCount) => Promise<void>
+  readonly setTextSize: (size: TextSize) => Promise<void>
 }
 
 /**
@@ -43,14 +49,23 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
   if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) return {}
 
   const record = stored as Record<string, unknown>
-  const result: { theme?: ThemePreference; practiceWordCount?: PracticeWordCount } = {}
+  const result: {
+    theme?: ThemePreference
+    practiceWordCount?: PracticeWordCount
+    textSize?: TextSize
+  } = {}
 
-  const theme = record['theme']
-  if (theme === 'dark' || theme === 'light') result.theme = theme
+  // A theme the registry knows, or one of the two themes earlier versions
+  // stored, carried over.
+  const theme = themeIdFromStored(record['theme'])
+  if (theme !== null) result.theme = theme
 
   const count = record['practiceWordCount']
   const known = PRACTICE_WORD_COUNTS.find((option) => option === count)
   if (known !== undefined) result.practiceWordCount = known
+
+  const size = TEXT_SIZES.find((option) => option === record['textSize'])
+  if (size !== undefined) result.textSize = size
 
   return result
 }
@@ -92,6 +107,8 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
 
       setPracticeWordCount: (practiceWordCount) =>
         persist({ ...get().preferences, practiceWordCount }),
+
+      setTextSize: (textSize) => persist({ ...get().preferences, textSize }),
     }
   })
 

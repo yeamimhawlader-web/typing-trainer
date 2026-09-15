@@ -12,7 +12,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { ROUTES, sessionDetailPath } from '@app/routes.ts'
+import { PRACTICE_PATH, ROUTES, sessionDetailPath } from '@app/routes.ts'
 import { createMemoryAdapter } from '@core/persistence'
 import {
   createSessionRepository,
@@ -218,7 +218,7 @@ const renderDetail = (id: string, service?: SessionService) =>
           }
         />
         <Route path={ROUTES.history} element={<div>History page</div>} />
-        <Route path={ROUTES.practice} element={<div>Practice page</div>} />
+        <Route path={PRACTICE_PATH} element={<div>Practice page</div>} />
       </Routes>
     </MemoryRouter>,
   )

@@ -21,7 +21,8 @@ a theme name.
 
 Derived (in CSS): `accent-tint` = accent 14% · `accent-tint-strong` = accent 26%
 (cursor block) · `hairline` = fg 10% · `divider` = fg 8% · `glass-bg` = surface
-70% · `glass-border` = fg 12% (dark: 16%) · `passed` = fg 62% toward bg.
+70% · `glass-border` = fg 12% (dark: 16%) · `passed` = fg 62% toward bg ·
+`error-trace` = error 50% (the fainter underline under a corrected character).
 
 Glass recipe per scheme, in the theme object: `saturate` 180% light / 120% dark,
 top highlight white 18% light / 6% dark.
@@ -46,8 +47,8 @@ Light), 5.06 (muted, Classic), 4.56 (passed, Classic), 3.38 (faded, Classic).
 - UI: the existing system sans stack. Mono: the existing system mono stack. No
   web fonts — the app sends nothing anywhere, and that stays true.
 - Wordmark: 600, letter-spacing 0.06em — the only tracked text.
-- UI sizes: 15px nav and control row, 13px pills, 11px keycap labels, 12px
-  level badge. Tabular figures for the user count.
+- UI sizes: 15px nav and control row, 13px pills. Tabular figures for the live
+  statistics.
 - Word stream: letter-spacing 0.02em, line-height 1.6. Sizes xs 1.3 · sm 1.9 ·
   md 2.2 · lg 2.55 · xl 2.9 rem; at ≤ 520px every size scales by 0.58 (sm ≈ 1.1rem).
 
@@ -58,9 +59,12 @@ Light), 5.06 (muted, Classic), 4.56 (passed, Classic), 3.38 (faded, Classic).
   stream → 36 → input.
 - Stream block: fixed height 9.3rem. Lines shown by size — xs 4, sm 3, md 2,
   lg 2, xl 2 — so each size shows whole lines and the block never changes height.
-- Radii: logo 10, pill 8, input 14, icon circle full, keycap 6.
-- Controls: icon circle 36, pill height 30, keycap 26 × 30, group separators 1px
-  with 16px either side.
+- Stream overhang: the viewport reaches 0.5em above the first line, so a word
+  jumping on it (0.43em at the peak) is not clipped; the line before is hidden
+  while it sits in that strip.
+- Radii: logo 10, pill 8, input 14, icon circle full.
+- Controls: icon circle 36, pill height 30, group separators 1px with 16px
+  either side.
 - Budget at 1080px tall with sm text: about 565px, inside the upper 55%.
 
 ## Motion
@@ -70,10 +74,8 @@ Light), 5.06 (muted, Classic), 4.56 (passed, Classic), 3.38 (faded, Classic).
 | Cursor step | 90ms | ease-out | transform |
 | Hover / active | 150ms | ease-out | opacity of a tint layer |
 | Input focus | 200ms | ease-out | opacity of a ring and glow layer |
-| Tab underline | 220ms | cubic-bezier(0.32,0.72,0,1) | transform |
 | Panel slide | 260ms | cubic-bezier(0.32,0.72,0,1) | transform |
 | Theme cross-fade | 400ms | ease-in-out | background-color, color, border-color |
-| Live dot | 2400ms loop | ease-in-out | transform, opacity |
 
 Reduced motion: every duration 0 except the theme cross-fade (120ms).
 
@@ -90,7 +92,7 @@ Reduced motion: every duration 0 except the theme cross-fade (120ms).
 | Seventh theme is one object | derived tokens in CSS, components read tokens only | ✓ |
 | No hex outside the theme file | the stylesheet guard covers the new CSS | ✓ |
 | Keyboard focus visible everywhere | accent outline on every control; glow on the input | ✓ |
-| Defaults: Default (Dark), sm, 1 minute, English | store defaults | ✓ |
+| Defaults: Default (Dark), sm, 1 minute, English | Default (Dark) and sm are the preference defaults; there is no timed test or second language in the application, so the length is the practice word count (15/30/60) and no language is offered | changed at integration |
 
 Conflicts found in the brief, and how the plan resolves them:
 
@@ -102,12 +104,31 @@ Conflicts found in the brief, and how the plan resolves them:
 2. **§6 gives the input focus 200ms; §8's table lists no such row and says
    "nothing beyond this list".** Kept at 200ms, the more specific instruction,
    and added to the table above so the budget is complete.
-3. **§3 asks for a pulsing live dot; §8 lists no looping animation.** Kept, as a
-   slow transform/opacity pulse, and stopped entirely under reduced motion.
+3. **§3 asks for a pulsing live dot; §8 lists no looping animation.** Built as a
+   slow transform/opacity pulse, then removed at integration along with the live
+   user count it sat beside, which had nothing real behind it.
 4. **§7 transitions colour on `:root`, which would also animate every character
    changing state mid-test.** The transition exists only during a theme switch.
 5. **§5's fixed stream height versus five sizes.** Solved by whole-line counts per
    size (above) rather than a height that fits xl and wastes space at sm.
 6. **Live users, avatar, username, level, language, F1–F4 and the view toggles
-   have no behaviour behind them yet.** Rendered from a clearly marked stub, so
-   the shell looks complete and the wiring pass knows exactly what to replace.
+   had no behaviour behind them.** Rendered from a marked stub in the shell pass,
+   and removed when the shell was wired to the application: an interface that
+   shows a user count, a level or a language nobody can change is inventing data.
+
+## Integration
+
+The shell now runs on the application itself — the typing session, engine,
+storage, settings and result components the classic screens use.
+
+- **The classic tokens are bridged, not copied.** The result panel, session
+  summary, drill comparison and session hint are the application's own
+  components, drawn in `--color-*` tokens. `layout/GGLayout.module.css` maps
+  those tokens onto the GG theme inside the shell, built from the same six base
+  colours, so they take on every theme without a GG copy existing. Warnings and
+  errors there are the theme's error mixed 60% towards fg, and text on the
+  accent is bg; `themes.test.ts` holds both at 4.5:1 in every theme.
+- **The theme is a preference.** Chosen in the panel, saved by the settings
+  store with the rest, and followed by scheme on the classic pages.
+- **Tokens removed with the controls they served:** keycap radius and label
+  size, level badge size, the tab underline and the live-dot pulse.

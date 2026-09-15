@@ -1,14 +1,17 @@
 /**
- * The cursor controller, over a fake layout.
+ * The cursor controller, over a real typing engine and a fake layout.
  *
  * jsdom has no layout, so each character's rectangle is supplied: four
- * characters per 40px line, 10px wide. What is under test is the arithmetic and
- * the performance promise — a keystroke moves the cursor without reading layout.
+ * characters per 40px line, 10px wide. The cursor position comes from the
+ * engine, as it does on screen. What is under test is the arithmetic and the
+ * performance promise — a keystroke moves the cursor without reading layout.
  */
 
 import { describe, expect, it, vi } from 'vitest'
 
-import { createStubTypingSource } from '../../typing/typing-source.ts'
+import { createTypingEngine } from '@core/engine'
+import { timestamp } from '@core/types'
+
 import { createStreamCursor, lineIndexOf } from './stream-cursor.ts'
 
 const CHARACTER_WIDTH = 10
@@ -56,15 +59,23 @@ const connect = (count: number, words: string[]) => {
   controller.attachViewport(elements.viewport)
   controller.attachContent(elements.content)
   controller.attachCursor(elements.cursor)
-  const source = createStubTypingSource(words)
-  controller.setSource(source)
-  source.subscribe(controller.place)
-  return { ...elements, controller, source }
+  const engine = createTypingEngine()
+  let clock = 0
+  const type = (keys: string | readonly string[]) => {
+    for (const key of typeof keys === 'string' ? Array.from(keys) : keys) {
+      clock += 100
+      if (engine.getSnapshot().status === 'idle') engine.start({ text: words.join(' '), sourceId: 'test' }, timestamp(clock))
+      engine.input(key, timestamp(clock))
+    }
+  }
+  const stop = controller.follow(engine)
+  controller.measure()
+  return { ...elements, controller, engine, type, stop }
 }
 
 describe('stream cursor', () => {
   it('sizes the block to a character and puts it on the first one', () => {
-    const { cursor } = connect(8, ['abc', 'def'])
+    const { cursor } = connect(7, ['abc', 'def'])
 
     expect(cursor.style.width).toBe('10px')
     expect(cursor.style.height).toBe('30px')
@@ -73,52 +84,97 @@ describe('stream cursor', () => {
   })
 
   it('follows the current character along a line', () => {
-    const { cursor, source } = connect(8, ['abc', 'def'])
+    const { cursor, type } = connect(7, ['abc', 'def'])
 
-    source.onKeyPress('a')
-    source.onKeyPress('b')
+    type('ab')
 
     expect(offset(cursor)).toEqual([20, 6])
   })
 
   it('shifts the content up a line on reaching the next one, keeping the cursor on the top line', () => {
-    const { cursor, content, source } = connect(8, ['abc', 'def'])
+    const { cursor, content, type } = connect(7, ['abc', 'def'])
 
-    for (const key of 'abc ') source.onKeyPress(key)
+    type('abc ')
 
     expect(offset(content)).toEqual([0, -40])
     expect(offset(cursor)).toEqual([0, 6])
   })
 
   it('shifts back down when the typist backspaces onto the previous line', () => {
-    const { content, source } = connect(8, ['abc', 'def'])
+    const { content, type } = connect(7, ['abc', 'def'])
 
-    for (const key of 'abc ') source.onKeyPress(key)
-    source.onKeyPress('Backspace')
+    type('abc ')
+    type(['Backspace'])
 
     expect(offset(content)).toEqual([0, 0])
   })
 
+  it('hides the line above the first visible one, and shows it again on the way back', () => {
+    const { content, type } = connect(7, ['abc', 'def'])
+    const visibility = () => Array.from(content.children, (span) => (span as HTMLElement).style.visibility)
+
+    expect(visibility()).toEqual(['', '', '', '', '', '', ''])
+
+    type('abc ')
+    expect(visibility()).toEqual(['hidden', 'hidden', 'hidden', 'hidden', '', '', ''])
+
+    type(['Backspace'])
+    expect(visibility()).toEqual(['', '', '', '', '', '', ''])
+  })
+
+  it('draws where the engine puts the cursor, not one step per key', () => {
+    const { cursor, content, engine, type } = connect(7, ['abc', 'def'])
+
+    // A space typed mid-word: the engine skips to the next word.
+    type('ab ')
+
+    expect(engine.getSnapshot().cursorIndex).toBe(4)
+    expect(offset(content)).toEqual([0, -40])
+    expect(offset(cursor)).toEqual([0, 6])
+  })
+
+  it('writes nothing when the engine announces a change that does not move the cursor', () => {
+    const { cursor, content, engine, type } = connect(7, ['abc', 'def'])
+    type('a')
+    cursor.style.transform = 'none'
+    content.style.transform = 'none'
+
+    engine.tick(timestamp(5_000))
+
+    expect(cursor.style.transform).toBe('none')
+    expect(content.style.transform).toBe('none')
+  })
+
+  it('stops following the engine once stopped', () => {
+    const { cursor, stop, type } = connect(7, ['abc', 'def'])
+    type('a')
+
+    stop()
+    type('b')
+
+    expect(offset(cursor)).toEqual([10, 6])
+  })
+
   it('reads no layout at all on a keystroke', () => {
-    const { reads, source } = connect(8, ['abc', 'def'])
+    const { reads, type } = connect(7, ['abc', 'def'])
     const afterMeasuring = reads.count
 
-    for (const key of 'abc de') source.onKeyPress(key)
+    type('abc de')
 
     expect(afterMeasuring).toBeGreaterThan(0)
     expect(reads.count).toBe(afterMeasuring)
   })
 
   it('places the cursor after the last character at the end of the text', () => {
-    const { cursor, source } = connect(3, ['abc'])
+    const { cursor, type } = connect(3, ['abc'])
 
-    for (const key of 'abc') source.onKeyPress(key)
+    type('abc')
 
     expect(offset(cursor)).toEqual([30, 6])
   })
 
   it('does not slide when re-measuring: a new layout is not the cursor moving', () => {
-    const { cursor, controller } = connect(8, ['abc', 'def'])
+    const { cursor, controller } = connect(7, ['abc', 'def'])
     const transitions: string[] = []
     const descriptor = Object.getOwnPropertyDescriptor(CSSStyleDeclaration.prototype, 'transition')
     const spy = vi.spyOn(cursor.style, 'transition', 'set').mockImplementation((value: string) => {

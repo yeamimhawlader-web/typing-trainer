@@ -6,14 +6,14 @@
 
 import { NavLink, Outlet } from 'react-router'
 
-import { ROUTES } from '@app/routes.ts'
+import { PRACTICE_PATH, ROUTES } from '@app/routes.ts'
 import { appConfig } from '@config'
 import { cx } from '@shared/lib'
 
 import styles from './AppLayout.module.css'
 
 const NAV_ITEMS: ReadonlyArray<{ readonly to: string; readonly label: string }> = [
-  { to: ROUTES.practice, label: 'Practice' },
+  { to: PRACTICE_PATH, label: 'Practice' },
   { to: ROUTES.history, label: 'History' },
   { to: ROUTES.statistics, label: 'Statistics' },
   { to: ROUTES.settings, label: 'Settings' },

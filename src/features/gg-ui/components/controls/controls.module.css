@@ -1,6 +1,6 @@
 /**
- * The three control shapes, used the same way everywhere: keycap, pill, icon
- * circle. Plus the group separator and the sliding tab pair.
+ * The control shapes, used the same way everywhere: pill and icon circle, plus
+ * the group separator.
  *
  * State colour is never transitioned. Hover and active are a tint layer
  * (::before) whose opacity fades — transform and opacity only, on the
@@ -10,8 +10,7 @@
 /* --- Shared tint layer ------------------------------------------------ */
 
 .pillFace::before,
-.iconCircle::before,
-.keycap::before {
+.iconCircle::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -114,8 +113,7 @@
   opacity: 1;
 }
 
-.iconCircle:focus-visible,
-.keycap:focus-visible {
+.iconCircle:focus-visible {
   outline: 2px solid var(--gg-accent);
   outline-offset: 2px;
 }
@@ -124,57 +122,6 @@
    radius, and it loads after these styles. Each shape keeps its own. */
 .iconCircle:focus-visible {
   border-radius: var(--gg-radius-full);
-}
-
-.keycap:focus-visible {
-  border-radius: var(--gg-radius-keycap);
-}
-
-/* --- Keycap: reads as a physical key --------------------------------- */
-
-.keycap {
-  position: relative;
-  display: inline-flex;
-  flex: none;
-  width: 32px;
-  height: 30px;
-  padding: 3px 4px;
-  border: 1px solid var(--gg-control-border);
-  border-bottom-width: 2px;
-  border-radius: var(--gg-radius-keycap);
-  color: var(--gg-muted);
-  transition: transform var(--gg-duration-hover) var(--gg-ease-out);
-}
-
-/* The legend sits top-left, small, the way it does on a real key. */
-.keycapLegend {
-  position: relative;
-  font-family: var(--gg-font-mono);
-  font-size: var(--gg-text-keycap);
-  font-weight: var(--font-weight-semibold);
-  line-height: 1;
-  letter-spacing: 0.02em;
-}
-
-.keycap:hover {
-  color: var(--gg-fg);
-}
-
-.keycap:hover::before {
-  opacity: 0.45;
-}
-
-/* Pressed travels down a pixel, like a key. */
-.keycap:active {
-  transform: translateY(1px);
-}
-
-.keycap[aria-pressed='true'] {
-  color: var(--gg-fg);
-}
-
-.keycap[aria-pressed='true']::before {
-  opacity: 1;
 }
 
 /* --- Groups and separators -------------------------------------------- */
@@ -202,56 +149,4 @@
   .separator {
     display: none;
   }
-}
-
-/* --- Sliding tab pair ------------------------------------------------- */
-
-.tabs {
-  position: relative;
-  display: inline-flex;
-  gap: 1.25rem;
-  padding-bottom: 6px;
-}
-
-.tab {
-  position: relative;
-  display: inline-flex;
-  cursor: pointer;
-}
-
-.tabLabel {
-  font-size: var(--gg-text-control);
-  line-height: 1.6;
-  color: var(--gg-muted);
-  user-select: none;
-}
-
-.tab:hover .tabLabel,
-.nativeInput:checked + .tabLabel {
-  color: var(--gg-fg);
-}
-
-.nativeInput:focus-visible + .tabLabel {
-  outline: 2px solid var(--gg-accent);
-  outline-offset: 3px;
-  border-radius: 4px;
-}
-
-/* One element that moves: a 1px bar stretched to the label's width and slid
-   under it. Nothing is repainted; the 220ms budget is all transform. */
-.tabIndicator {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 1px;
-  height: 2px;
-  background-color: var(--gg-accent);
-  transform-origin: left center;
-  transition: transform var(--gg-duration-tab) var(--gg-ease-sheet);
-  pointer-events: none;
-}
-
-.tabIndicator[data-measured='false'] {
-  opacity: 0;
-  transition: none;
 }

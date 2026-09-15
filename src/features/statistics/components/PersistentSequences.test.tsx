@@ -122,7 +122,7 @@ describe('persistent sequences section', () => {
     // Named per row, so a list of them is not a column of identical "Train"
     // links to a screen reader.
     const train = screen.getByRole('link', { name: 'Train th' })
-    expect(train).toHaveAttribute('href', '/drill/th')
+    expect(train).toHaveAttribute('href', '/gg/drill/th')
     expect(train).toHaveTextContent('Train')
   })
 
@@ -156,7 +156,7 @@ describe('persistent sequences section', () => {
       expect(screen.queryByRole('link', { name: /^train/i })).not.toBeInTheDocument()
       expect(screen.getByRole('link', { name: 'Try a drill for ce' })).toHaveAttribute(
         'href',
-        '/drill/ce',
+        '/gg/drill/ce',
       )
     })
 

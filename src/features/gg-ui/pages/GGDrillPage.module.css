@@ -1,0 +1,24 @@
+.notice {
+  max-width: 40rem;
+  padding-block: 24px;
+}
+
+.title {
+  margin: 0 0 12px;
+  font-size: 1.375rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--gg-fg);
+}
+
+.text {
+  margin: 0 0 24px;
+  font-size: var(--gg-text-control);
+  line-height: 1.6;
+  color: var(--gg-muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}

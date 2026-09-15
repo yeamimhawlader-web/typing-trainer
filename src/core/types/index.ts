@@ -27,5 +27,5 @@ export type {
   SessionTarget,
 } from './session.ts'
 
-export type { PracticeWordCount, ThemePreference, UserPreferences } from './preferences.ts'
-export { PRACTICE_WORD_COUNTS } from './preferences.ts'
+export type { PracticeWordCount, TextSize, ThemePreference, UserPreferences } from './preferences.ts'
+export { PRACTICE_WORD_COUNTS, TEXT_SIZES } from './preferences.ts'

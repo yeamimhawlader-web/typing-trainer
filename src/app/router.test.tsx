@@ -5,7 +5,7 @@
  * import or a crashing page fails here rather than in the browser.
  */
 
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { describe, expect, it } from 'vitest'
@@ -54,14 +54,42 @@ describe('application routes', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders the GG.Typing shell at its own route, outside the application layout', async () => {
+  it('renders GG.Typing practice at its own route, outside the application layout', async () => {
     renderAt(ROUTES.gg)
 
     expect(await screen.findByRole('region', { name: 'Words to type' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Typing test' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'GG.Typing' })).toBeInTheDocument()
     // Its own top bar, not the application's navigation.
     expect(screen.queryByRole('navigation', { name: 'Primary' })).not.toBeInTheDocument()
     expect(document.title).toBe('Typing Test · GG.Typing')
+  })
+
+  it('renders a GG.Typing drill beneath it', async () => {
+    renderAt('/gg/drill/in')
+
+    // The words appear once the drill's baseline has been read.
+    expect(await screen.findByRole('region', { name: 'Words to type' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Drill: in' })).toBeInTheDocument()
+    expect(screen.getByText('Drill: in', { selector: 'p' })).toBeInTheDocument()
+  })
+
+  it('keeps the classic practice screen at its own route', async () => {
+    renderAt(ROUTES.practice)
+    expect(await screen.findByRole('region', { name: 'Typing test' })).toBeInTheDocument()
+  })
+
+  it('keeps the classic drill screen at its own route', async () => {
+    renderAt('/drill/in')
+    expect(await screen.findByRole('region', { name: 'Typing test' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Drill: in' })).toBeInTheDocument()
+  })
+
+  it('leads every way into practice to GG.Typing', async () => {
+    renderAt(ROUTES.history)
+
+    const nav = await screen.findByRole('navigation', { name: 'Primary' })
+    expect(within(nav).getByRole('link', { name: 'Practice' })).toHaveAttribute('href', '/gg')
   })
 
   it('keeps the primary navigation on every page', async () => {
@@ -112,6 +140,9 @@ describe('document titles', () => {
     ['/no-such-page', 'Not found · Typing Trainer'],
     ['/drill/in', 'Drill: in · Typing Trainer'],
     ['/drill/zq', 'No drill for that sequence · Typing Trainer'],
+    [ROUTES.gg, 'Typing Test · GG.Typing'],
+    ['/gg/drill/in', 'Drill: in · GG.Typing'],
+    ['/gg/drill/zq', 'No drill for that sequence · GG.Typing'],
   ])('names the tab after the page at %s', async (path, title) => {
     renderAt(path)
 

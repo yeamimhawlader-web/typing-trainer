@@ -9,6 +9,7 @@ import type { UserPreferences } from '@core/types'
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
   // Dark by default: this is a tool for long, focused, daily sessions.
-  theme: 'dark',
+  theme: 'default-dark',
   practiceWordCount: 30,
+  textSize: 'sm',
 }

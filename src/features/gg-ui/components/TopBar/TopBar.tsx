@@ -1,18 +1,23 @@
 /**
- * The top bar: brand on the left, a quiet cluster on the right.
+ * The top bar: brand on the left, navigation and the theme palette on the right.
  *
  * Glass, and one of only three glass surfaces in the UI. It sits above the page
  * rather than on it, so it is sticky and the page runs underneath.
+ *
+ * Everything in it is real. History and statistics are the application's own
+ * pages, reached from here rather than rebuilt inside the shell. There is no
+ * user count, account or language menu: none of those exist, and the bar does
+ * not pretend they do.
  */
 
 import type { Ref } from 'react'
-import { Link } from 'react-router'
+import { Link, NavLink } from 'react-router'
 
-import { ROUTES } from '@app/routes.ts'
+import { PRACTICE_PATH, ROUTES } from '@app/routes.ts'
+import { cx } from '@shared/lib'
 
-import { STUB_ACCOUNT, STUB_LIVE_USERS } from '../../stub-data.ts'
 import { IconCircle } from '../controls/controls.tsx'
-import { GlobeIcon, LogoGlyph, PaletteIcon, UsersIcon } from '../icons.tsx'
+import { LogoGlyph, PaletteIcon } from '../icons.tsx'
 
 import styles from './TopBar.module.css'
 
@@ -22,12 +27,16 @@ export interface TopBarProps {
   readonly themesButtonRef: Ref<HTMLButtonElement>
 }
 
-const formatCount = new Intl.NumberFormat('en')
+const NAV = [
+  { to: PRACTICE_PATH, label: 'Typing Test', end: true },
+  { to: ROUTES.history, label: 'History', end: false },
+  { to: ROUTES.statistics, label: 'Statistics', end: false },
+] as const
 
 export const TopBar = ({ themesOpen, onOpenThemes, themesButtonRef }: TopBarProps) => (
   <header className={styles.bar}>
     <div className={styles.inner}>
-      <Link to={ROUTES.gg} className={styles.brand} aria-label="GG.Typing">
+      <Link to={PRACTICE_PATH} className={styles.brand} aria-label="GG.Typing">
         <span className={styles.mark} aria-hidden="true">
           <LogoGlyph />
         </span>
@@ -38,16 +47,11 @@ export const TopBar = ({ themesOpen, onOpenThemes, themesButtonRef }: TopBarProp
       </Link>
 
       <nav className={styles.cluster} aria-label="Main">
-        <p className={styles.live}>
-          <span className={styles.pulse} aria-hidden="true" />
-          <UsersIcon width={18} height={18} />
-          <span className={styles.count}>{formatCount.format(STUB_LIVE_USERS)}</span>
-          <span className={styles.liveLabel}>users</span>
-        </p>
-
-        <Link to={ROUTES.gg} className={styles.navLink} aria-current="page">
-          Typing Test
-        </Link>
+        {NAV.map(({ to, label, end }) => (
+          <NavLink key={to} to={to} end={end} className={cx(styles.navLink)}>
+            {label}
+          </NavLink>
+        ))}
 
         <IconCircle
           ref={themesButtonRef}
@@ -58,22 +62,6 @@ export const TopBar = ({ themesOpen, onOpenThemes, themesButtonRef }: TopBarProp
         >
           <PaletteIcon />
         </IconCircle>
-
-        <IconCircle label="Language">
-          <GlobeIcon />
-        </IconCircle>
-
-        <button type="button" className={styles.account} aria-label={`Account: ${STUB_ACCOUNT.username}, level ${STUB_ACCOUNT.level}`}>
-          <span className={styles.avatar} aria-hidden="true">
-            {STUB_ACCOUNT.username.slice(0, 1).toUpperCase()}
-          </span>
-          <span className={styles.username} aria-hidden="true">
-            {STUB_ACCOUNT.username}
-          </span>
-          <span className={styles.level} aria-hidden="true">
-            {STUB_ACCOUNT.level}
-          </span>
-        </button>
       </nav>
     </div>
   </header>

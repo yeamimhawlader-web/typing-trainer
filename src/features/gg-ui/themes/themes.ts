@@ -136,6 +136,19 @@ export type GGThemeId = (typeof GG_THEMES)[number]['id']
 
 export const DEFAULT_THEME_ID: GGThemeId = 'default-dark'
 
+/**
+ * The theme a stored preference names, or null if it names none.
+ *
+ * Checked against this registry because the value came off disk. Versions
+ * before GG.Typing stored `dark` or `light`; those carry over to the default
+ * theme of the same scheme rather than being thrown away.
+ */
+export const themeIdFromStored = (value: unknown): GGThemeId | null => {
+  if (value === 'dark') return DEFAULT_THEME_ID
+  if (value === 'light') return 'default-light'
+  return GG_THEMES.find((theme) => theme.id === value)?.id ?? null
+}
+
 export const themeById = (id: string): GGTheme =>
   GG_THEMES.find((theme) => theme.id === id) ??
   (GG_THEMES.find((theme) => theme.id === DEFAULT_THEME_ID) as GGTheme)

@@ -1,5 +1,6 @@
 /**
- * Owns the engine instance, the keyboard, and the clock for one typing screen.
+ * Owns the engine instance, the clock and the recording of results for one
+ * typing screen.
  *
  * Note what this hook does *not* do: it holds no per-keystroke state in React.
  * Keystrokes go straight into the engine, and components subscribe to the
@@ -7,20 +8,14 @@
  * here would re-render the entire screen on every key, which is exactly the
  * thing to avoid.
  *
- * ## Input: physical keyboard only, by decision
+ * ## Input
  *
- * This application is desktop and keyboard-first. It reads `keydown` on the
- * window and has no editable element, so a phone's on-screen keyboard never
- * opens, and Android's IME sends `key: "Unidentified"` anyway. That is stated
- * to touch users on the typing screen rather than left to be discovered.
- *
- * The boundary for anything else is the engine, not this file: `engine.start`,
- * `engine.input(key, at)` and `engine.deleteWord(at)` are the whole input
- * surface, and nothing in the engine, metrics, telemetry or persistence knows
- * where a key came from. The keyboard mapping lives in the one `keydown`
- * handler below. A future touch path would be a second, small adapter that
- * reads a hidden text field's `beforeinput` events and calls the same three
- * methods — not a second typing system.
+ * It does not listen to anything. Keys reach a test through two commands,
+ * `inputKey` and `deleteWord`, from whichever adapter the screen uses: the
+ * classic screen's window `keydown` (`useKeyboardInput`), or the GG.Typing
+ * text field's `beforeinput`. What a key does to a test is decided here, once;
+ * where it came from is the adapter's business, and nothing in the engine,
+ * metrics, telemetry or persistence knows or cares.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -67,74 +62,6 @@ export type WordCount = PracticeWordCount
 export const DEFAULT_WORD_COUNT: WordCount = 30
 
 /**
- * Prefers the browser's own timestamp for the key press over the time the
- * handler happened to run. Under load those differ by more than a keystroke
- * interval, and this application measures keystroke intervals for a living.
- *
- * Falls back when the value is not on the same time origin as
- * `performance.now()`, which would otherwise throw the session clock years into
- * the future and leave it there.
- */
-const resolveEventTime = (event: KeyboardEvent): Timestamp => {
-  const now = performance.now()
-  const sameOrigin = event.timeStamp > 0 && Math.abs(event.timeStamp - now) < 1_000
-  return timestamp(sameOrigin ? event.timeStamp : now)
-}
-
-/** True when the key event belongs to a real text field rather than the test. */
-const isEditableTarget = (event: KeyboardEvent): boolean => {
-  const target = event.target
-  if (!(target instanceof HTMLElement)) return false
-  return (
-    target.isContentEditable ||
-    target.tagName === 'INPUT' ||
-    target.tagName === 'TEXTAREA'
-  )
-}
-
-/**
- * True when a control has focus and the key would normally operate it.
- *
- * Space and Enter activate a focused button or link. Swallowing them to feed
- * the typing test would break the one thing a keyboard user relies on, so those
- * two keys are left alone whenever a control is what is focused. Every other
- * character still reaches the test, so typing from anywhere keeps working.
- */
-const isControlActivation = (event: KeyboardEvent): boolean => {
-  if (event.key !== ' ' && event.key !== 'Enter') return false
-
-  const target = event.target
-  if (!(target instanceof HTMLElement)) return false
-
-  return (
-    target.tagName === 'BUTTON' ||
-    target.tagName === 'A' ||
-    target.tagName === 'SELECT' ||
-    target.getAttribute('role') === 'button'
-  )
-}
-
-/**
- * True when the event asks for the previous word to be deleted.
- *
- * Ctrl+Backspace is the Windows and Linux binding, Alt+Backspace the macOS one;
- * a browser app gets both, because it has no idea which keyboard is in front of
- * it. Nobody typing at speed deletes a mistake one character at a time, so
- * without this the only way back is holding Backspace and watching.
- *
- * Cmd is deliberately excluded rather than folded in. On macOS Cmd+Backspace
- * means "delete to the start of the line", which here would throw away the
- * whole test — a different and much more destructive request that this does not
- * claim to implement.
- *
- * This is the *only* modified chord the typing screen takes. Everything else
- * with Ctrl, Alt or Cmd held falls through to the browser, so Ctrl+R, Ctrl+T,
- * Ctrl+W and the rest keep working exactly as they did.
- */
-const isWordDelete = (event: KeyboardEvent): boolean =>
-  event.key === BACKSPACE && (event.ctrlKey || event.altKey) && !event.metaKey
-
-/**
  * A remembered practice length: where to start, and how to remember a change.
  *
  * Optional, because only ordinary practice has a length to remember — a drill
@@ -154,6 +81,17 @@ export interface TypingSessionController {
   readonly wordCount: WordCount
   readonly setWordCount: (count: WordCount) => void
   readonly restart: () => void
+  /**
+   * One key from an input adapter: a typeable character, or `Backspace`.
+   *
+   * The first character starts the test. Returns whether the key belongs to the
+   * test — including a space or backspace before it has started, which is
+   * swallowed rather than scrolling the page — so the adapter knows whether to
+   * stop the browser handling it too. Once a test is over nothing belongs to it.
+   */
+  readonly inputKey: (key: string, at: Timestamp) => boolean
+  /** Deletes back to the start of the previous word. Only while running. */
+  readonly deleteWord: (at: Timestamp) => boolean
   /**
    * The finished test, as it was recorded. The same object that went to
    * storage, so the screen and the history page cannot disagree about a result.
@@ -238,100 +176,48 @@ export const useTypingSession = (
   )
 
   /**
-   * The listener is re-attached whenever the loaded test changes, which is once
-   * per test rather than once per keystroke. Holding `target` and `restart` in
-   * refs to avoid that would mean writing to a ref during render — cheaper in
-   * theory, wrong in practice, and invisible to the typist either way.
+   * The commands every input adapter shares.
+   *
+   * How a key arrives is the adapter's business — a window `keydown` for the
+   * classic screen, a text field's `beforeinput` for GG.Typing. What a key does
+   * to a test is decided here, once, so the two cannot drift: the first
+   * character starts the test, a space or backspace before that is swallowed
+   * without starting the clock, and once a test is over no key belongs to it.
+   * Correctness itself is the engine's; nothing here compares a key with text.
    */
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      // A real text field owns its own keys, modifiers included.
-      if (isEditableTarget(event)) return
-
-      /**
-       * Ctrl+Backspace and Alt+Backspace delete the previous word.
-       *
-       * Checked before the modifier bail-out below, because that line exists to
-       * leave browser and OS chords alone and this is the single exception to
-       * it. Only while actually typing: on the results there is nothing to
-       * delete, and swallowing the key there would take it from the browser
-       * for no reason.
-       */
-      if (isWordDelete(event)) {
-        if (engine.getSnapshot().status !== 'running') return
-        event.preventDefault()
-        engine.deleteWord(resolveEventTime(event))
-        return
-      }
-
-      // Leave every other browser and OS shortcut alone.
-      if (event.ctrlKey || event.metaKey || event.altKey) return
-
+  const inputKey = useCallback(
+    (key: string, at: Timestamp): boolean => {
       const status = engine.getSnapshot().status
+      if (status !== 'idle' && status !== 'running') return false
 
-      /**
-       * Tab abandons a test in progress and starts a fresh one.
-       *
-       * Only while actually typing. Once a test finishes there are results on
-       * screen with their own controls, and swallowing Tab there would make
-       * them unreachable — the same keyboard trap that taking Tab on the idle
-       * screen used to create.
-       */
-      if (event.key === 'Tab') {
-        if (status !== 'running') return
-        event.preventDefault()
-        restart()
-        return
-      }
-
-      /**
-       * Enter starts the next test from the results.
-       *
-       * Enter does nothing on an empty page, so claiming it costs the browser
-       * no behaviour — unlike Tab, which is how people move around. It keeps
-       * the repeat loop to a single key while leaving the results navigable.
-       */
-      if (event.key === 'Enter') {
-        if (status !== 'completed' || isControlActivation(event)) return
-        event.preventDefault()
-        restart()
-        return
-      }
-
-      // Once a test is over the keyboard belongs to the browser again, so
-      // nothing below runs — including the preventDefault that would otherwise
-      // stop Space from operating a focused button on the results.
-      if (status !== 'idle' && status !== 'running') return
-
-      if (isControlActivation(event)) return
-
-      const isBackspace = event.key === BACKSPACE
+      const isBackspace = key === BACKSPACE
       // The engine's own definition, so a key the engine would ignore cannot
       // start a test here.
-      const isCharacter = isTypeableCharacter(event.key)
-      if (!isBackspace && !isCharacter) return
-
-      // Space would scroll the page and Backspace can navigate back.
-      event.preventDefault()
-
-      const at = resolveEventTime(event)
+      if (!isBackspace && !isTypeableCharacter(key)) return false
 
       if (status === 'idle') {
         // First keystroke starts the test — no button to press first. Not a
         // backspace, and not a space: before any letter a space is ignored by
         // the engine, and starting the clock on it would charge time for nothing.
-        if (isBackspace || /\s/u.test(event.key)) return
+        if (isBackspace || /\s/u.test(key)) return true
         engine.start(target, at)
       }
 
-      engine.input(event.key, at)
-    }
+      engine.input(key, at)
+      return true
+    },
+    [engine, target],
+  )
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [engine, target, restart])
+  const deleteWord = useCallback(
+    (at: Timestamp): boolean => {
+      // Only while actually typing: on the results there is nothing to delete.
+      if (engine.getSnapshot().status !== 'running') return false
+      engine.deleteWord(at)
+      return true
+    },
+    [engine],
+  )
 
   /**
    * Drives the clock while a test is running.
@@ -444,6 +330,8 @@ export const useTypingSession = (
     wordCount,
     setWordCount,
     restart,
+    inputKey,
+    deleteWord,
     lastSession,
     saveState,
     sequences,

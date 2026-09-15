@@ -16,10 +16,12 @@ export const ROUTES = {
   /** Pattern for the router; build real paths with `drillPath`. */
   drill: '/drill/:sequence',
   /**
-   * The GG.Typing UI shell. Its own full screen, outside the application layout,
-   * and not yet wired to the typing engine — see features/gg-ui.
+   * GG.Typing: the primary typing screen, a full screen of its own outside the
+   * application layout. Practice at the root, drills beneath it.
    */
   gg: '/gg',
+  /** Pattern for the router; build real paths with `drillPath`. */
+  ggDrill: '/gg/drill/:sequence',
 } as const
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
@@ -34,10 +36,23 @@ export const sessionDetailPath = (sessionId: string): string =>
   `/history/${encodeURIComponent(sessionId)}`
 
 /**
- * A drill for one character sequence.
+ * A drill for one character sequence, on GG.Typing.
  *
  * Encoded: the sequences come from real typed characters, so most are plain
  * letters, but nothing guarantees that and a `/` or `?` would change the route.
  */
 export const drillPath = (sequence: string): string =>
+  `/gg/drill/${encodeURIComponent(sequence)}`
+
+/** The same drill on the classic screen, for direct access while both exist. */
+export const classicDrillPath = (sequence: string): string =>
   `/drill/${encodeURIComponent(sequence)}`
+
+/**
+ * Where "practice" leads from anywhere in the application.
+ *
+ * GG.Typing is the primary typing screen. The classic one stays reachable at
+ * `ROUTES.practice` — nothing is removed until GG.Typing has replaced it
+ * outright — but links to practise go here.
+ */
+export const PRACTICE_PATH: string = ROUTES.gg

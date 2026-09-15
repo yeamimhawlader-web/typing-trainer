@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 
-import { ROUTES } from '@app/routes.ts'
+import { PRACTICE_PATH } from '@app/routes.ts'
 import { Page } from '@shared/ui'
 
 import styles from './HomePage.module.css'
@@ -11,7 +11,7 @@ export const HomePage = () => (
     description="A practice environment built for deliberate, daily work on speed and accuracy."
   >
     <div className={styles.actions}>
-      <Link to={ROUTES.practice} className={styles.cta}>
+      <Link to={PRACTICE_PATH} className={styles.cta}>
         Start practising
       </Link>
     </div>

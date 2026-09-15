@@ -24,6 +24,8 @@ export interface TestResultProps {
   readonly sequences: SequenceReport | null
   /** Present only when the finished test was a targeted drill. */
   readonly drill?: { readonly outcome: DrillOutcome; readonly comparison: DrillComparison } | null
+  /** Where "Back to practice" leads after a drill. The classic practice page by default. */
+  readonly practicePath?: string
 }
 
 export const TestResult = ({
@@ -32,6 +34,7 @@ export const TestResult = ({
   onTryAgain,
   sequences,
   drill = null,
+  practicePath = ROUTES.practice,
 }: TestResultProps) => (
   <div className={styles.panel}>
     <SessionSummary session={session} sequences={sequences} />
@@ -62,7 +65,7 @@ export const TestResult = ({
       )}
 
       {drill !== null && (
-        <ButtonLink to={ROUTES.practice} variant="secondary">
+        <ButtonLink to={practicePath} variant="secondary">
           Back to practice
         </ButtonLink>
       )}

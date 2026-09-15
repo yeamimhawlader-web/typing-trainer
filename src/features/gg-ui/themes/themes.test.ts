@@ -134,5 +134,21 @@ describe('GG themes', () => {
     it('keeps words two lines ahead at 3:1 when faded to 55%', () => {
       expect(contrast(over(c.fg, c.bg, 0.55), c.bg)).toBeGreaterThanOrEqual(3)
     })
+
+    /* The token bridge in layout/GGLayout.module.css draws the application's
+       own result components in the theme. The pairings below are the ones
+       those components use for text. */
+    describe('through the token bridge', () => {
+      it('keeps warning and error text at 4.5:1: error mixed 60% towards the text colour', () => {
+        const status = mixOklab(c.error, c.fg, 0.6)
+        for (const surface of [c.bg, c.surface]) {
+          expect(contrast(status, surface)).toBeGreaterThanOrEqual(4.5)
+        }
+      })
+
+      it('keeps text on the accent at 4.5:1: the page colour on an accent button', () => {
+        expect(contrast(c.bg, c.accent)).toBeGreaterThanOrEqual(4.5)
+      })
+    })
   })
 })

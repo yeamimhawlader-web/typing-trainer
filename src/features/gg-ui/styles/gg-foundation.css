@@ -26,6 +26,8 @@
 
   /* Passed characters: a step back, still comfortably readable. */
   --gg-passed: color-mix(in oklab, var(--gg-fg) 62%, var(--gg-bg));
+  /* The fainter underline left under a character that was wrong and was fixed. */
+  --gg-error-trace: color-mix(in oklab, var(--gg-error) 50%, transparent);
 
   /* Glass: the top bar, the theme panel and the input. Nowhere else. */
   --gg-glass-bg: color-mix(in oklab, var(--gg-surface) 70%, transparent);
@@ -44,8 +46,6 @@
   --gg-text-nav: 0.9375rem;
   --gg-text-control: 0.9375rem;
   --gg-text-pill: 0.8125rem;
-  --gg-text-keycap: 0.6875rem;
-  --gg-text-badge: 0.75rem;
 
   /* Word stream sizes. The block around them never changes height. */
   --gg-stream-scale: 1;
@@ -59,7 +59,6 @@
   --gg-bar-height: 64px;
 
   --gg-radius-logo: 10px;
-  --gg-radius-keycap: 6px;
   --gg-radius-pill: 8px;
   --gg-radius-input: 14px;
   --gg-radius-full: 9999px;
@@ -75,10 +74,8 @@
   --gg-duration-cursor: 90ms;
   --gg-duration-hover: 150ms;
   --gg-duration-focus: 200ms;
-  --gg-duration-tab: 220ms;
   --gg-duration-panel: 260ms;
   --gg-duration-theme: 400ms;
-  --gg-duration-pulse: 2400ms;
 }
 
 @media (max-width: 520px) {
@@ -93,7 +90,6 @@
     --gg-duration-cursor: 0ms;
     --gg-duration-hover: 0ms;
     --gg-duration-focus: 0ms;
-    --gg-duration-tab: 0ms;
     --gg-duration-panel: 0ms;
     --gg-duration-theme: 120ms;
   }

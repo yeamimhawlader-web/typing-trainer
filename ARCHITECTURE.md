@@ -852,23 +852,39 @@ future effects have a pattern to copy. The conventions are in
   phone. A fixed 12 px jump made the word's text box overlap the line above by
   1.3 px on a phone; at 0.43 em it clears it by about 2 px.
 
-### The GG.Typing UI shell sits beside the working app until it is wired
+### GG.Typing is a second presentation of the same typing session
 
-`@features/gg-ui` is the front end of the GG.Typing redesign: top bar, control
-row, toolbar, word stream, input and theme panel, at `/gg`, as a full screen of
-its own outside `AppLayout`. It is a shell. Typing runs through a stub
-`TypingSource` and the controls change in-memory shell state, so it replaces
-nothing yet: practice, history, statistics and drills keep working exactly as
-they did, and swapping the shell in is a route change once it is wired to the
-engine. Its token plan, and the conflicts found in its brief, are in
+`@features/gg-ui` is the GG.Typing interface: a shell (top bar, theme panel) at
+`/gg`, outside `AppLayout`, around a typing screen (control row, toolbar, word
+stream, input), with practice at `/gg` and drills at `/gg/drill/:sequence`.
+Every link to practice or to a drill leads there. The classic practice and drill
+screens stay at `/practice` and `/drill/:sequence`, and history, statistics,
+session detail and settings are the application's own pages, reached from the
+shell rather than rebuilt in it. Its token plan is in
 `src/features/gg-ui/TOKEN_PLAN.md`.
 
-- **A typing source is a store, not props.** The brief's `onKeyPress`,
-  `currentIndex` and `words[]` are exposed through `subscribe` and
-  `getMark(index)`, so each character subscribes to its own mark and a keystroke
-  changes one element — the rule the existing typing screen already keeps. The
-  stub is deliberately naive; the wiring pass adapts `@core/engine` to the same
-  interface rather than growing the stub.
+- **One session, two screens.** `useTypingScreen` composes the session, text
+  provider, drill context and drill comparison once; the classic `TypingTest`
+  and `GGTypingScreen` both render it. So a test is the same test — engine,
+  clock, idle cap, saved session, telemetry, drill measurement — whichever screen
+  it was typed on, and neither screen computes a figure: the live values are
+  shared selectors over the engine snapshot, and the result is the stored record.
+- **Keys reach a test through commands, from one adapter per screen.**
+  `useTypingSession` exposes `inputKey`, `deleteWord` and `restart` and listens
+  to nothing. The classic screen's adapter is a window `keydown` listener
+  (`useKeyboardInput`); GG.Typing's is its text field's `beforeinput`, with Tab
+  and Enter read from `keydown` because not every source of key events turns
+  them into input. What a key does to a test is decided once, in the session.
+- **Drills are set up once for both screens.** `useDrillSetup` builds the drill
+  and captures its baseline from ordinary sessions before anything is typed; both
+  drill pages render from it.
+- **Preferences are the settings store's.** The theme (a GG theme id, with the
+  old `dark`/`light` values migrated to the defaults of the same scheme), the
+  text size and the practice length are stored with the other preferences. The
+  classic pages follow the chosen theme's scheme.
+- **Shared components are themed through a token bridge.** Inside the shell the
+  classic `--color-*` tokens are mapped onto the GG theme, so the result panel
+  and drill comparison are the application's own, not copies.
 - **The cursor never reads layout on a keystroke.** Character positions are
   measured in one pass when they can change (new text, size, resize, fonts), and a
   keystroke only writes two transforms. A test counts layout reads and fails if a
@@ -879,9 +895,11 @@ engine. Its token plan, and the conflicts found in its brief, are in
   Each theme is held to contrast floors by test.
 - **The theme cross-fade is switched on only during a switch**, so characters
   changing state mid-test are never faded.
-- **Input comes from `beforeinput`, not `keydown`**, so a phone keyboard,
-  dictation and multi-character insertions reach the stream the same way a
-  physical key does.
+- **Input comes from `beforeinput`, not `keydown`**, so input methods,
+  automation and multi-character insertions reach the session the same way a
+  physical key does. On-screen keyboards are still not supported, as on the
+  classic screen: composition, autocorrect and prediction are not counted
+  faithfully.
 
 ### Accessibility fixes that cost little
 

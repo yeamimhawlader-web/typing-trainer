@@ -6,53 +6,64 @@
   gap: 0.75rem 1.5rem;
 }
 
-/* --- Language ------------------------------------------------------- */
+/* --- Source --------------------------------------------------------- */
 
-.language {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.select {
-  appearance: none;
-  padding: 0.375rem 1.75rem 0.375rem 0;
-  border: 0;
-  background: none;
+.source {
+  margin: 0;
   font-size: var(--gg-text-control);
   font-weight: var(--font-weight-medium);
   color: var(--gg-fg);
-  cursor: pointer;
-}
-
-.select:focus-visible {
-  outline: 2px solid var(--gg-accent);
-  outline-offset: 3px;
-  border-radius: 4px;
-}
-
-.select option {
-  background-color: var(--gg-surface);
-  color: var(--gg-fg);
-}
-
-.chevron {
-  position: absolute;
-  right: 0.25rem;
-  color: var(--gg-muted);
-  pointer-events: none;
 }
 
 /* --- Right side ----------------------------------------------------- */
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem;
 }
 
+.figures {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+}
+
+.figure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+
+/* Digits of equal width, so a figure gaining a digit does not shuffle the row
+   sideways in the corner of the typist's eye. */
+.value {
+  font-family: var(--gg-font-mono);
+  font-size: var(--gg-text-control);
+  font-variant-numeric: tabular-nums;
+  color: var(--gg-muted);
+}
+
+/* Speed is the number being trained, so it keeps full contrast. */
+.figure[data-primary='true'] .value {
+  color: var(--gg-fg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.unit {
+  font-size: var(--gg-text-pill);
+  color: var(--gg-muted);
+}
+
 .gap {
   width: 1rem;
+}
+
+.buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* --- Divider: 24px below the row, 28px above the toolbar ------------- */
@@ -61,4 +72,14 @@
   margin: 24px 0 28px;
   border: 0;
   border-top: 1px solid var(--gg-divider);
+}
+
+@media (max-width: 520px) {
+  .figures {
+    gap: 0.875rem;
+  }
+
+  .gap {
+    width: 0.25rem;
+  }
 }

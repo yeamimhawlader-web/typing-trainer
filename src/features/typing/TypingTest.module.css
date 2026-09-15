@@ -15,14 +15,6 @@
   max-width: var(--layout-reading-width);
 }
 
-.hint {
-  width: 100%;
-  max-width: var(--layout-reading-width);
-  min-height: var(--space-5);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-tertiary);
-}
-
 /* Hidden unless the device looks touch-only. A laptop with a touchscreen still
    has a fine primary pointer and hover, so it never sees this. */
 .touchNote {
@@ -37,15 +29,6 @@
   .touchNote {
     display: block;
   }
-}
-
-.key {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  padding: 0 var(--space-1);
-  border: var(--border-width-thin) solid var(--color-border-default);
-  border-radius: var(--radius-xs);
-  color: var(--color-text-secondary);
 }
 
 .complete {

@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 
-import { ROUTES } from '@app/routes.ts'
+import { PRACTICE_PATH, ROUTES } from '@app/routes.ts'
 import { historyDeletion } from '@core/history'
 import { sessionService, type SessionService, type TypingSession } from '@core/sessions'
 import {
@@ -153,7 +153,7 @@ export const SessionDetailPage = ({
           <ButtonLink to={ROUTES.history} variant="secondary">
             Back to history
           </ButtonLink>
-          <ButtonLink to={ROUTES.practice} variant="ghost">
+          <ButtonLink to={PRACTICE_PATH} variant="ghost">
             Go to practice
           </ButtonLink>
         </div>
@@ -173,7 +173,7 @@ export const SessionDetailPage = ({
       </div>
 
       <div className={styles.actions}>
-        <ButtonLink to={ROUTES.practice} variant="primary">
+        <ButtonLink to={PRACTICE_PATH} variant="primary">
           Go to practice
         </ButtonLink>
         <ButtonLink to={ROUTES.history} variant="secondary">

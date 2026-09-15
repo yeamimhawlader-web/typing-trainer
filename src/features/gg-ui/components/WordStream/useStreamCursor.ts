@@ -5,25 +5,22 @@
 
 import { useEffect, useLayoutEffect, useState } from 'react'
 
-import type { TypingSource } from '../../typing/typing-source.ts'
+import type { TypingEngine } from '@core/engine'
+
 import { createStreamCursor, type StreamCursor } from './stream-cursor.ts'
 
-export const useStreamCursor = (source: TypingSource, size: string): StreamCursor => {
+export const useStreamCursor = (engine: TypingEngine, text: string, size: string): StreamCursor => {
   const [cursor] = useState(createStreamCursor)
 
-  // New text: measure before paint, so nothing is drawn in the wrong place.
+  // New text or a new size moves every character: measure before paint, so
+  // nothing is ever drawn in the wrong place.
   useLayoutEffect(() => {
-    cursor.setSource(source)
-  }, [cursor, source])
+    if (text.length > 0 && size.length > 0) cursor.measure()
+  }, [cursor, size, text])
 
-  // A new size moves every character.
-  useLayoutEffect(() => {
-    if (size.length > 0) cursor.measure()
-  }, [cursor, size])
+  useLayoutEffect(() => cursor.follow(engine), [cursor, engine])
 
   useEffect(() => cursor.observe(), [cursor])
-
-  useEffect(() => source.subscribe(cursor.place), [cursor, source])
 
   return cursor
 }

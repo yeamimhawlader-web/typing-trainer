@@ -1,7 +1,13 @@
 /**
  * Places the block cursor and scrolls the stream, without reading layout on a
- * keystroke. Plain TypeScript over three elements; `useStreamCursor` connects it
- * to React.
+ * keystroke. Plain TypeScript over three elements and the typing engine;
+ * `useStreamCursor` connects it to React.
+ *
+ * ## Where the cursor is
+ *
+ * The engine's `cursorIndex`, read from its snapshot. Nothing here decides where
+ * a key moves the cursor — with word-synchronised error recovery that is not
+ * always one step on — it only draws the position the engine reports.
  *
  * ## Why positions are measured up front
  *
@@ -11,24 +17,36 @@
  * makes typing feel sticky. So every character's position is read once, in a
  * single pass, whenever positions can change: new text, a new size, a resize,
  * fonts finishing loading. A keystroke then looks a position up and writes at
- * most two transforms.
+ * most two transforms — and nothing at all when the position has not changed,
+ * which is what every clock tick the engine announces looks like.
  *
  * ## Lines
  *
  * The line holding the cursor is kept as the first visible line. Moving on a
- * line shifts the content up with a transform — instantly, since the brief
- * allows no per-keystroke motion except the cursor. The cursor's coordinates are
- * taken after that shift, so across a line break it slides back along the top
- * line rather than dropping in from above.
+ * line shifts the content up with a transform — instantly, since no motion other
+ * than the cursor runs on a keystroke. The cursor's coordinates are taken after
+ * that shift, so across a line break it slides back along the top line rather
+ * than dropping in from above.
+ *
+ * ## The line above
+ *
+ * The viewport reaches a little above the first line, so a word that jumps on it
+ * (the GGTyping word jump, which only ever happens on the line being typed) is
+ * not cut off at the top. That strip would otherwise show the bottom of the line
+ * before, so that one line is hidden while it sits there. It changes when the
+ * line does, a few times a test, and costs a style change with no layout.
  */
 
-import type { TypingSource } from '../../typing/typing-source.ts'
+import type { TypingEngine } from '@core/engine'
 
 interface StreamLayout {
+  readonly spans: readonly HTMLElement[]
   readonly xs: Float64Array
   readonly ys: Float64Array
   /** Top of each visual line, in content coordinates, first line first. */
   readonly lineTops: readonly number[]
+  /** Index of the first character on each visual line. */
+  readonly lineStarts: readonly number[]
   readonly endX: number
   readonly endY: number
 }
@@ -38,12 +56,12 @@ export interface StreamCursor {
   readonly attachViewport: (element: HTMLDivElement | null) => void
   readonly attachContent: (element: HTMLDivElement | null) => void
   readonly attachCursor: (element: HTMLSpanElement | null) => void
-  /** Which source to follow. Re-measures, since new text lays out anew. */
-  setSource(source: TypingSource): void
-  /** Re-measure after anything that moves characters, such as a size change. */
+  /** Re-measure after anything that moves characters: new text, a new size. */
   measure(): void
-  /** Moves the cursor to the source's current position. Cheap; no layout reads. */
+  /** Moves the cursor to the engine's position. Cheap; no layout reads. */
   place(): void
+  /** Follows an engine's cursor until the returned stop is called. */
+  follow(engine: TypingEngine): () => void
   /** Starts watching for resizes and font loading. Returns the stop. */
   observe(): () => void
 }
@@ -68,14 +86,26 @@ export const createStreamCursor = (): StreamCursor => {
   let viewport: HTMLDivElement | null = null
   let content: HTMLDivElement | null = null
   let cursor: HTMLSpanElement | null = null
-  let source: TypingSource | null = null
+  let engine: TypingEngine | null = null
   let layout: StreamLayout | null = null
   let scroll = Number.NaN
+  let placedIndex = Number.NaN
+  let hidden: readonly HTMLElement[] = []
+
+  const setHidden = (spans: readonly HTMLElement[]): void => {
+    for (const span of hidden) span.style.visibility = ''
+    for (const span of spans) span.style.visibility = 'hidden'
+    hidden = spans
+  }
 
   const place = (): void => {
-    if (layout === null || content === null || cursor === null || source === null) return
+    if (layout === null || content === null || cursor === null || engine === null) return
 
-    const index = source.getCurrentIndex()
+    const index = engine.getSnapshot().cursorIndex
+    // The engine notifies on clock ticks too; those move nothing.
+    if (index === placedIndex) return
+    placedIndex = index
+
     const inText = index < layout.xs.length
     const x = inText ? (layout.xs[index] as number) : layout.endX
     const y = inText ? (layout.ys[index] as number) : layout.endY
@@ -86,6 +116,9 @@ export const createStreamCursor = (): StreamCursor => {
     if (offset !== scroll) {
       content.style.transform = `translate3d(0, ${-offset}px, 0)`
       scroll = offset
+      setHidden(
+        line === 0 ? [] : layout.spans.slice(layout.lineStarts[line - 1] as number, layout.lineStarts[line] as number),
+      )
     }
     cursor.style.transform = `translate3d(${x}px, ${y - offset}px, 0)`
   }
@@ -93,18 +126,24 @@ export const createStreamCursor = (): StreamCursor => {
   const measure = (): void => {
     if (content === null || cursor === null) return
 
-    const spans = content.querySelectorAll<HTMLElement>('[data-i]')
+    const spans = Array.from(content.querySelectorAll<HTMLElement>('[data-i]'))
     const count = spans.length
     if (count === 0) return
+
+    // Visibility does not move anything, so this changes no measurement; it is
+    // cleared first because the lines are about to be worked out again.
+    setHidden([])
 
     const xs = new Float64Array(count)
     const ys = new Float64Array(count)
     const lineTops: number[] = []
+    const lineStarts: number[] = []
 
     // One read pass; nothing is written until it is finished, so the browser
     // lays out once rather than once per character. Rectangles rather than
     // offsetTop/offsetLeft, which round to whole pixels: at 48.64px a line, a
-    // rounded line top drifts against the fade band as lines go by.
+    // rounded line top drifts against the fade band as lines go by. Both are
+    // taken relative to the content, so a transform already on it cancels out.
     const origin = content.getBoundingClientRect()
     let lastRect: DOMRect | null = null
     spans.forEach((span, index) => {
@@ -113,26 +152,30 @@ export const createStreamCursor = (): StreamCursor => {
       xs[index] = rect.left - origin.left
       ys[index] = top
       lastRect = rect
-      if (lineTops.length === 0 || top > (lineTops[lineTops.length - 1] as number) + 0.5) lineTops.push(top)
+      if (lineTops.length === 0 || top > (lineTops[lineTops.length - 1] as number) + 0.5) {
+        lineTops.push(top)
+        lineStarts.push(index)
+      }
     })
 
     const firstRect = (spans[0] as HTMLElement).getBoundingClientRect()
     const endRect = lastRect ?? firstRect
     layout = {
+      spans,
       xs,
       ys,
       lineTops,
+      lineStarts,
       endX: endRect.right - origin.left,
       endY: endRect.top - origin.top,
     }
-    const width = firstRect.width
-    const height = firstRect.height
 
     // Re-placed without the slide: a new layout is not the cursor moving.
     cursor.style.transition = 'none'
-    cursor.style.width = `${width}px`
-    cursor.style.height = `${height}px`
+    cursor.style.width = `${firstRect.width}px`
+    cursor.style.height = `${firstRect.height}px`
     scroll = Number.NaN
+    placedIndex = Number.NaN
     place()
     void cursor.offsetWidth
     cursor.style.transition = ''
@@ -150,13 +193,19 @@ export const createStreamCursor = (): StreamCursor => {
       cursor = element
     },
 
-    setSource: (next) => {
-      source = next
-      measure()
-    },
-
     measure,
     place,
+
+    follow: (next) => {
+      engine = next
+      placedIndex = Number.NaN
+      place()
+      const stop = next.subscribe(place)
+      return () => {
+        stop()
+        if (engine === next) engine = null
+      }
+    },
 
     observe: () => {
       const observer =

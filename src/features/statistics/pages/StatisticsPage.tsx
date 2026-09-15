@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 
-import { ROUTES } from '@app/routes.ts'
+import { PRACTICE_PATH } from '@app/routes.ts'
 import {
   buildStatisticsReport,
   createTimeRange,
@@ -148,7 +148,7 @@ export const StatisticsPage = () => {
     return (
       <Page title="Statistics">
         <p className={styles.empty}>
-          No tests recorded yet. <Link to={ROUTES.practice}>Take one</Link> and your
+          No tests recorded yet. <Link to={PRACTICE_PATH}>Take one</Link> and your
           figures will appear here.
         </p>
       </Page>

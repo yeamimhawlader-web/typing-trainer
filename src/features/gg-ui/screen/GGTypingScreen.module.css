@@ -1,0 +1,33 @@
+/* 48px above the stream, 36px below it. */
+.stream {
+  margin: 48px 0 36px;
+}
+
+.hint {
+  margin-top: 16px;
+}
+
+/* Hidden unless the device looks touch-only. A laptop with a touchscreen still
+   has a fine primary pointer and hover, so it never sees this. */
+.touchNote {
+  display: none;
+  margin: 12px 0 0;
+  font-size: var(--gg-text-control);
+  color: var(--gg-muted);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .touchNote {
+    display: block;
+  }
+}
+
+.result {
+  margin-top: 40px;
+}
+
+@media (max-width: 520px) {
+  .stream {
+    margin: 32px 0 24px;
+  }
+}

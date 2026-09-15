@@ -1,0 +1,89 @@
+/**
+ * The GG.Typing shell around its routes: top bar, the routed page, and the
+ * theme panel.
+ *
+ * ## The theme is a preference
+ *
+ * The chosen theme is the settings store's `theme` — the same preference the
+ * settings page writes and the classic pages follow by scheme — so it is read
+ * from and saved to one place, and survives a reload. This layout only puts it
+ * on the page. It waits for settings to load, so the first frame is already in
+ * the stored theme rather than the default one fading into it.
+ *
+ * ## Shared pages inside the shell
+ *
+ * The result panel, session summary and drill comparison are the application's
+ * own components, not GG copies. They are drawn in the classic tokens, so the
+ * shell maps those tokens onto the GG theme's (see GGLayout.module.css), and
+ * they take on the theme without a line of their own changing.
+ */
+
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Outlet } from 'react-router'
+
+import { useSettingsStore } from '@features/settings/state/settings.store.ts'
+
+import { ThemePanel } from '../components/ThemePanel/ThemePanel.tsx'
+import { TopBar } from '../components/TopBar/TopBar.tsx'
+import { applyTheme, removeTheme } from '../themes/apply-theme.ts'
+import { DEFAULT_THEME_ID, themeById, themeIdFromStored, type GGThemeId } from '../themes/themes.ts'
+
+import '../styles/gg-foundation.css'
+import styles from './GGLayout.module.css'
+
+export const GGLayout = () => {
+  const ready = useSettingsStore((state) => state.status === 'ready')
+  const themeId = useSettingsStore((state) => themeIdFromStored(state.preferences.theme) ?? DEFAULT_THEME_ID)
+  const setTheme = useSettingsStore((state) => state.setTheme)
+
+  const [themesOpen, setThemesOpen] = useState(false)
+  const themesButton = useRef<HTMLButtonElement>(null)
+  const appliedOnce = useRef(false)
+
+  // Before paint, so the first frame is already in the theme. Only later
+  // changes cross-fade: the first one is a page load, not a switch.
+  useLayoutEffect(() => {
+    if (!ready) return
+    applyTheme(themeById(themeId), { fade: appliedOnce.current })
+    appliedOnce.current = true
+  }, [ready, themeId])
+
+  useEffect(() => () => removeTheme(), [])
+
+  const selectTheme = useCallback(
+    (id: GGThemeId) => {
+      void setTheme(id)
+    },
+    [setTheme],
+  )
+
+  const closeThemes = useCallback(() => {
+    setThemesOpen(false)
+  }, [])
+
+  // Focus goes back to the button that opened the panel once the shell is no
+  // longer inert — which is only true after the render that closed it.
+  const wasOpen = useRef(false)
+  useEffect(() => {
+    if (wasOpen.current && !themesOpen) themesButton.current?.focus({ preventScroll: true })
+    wasOpen.current = themesOpen
+  }, [themesOpen])
+
+  // Settings are read as the application loads and are ready before the first
+  // render in practice; this is not a state anyone sees.
+  if (!ready) return null
+
+  return (
+    <div className={styles.app}>
+      <div inert={themesOpen}>
+        <TopBar themesOpen={themesOpen} onOpenThemes={() => setThemesOpen(true)} themesButtonRef={themesButton} />
+
+        <main className={styles.main}>
+          <Outlet />
+        </main>
+      </div>
+
+      <ThemePanel open={themesOpen} activeThemeId={themeId} onSelect={selectTheme} onClose={closeThemes} />
+    </div>
+  )
+}

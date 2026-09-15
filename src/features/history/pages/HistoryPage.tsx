@@ -9,7 +9,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router'
 
-import { ROUTES, sessionDetailPath } from '@app/routes.ts'
+import { PRACTICE_PATH, sessionDetailPath } from '@app/routes.ts'
 import {
   formatAccuracy,
   formatCompletedAt,
@@ -98,7 +98,7 @@ export const HistoryPage = () => {
       <Page title="History">
         <UndoNotice />
         <p className={styles.empty}>
-          No tests recorded yet. <Link to={ROUTES.practice}>Take one</Link> and it will
+          No tests recorded yet. <Link to={PRACTICE_PATH}>Take one</Link> and it will
           appear here.
         </p>
       </Page>

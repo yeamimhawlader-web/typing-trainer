@@ -2,88 +2,127 @@
  * The word stream — with the active pill, one of the two places the UI is
  * allowed to be bold.
  *
- * Each character subscribes to its own mark, so a keystroke re-renders the one
+ * It draws the typing engine's state and decides nothing. The text is the
+ * engine's target, each character shows the engine's state for it — pending,
+ * correct, incorrect or corrected — and the block cursor sits at the engine's
+ * cursor. No key is compared with the text anywhere in this file.
+ *
+ * Each character subscribes to its own state, so a keystroke re-renders the one
  * character it changed. The cursor and the line position are moved by
  * `useStreamCursor`, outside React. The text size is a data attribute on the
  * block, so changing it re-renders nothing below it and the block itself keeps
  * its height.
+ *
+ * Words are wrapped so the GGTyping word jump can move one as a unit. It is the
+ * same controller the classic screen uses, driven by the same engine events.
  */
 
-import { Fragment, memo, useMemo, useSyncExternalStore, type MouseEvent } from 'react'
+import { memo, useCallback, useMemo, type MouseEvent, type ReactNode } from 'react'
 
+import { computeWordRanges, toCharacters, type TypingEngine, type WordRange } from '@core/engine'
+import type { TextSize } from '@core/types'
+import { useWordJumps, type WordJumpController } from '@features/ggtyping'
+import { useEngineValue } from '@features/typing'
 import { cx } from '@shared/lib'
 
-import type { StreamSize } from '../../state/shell.store.ts'
-import type { TypingSource } from '../../typing/typing-source.ts'
 import { useStreamCursor } from './useStreamCursor.ts'
 
 import styles from './WordStream.module.css'
 
 interface CharacterProps {
-  readonly source: TypingSource
+  readonly engine: TypingEngine
   readonly index: number
   readonly character: string
 }
 
-const Character = ({ source, index, character }: CharacterProps) => {
-  const mark = useSyncExternalStore(source.subscribe, () => source.getMark(index))
+const Character = ({ engine, index, character }: CharacterProps) => {
+  // Before the first keystroke the engine holds no target, so every position
+  // reads as pending — which is exactly what should be on screen.
+  const state = useEngineValue(engine, (snapshot) => snapshot.characterStates[index] ?? 'pending')
 
   return (
-    <span className={cx(styles.character, styles[mark])} data-i={index}>
+    <span className={cx(styles.character, styles[state])} data-i={index} data-state={state}>
       {character}
     </span>
   )
 }
 
-interface CharacterListProps {
-  readonly source: TypingSource
+interface WordProps {
+  readonly index: number
+  readonly jumps: WordJumpController
+  readonly children: ReactNode
 }
 
-const CharacterList = memo(({ source }: CharacterListProps) => {
-  const words = useMemo(() => {
-    const result: { readonly characters: readonly string[]; readonly start: number }[] = []
-    for (const word of source.words) {
-      const previous = result[result.length - 1]
-      const start = previous === undefined ? 0 : previous.start + previous.characters.length + 1
-      result.push({ characters: Array.from(word), start })
-    }
-    return result
-  }, [source])
+/**
+ * One word's characters, in an element the word jump can move. It subscribes to
+ * nothing, so it never re-renders on a keystroke; a jump reaches it by its ref.
+ */
+const Word = ({ index, jumps, children }: WordProps) => {
+  const register = useCallback(
+    (element: HTMLSpanElement | null) => (element === null ? undefined : jumps.register(index, element)),
+    [index, jumps],
+  )
 
   return (
-    <>
-      {words.map(({ characters, start }, wordIndex) => (
-        // Words and characters never reorder, and new text replaces the whole
-        // list, so position is the identity.
-        // eslint-disable-next-line react/no-array-index-key
-        <Fragment key={wordIndex}>
-          <span className={styles.word}>
-            {characters.map((character, offset) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <Character key={offset} source={source} index={start + offset} character={character} />
-            ))}
-          </span>
-          {/* Outside the word, which never wraps inside itself: this space is
-              where the line is allowed to break. */}
-          {wordIndex < words.length - 1 && (
-            <Character source={source} index={start + characters.length} character=" " />
-          )}
-        </Fragment>
-      ))}
-    </>
+    <span ref={register} className={styles.word} data-word={index}>
+      {children}
+    </span>
   )
+}
+
+interface CharacterListProps {
+  readonly engine: TypingEngine
+  readonly characters: readonly string[]
+  readonly words: readonly WordRange[]
+  readonly jumps: WordJumpController
+}
+
+const CharacterList = memo(({ engine, characters, words, jumps }: CharacterListProps) => {
+  /* Position is the identity here: characters never reorder, the index is what
+     each one subscribes by, and a new test replaces the whole array. */
+  const characterAt = (index: number) => (
+    <Character key={index} engine={engine} index={index} character={characters[index] as string} />
+  )
+
+  const nodes: ReactNode[] = []
+  let position = 0
+
+  for (const word of words) {
+    // The spaces between words stay outside them: that is where a line may
+    // break, and a mistyped space never jumps with the word before it.
+    for (; position < word.start; position += 1) nodes.push(characterAt(position))
+
+    const letters: ReactNode[] = []
+    for (; position < word.end; position += 1) letters.push(characterAt(position))
+
+    nodes.push(
+      <Word key={`word-${word.index}`} index={word.index} jumps={jumps}>
+        {letters}
+      </Word>,
+    )
+  }
+
+  for (; position < characters.length; position += 1) nodes.push(characterAt(position))
+
+  return <>{nodes}</>
 })
 
 CharacterList.displayName = 'CharacterList'
 
 export interface WordStreamProps {
-  readonly source: TypingSource
-  readonly size: StreamSize
+  readonly engine: TypingEngine
+  /** The loaded test's text, exactly as the engine was given it. */
+  readonly text: string
+  readonly size: TextSize
   readonly onActivate?: () => void
 }
 
-export const WordStream = ({ source, size, onActivate }: WordStreamProps) => {
-  const { attachViewport, attachContent, attachCursor } = useStreamCursor(source, size)
+export const WordStream = ({ engine, text, size, onActivate }: WordStreamProps) => {
+  const characters = useMemo(() => toCharacters(text), [text])
+  const words = useMemo(() => computeWordRanges(characters), [characters])
+  const jumps = useWordJumps(engine)
+  const { attachViewport, attachContent, attachCursor } = useStreamCursor(engine, text, size)
+  const status = useEngineValue(engine, (snapshot) => snapshot.status)
 
   // Clicking the words means "I want to type": keep focus in the input rather
   // than letting the click drop it onto the page.
@@ -94,11 +133,17 @@ export const WordStream = ({ source, size, onActivate }: WordStreamProps) => {
   }
 
   return (
-    <section className={styles.block} data-size={size} aria-label="Words to type" onMouseDown={activate}>
+    <section
+      className={styles.block}
+      data-size={size}
+      data-status={status}
+      aria-label="Words to type"
+      onMouseDown={activate}
+    >
       <div ref={attachViewport} className={styles.viewport}>
         <span ref={attachCursor} className={styles.cursor} data-placed="false" aria-hidden="true" />
         <div ref={attachContent} className={styles.content}>
-          <CharacterList source={source} />
+          <CharacterList engine={engine} characters={characters} words={words} jumps={jumps} />
         </div>
       </div>
     </section>
