@@ -453,13 +453,24 @@ describe('GG.Typing on the real typing session', () => {
   })
 
   describe('themes', () => {
+    it('opens a fresh installation in Classic Milk', async () => {
+      // What hydrating an empty store leaves: the defaults, nothing saved.
+      settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES }, status: 'ready' })
+      renderGG(ROUTES.gg, wordsProvider().provider)
+      await screen.findByRole('region', { name: 'Words to type' })
+
+      expect(document.documentElement.dataset.ggTheme).toBe('classic-milk')
+      expect(document.documentElement.style.getPropertyValue('--gg-base-bg')).toBe('#f7f4ee')
+      expect(document.documentElement.style.getPropertyValue('color-scheme')).toBe('light')
+    })
+
     it('puts the stored theme on the page', async () => {
       settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES, theme: 'valentine' } })
       await firstTest(wordsProvider().provider)
 
       expect(document.documentElement.dataset.ggTheme).toBe('valentine')
-      // The first frame is a page load, not a switch: no cross-fade.
-      expect(document.documentElement).not.toHaveAttribute('data-gg-theme-fading')
+      // Applied whole: nothing is left switching transitions off.
+      expect(document.documentElement).not.toHaveAttribute('data-gg-theme-switching')
     })
 
     it('saves a theme chosen in the panel, and opens in it after a reload', async () => {

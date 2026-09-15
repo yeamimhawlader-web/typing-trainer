@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_THEME_ID, GG_THEMES, themeById, themeProperties, type GGTheme } from './themes.ts'
+import { DEFAULT_THEME_ID, GG_THEMES, themeById, themeIdFromStored, themeProperties, type GGTheme } from './themes.ts'
 
 type Rgb = readonly [number, number, number]
 
@@ -83,16 +83,48 @@ const colours = (theme: GGTheme) => {
 }
 
 describe('GG themes', () => {
-  it('are the six the design names, three light and three dark', () => {
+  it('are the seven the design names: Classic Milk and three more light, three dark', () => {
     const names = (scheme: string) => GG_THEMES.filter((theme) => theme.scheme === scheme).map((theme) => theme.name)
 
-    expect(names('light')).toEqual(['Default (Light)', 'Classic', 'Lemondrop'])
+    expect(names('light')).toEqual(['Classic Milk', 'Default (Light)', 'Classic', 'Lemondrop'])
     expect(names('dark')).toEqual(['Default (Dark)', 'Glow', 'Valentine'])
   })
 
-  it('opens on Default (Dark), and falls back to it for an unknown id', () => {
-    expect(DEFAULT_THEME_ID).toBe('default-dark')
-    expect(themeById('no-such-theme').id).toBe('default-dark')
+  it('opens a fresh installation in Classic Milk, and falls back to it for an unknown id', () => {
+    expect(DEFAULT_THEME_ID).toBe('classic-milk')
+    expect(themeById('no-such-theme').id).toBe('classic-milk')
+  })
+
+  it('carries the themes of earlier versions over to their own scheme, never to the new default', () => {
+    expect(themeIdFromStored('dark')).toBe('default-dark')
+    expect(themeIdFromStored('light')).toBe('default-light')
+    expect(themeIdFromStored('default-dark')).toBe('default-dark')
+    expect(themeIdFromStored('neon')).toBeNull()
+  })
+
+  it('makes Classic Milk warm milk, not white and not beige', () => {
+    const milk = colours(themeById('classic-milk'))
+    const [r, g, b] = milk.bg
+    // Off-white: light, but not the pure white of a plain page…
+    expect(luminance(milk.bg)).toBeGreaterThan(0.85)
+    expect(luminance(milk.bg)).toBeLessThan(0.95)
+    // …with a cream undertone: warmer than neutral, by only a few steps.
+    expect(r).toBeGreaterThan(b)
+    expect((r - b) * 255).toBeLessThan(16)
+    expect(g).toBeGreaterThanOrEqual(b)
+    // Its glass is lighter than the page it sits on: milk glass, not a grey film.
+    expect(luminance(milk.surface)).toBeGreaterThan(luminance(milk.bg))
+  })
+
+  it('gives every theme a glass recipe that keeps the glass mostly surface', () => {
+    for (const { glass } of GG_THEMES) {
+      expect(glass.fill).toBeGreaterThanOrEqual(55)
+      expect(glass.fillStrong).toBeGreaterThan(glass.fill)
+      expect(glass.blur).toBeGreaterThan(0)
+      expect(glass.blur).toBeLessThanOrEqual(24)
+      expect(glass.ambientPercent).toBeGreaterThanOrEqual(0)
+      expect(glass.ambientPercent).toBeLessThanOrEqual(100)
+    }
   })
 
   it('gives every theme a unique id and name', () => {
@@ -133,6 +165,48 @@ describe('GG themes', () => {
 
     it('keeps words two lines ahead at 3:1 when faded to 55%', () => {
       expect(contrast(over(c.fg, c.bg, 0.55), c.bg)).toBeGreaterThanOrEqual(3)
+    })
+
+    /* Glass as gg-foundation.css builds it: the surface at the recipe's fill over
+       the page, and a chosen piece with the accent's light over its denser fill.
+       Glass over the page is the case that matters: it sits in the chrome, not
+       over the text. */
+    describe('through glass', () => {
+      const { glass } = theme
+      const fill = over(c.surface, c.bg, glass.fill / 100)
+      const strong = over(c.surface, c.bg, glass.fillStrong / 100)
+      const chosen = (percent: number) => over(c.accent, strong, percent / 100)
+      const deepest = chosen(18)
+
+      it('keeps text and secondary text at 4.5:1 on glass', () => {
+        for (const surface of [fill, strong]) {
+          expect(contrast(c.fg, surface)).toBeGreaterThanOrEqual(4.5)
+          expect(contrast(c.muted, surface)).toBeGreaterThanOrEqual(4.5)
+        }
+      })
+
+      it("keeps a chosen branch's label and description at 4.5:1 under its deepest light", () => {
+        expect(contrast(c.fg, deepest)).toBeGreaterThanOrEqual(4.5)
+        expect(contrast(mixOklab(c.muted, c.fg, 0.55), deepest)).toBeGreaterThanOrEqual(4.5)
+      })
+
+      it('keeps the beads that mark a choice at 3:1 on glass, chosen or not', () => {
+        for (const surface of [fill, deepest]) {
+          expect(contrast(c.accent, surface)).toBeGreaterThanOrEqual(3)
+          expect(contrast(c.muted, surface)).toBeGreaterThanOrEqual(3)
+          expect(contrast(mixOklab(c.accent, c.muted, 0.75), surface)).toBeGreaterThanOrEqual(3)
+        }
+      })
+
+      it("keeps text at 4.5:1 where the page's own light is strongest", () => {
+        const lit = over(c.surface, c.bg, glass.ambientPercent / 100)
+        const warm = over(c.accent, c.bg, (glass.ambientPercent * 0.05) / 100)
+        for (const page of [lit, warm]) {
+          expect(contrast(c.fg, page)).toBeGreaterThanOrEqual(4.5)
+          expect(contrast(c.muted, page)).toBeGreaterThanOrEqual(4.5)
+          expect(contrast(c.accent, page)).toBeGreaterThanOrEqual(4.5)
+        }
+      })
     })
 
     /* The token bridge in layout/GGLayout.module.css draws the application's

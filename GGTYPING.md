@@ -114,8 +114,22 @@ engine's. It is clean when the engine recorded no mistake in it, so a mistake
 put right with backspace still makes it a repetition with a mistake. Several
 mistakes in one repetition are still one failed repetition.
 
-**Difficulties.** Chosen in the toolbar and remembered. Changing it starts a new
-test, so a test is typed, repeated and saved at one difficulty.
+**Difficulties.** Chosen and remembered in the toolbar, where Hover Mode is a
+small glass node that unfolds into three glass branches — Standard, All In,
+Tired — each with its description and one to three beads for how persistent it
+is. Changing it starts a new test, so a test is typed, repeated and saved at one
+difficulty.
+
+**The selector unfolding.** Pressing Hover Mode gives the node a little and
+flexes its light; the branches grow out of it on thin stems, one just after
+another, their labels arriving last, and the chosen one lights from within.
+Choosing ordinary practice folds it back into the node in reverse. One spring
+drives it: opening is fast (90% in about 160ms), settles 1.5% past and is at rest
+by 500ms; folding does not bounce and is at rest by 400ms. Closing while it opens,
+or reopening while it folds, turns it around from where it is, even though the
+page changes underneath. The branches can be chosen from the moment they appear.
+With reduced motion it is simply open or closed. Arriving at Hover Mode any other
+way — a reload, the back button — shows it already open.
 
 | | Standard | All In | Tired |
 | --- | --- | --- | --- |

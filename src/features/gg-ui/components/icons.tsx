@@ -3,7 +3,7 @@
  *
  * Drawn for this UI on one 24-unit grid with a 1.75 stroke, so they sit
  * together at 18–20px. Every icon uses `currentColor`, which means it follows
- * the theme and the cross-fade without knowing either exists. All are
+ * the theme without knowing one exists. All are
  * decorative: the control around each one carries the accessible name.
  */
 

@@ -881,7 +881,14 @@ shell rather than rebuilt in it. Its token plan is in
 - **Preferences are the settings store's.** The theme (a GG theme id, with the
   old `dark`/`light` values migrated to the defaults of the same scheme), the
   text size and the practice length are stored with the other preferences. The
-  classic pages follow the chosen theme's scheme.
+  classic pages follow the chosen theme's scheme. A fresh installation opens in
+  Classic Milk; only a preference never saved takes the default, so a theme
+  someone chose — including the dark theme that used to be the default — stays.
+- **The first paint is in the saved scheme.** The stylesheet on its own draws
+  the page dark until the application has run. A few lines inlined into the page
+  head at build time, generated from the theme registry, read the saved theme
+  from storage and set its scheme first, so a fresh installation never flashes
+  dark and a dark theme never flashes light.
 - **Shared components are themed through a token bridge.** Inside the shell the
   classic `--color-*` tokens are mapped onto the GG theme, so the result panel
   and drill comparison are the application's own, not copies.
@@ -889,12 +896,28 @@ shell rather than rebuilt in it. Its token plan is in
   measured in one pass when they can change (new text, size, resize, fonts), and a
   keystroke only writes two transforms. A test counts layout reads and fails if a
   keystroke makes one.
-- **Themes are six objects of base colours.** Everything else is `color-mix()`
-  in `gg-foundation.css`, so a seventh theme is one object, and a test fails if a
-  component names a theme or any GG file other than `themes.ts` holds a colour.
-  Each theme is held to contrast floors by test.
-- **The theme cross-fade is switched on only during a switch**, so characters
-  changing state mid-test are never faded.
+- **Themes are objects of six base colours and a glass recipe.** Everything
+  else is `color-mix()` in `gg-foundation.css`, so another theme is one object,
+  and a test fails if a component names a theme or any GG file other than
+  `themes.ts` holds a colour. Each theme is held to contrast floors by test, on
+  the page and through its glass.
+- **Glass is one material, defined once.** Fill, dense fill, border, highlight,
+  shadow, blur, reflected tint and active tint are semantic tokens built from the
+  theme; components use them and write no blur, fill or glass shadow of their
+  own (a test reads the stylesheets). Glass is the chrome — the top bar, theme
+  panel, input and Hover Mode's selector — never the typing text. Where
+  transparency is unwanted it becomes solid surface.
+- **A theme switch is instant.** Transitions are held off while the new theme
+  is written and style is recalculated, so a shared component that eases its own
+  colours changes on the same frame as the rest of the page. No GG stylesheet
+  transitions a colour at all; touch responses are transform and opacity.
+- **Physical motion is a spring solved exactly.** Hover Mode's selector unfolds
+  and folds on one spring whose position and speed are known at any moment, so
+  it turns around mid-flight from where it is. The shell keeps that state across
+  the practice and Hover Mode pages, so the selector on the new page carries on
+  from the old one. Every frame is sampled into Web Animations keyframes played
+  on the compositor; nothing runs per frame in script, and nothing waits for the
+  motion before it can be used.
 - **Input comes from `beforeinput`, not `keydown`**, so input methods,
   automation and multi-character insertions reach the session the same way a
   physical key does. On-screen keyboards are still not supported, as on the

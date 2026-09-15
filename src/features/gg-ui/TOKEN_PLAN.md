@@ -6,9 +6,9 @@ hex), everything else in `styles/gg-foundation.css`.
 
 ## Colour
 
-Each theme is one object of six base colours. Everything else is derived in CSS
-with `color-mix()`, so a seventh theme is a single object and no component knows
-a theme name.
+Each theme is one object of six base colours and a glass recipe. Everything else
+is derived in CSS with `color-mix()`, so another theme is a single object and no
+component knows a theme name.
 
 | Token | Role |
 | --- | --- |
@@ -20,15 +20,41 @@ a theme name.
 | `error` | red underline on incorrect characters |
 
 Derived (in CSS): `accent-tint` = accent 14% · `accent-tint-strong` = accent 26%
-(cursor block) · `hairline` = fg 10% · `divider` = fg 8% · `glass-bg` = surface
-70% · `glass-border` = fg 12% (dark: 16%) · `passed` = fg 62% toward bg ·
-`error-trace` = error 50% (the fainter underline under a corrected character).
+(cursor block) · `hairline` = fg 10% · `divider` = fg 8% · `passed` = fg 62%
+toward bg · `error-trace` = error 50% (the fainter underline under a corrected
+character).
 
-Glass recipe per scheme, in the theme object: `saturate` 180% light / 120% dark,
-top highlight white 18% light / 6% dark.
+## Glass
+
+One material for all of GG.Typing's chrome — top bar, theme panel, input, Hover
+Mode's selector — and never the typing text. Components use only these tokens;
+a test fails if a component stylesheet writes its own blur or backdrop.
+
+| Token | Built from |
+| --- | --- |
+| `--gg-glass-fill` | surface at the recipe's `fill` |
+| `--gg-glass-fill-strong` | surface at `fillStrong`: the input, a chosen branch |
+| `--gg-glass-border` | fg at `borderPercent` |
+| `--gg-glass-highlight` | white at `highlightAlpha`: the lit top edge and inner light |
+| `--gg-glass-shadow`, `-shadow-lifted` | the shade (fg on light, bg on dark) at `shadowPercent`; lifted is deeper, for hover |
+| `--gg-glass-blur`, `--gg-glass-filter` | `blur` px, with `saturate` |
+| `--gg-glass-surface-tint` | accent at `tintPercent`: the colour the glass reflects |
+| `--gg-glass-active-tint` (`-calm`, `-deep`) | accent 13% (9%, 18%): a chosen piece lit from within |
+| `--gg-glass-sheen` | highlight fading down to nothing by the middle, over the tint |
+| `--gg-atmosphere` | surface at `ambientPercent` from above, and accent at a twentieth of it in one corner |
+
+| Recipe | blur | saturate | fill / strong | border | highlight | shadow | tint | ambient |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Light | 20 | 180% | 70 / 85 | 12% | 0.18 | 10% | 4% | 0 |
+| Dark | 20 | 120% | 70 / 85 | 16% | 0.07 | 60% of bg | 6% | 0 |
+| Milk | 18 | 140% | 62 / 84 | 10% | 0.60 | 9% | 7% | 80% |
+
+With `prefers-reduced-transparency: reduce`, fills are solid surface and nothing
+is blurred.
 
 | Theme | bg | accent | fg | error |
 | --- | --- | --- | --- | --- |
+| Classic Milk | `#f7f4ee` | `#86592f` | `#24221e` | `#b42318` |
 | Default (Light) | `#fafafa` | `#2563eb` | `#18181b` | `#d92d20` |
 | Classic | `#f2ede3` | `#1f4e8c` | `#2a2622` | `#b42318` |
 | Lemondrop | `#fff8d6` | `#8a5a00` | `#2b260f` | `#c0262d` |
@@ -41,6 +67,15 @@ on bg and on surface; error ≥ 3:1 (a non-text mark); passed text ≥ 4.5:1; wo
 two lines ahead (55% opacity) ≥ 3:1, which is the large-text floor and the stream
 is at least 1.9rem. Measured before writing: worst cases 4.95 (accent, Default
 Light), 5.06 (muted, Classic), 4.56 (passed, Classic), 3.38 (faded, Classic).
+
+Through glass, also by test for every theme: fg and muted ≥ 4.5:1 on both fills
+over the page; a chosen branch's label and its quieter description ≥ 4.5:1 under
+the deepest active tint; beads (a mark, not text) ≥ 3:1 chosen or not; fg, muted
+and accent ≥ 4.5:1 where the page's ambient light is strongest.
+
+Classic Milk: surface `#fefcf8` (lighter than the page, so its glass reads as
+milk glass), muted `#6a655d`. Contrast 14.5 fg, 5.3 muted, 5.5 accent on the
+page; 4.9 passed; 3.6 faded.
 
 ## Type
 
@@ -75,9 +110,16 @@ Light), 5.06 (muted, Classic), 4.56 (passed, Classic), 3.38 (faded, Classic).
 | Hover / active | 150ms | ease-out | opacity of a tint layer |
 | Input focus | 200ms | ease-out | opacity of a ring and glow layer |
 | Panel slide | 260ms | cubic-bezier(0.32,0.72,0,1) | transform |
-| Theme cross-fade | 400ms | ease-in-out | background-color, color, border-color |
+| Touch on glass (lift, press) | 440ms | `--gg-ease-touch`: a spring, 26 rad/s, damping 0.72, sampled into `linear()` | transform, opacity of light and shadow layers |
+| Hover Mode selector opening | at rest by 496ms | spring, 19 rad/s, damping 0.8 (1.5% overshoot) | transform, opacity; row height and stem dash offset |
+| Hover Mode selector folding | at rest by 392ms | spring, 26 rad/s, critically damped | the same |
+| Node press | 420ms | give to 0.94, flex to 1.02, settle | transform, opacity of its light |
 
-Reduced motion: every duration 0 except the theme cross-fade (120ms).
+Reduced motion: every duration 0, no unfolding, no lift or give — states change
+at once.
+
+A theme switch has no motion at all: every colour changes on the same frame, and
+no GG stylesheet transitions a colour (checked by test).
 
 ## Checked against the brief
 
@@ -87,20 +129,20 @@ Reduced motion: every duration 0 except the theme cross-fade (120ms).
 | No motion delays a keystroke | per-keystroke colour changes never transition; cursor is one element moved by transform; stream lines re-positioned by transform without layout reads per key | ✓ |
 | Single screen, upper 55% | ≈565px at 1080px tall | ✓ |
 | Responsive to 380px, groups wrap, separators drop | flex-wrap, separators hidden ≤ 720px | ✓ |
-| Glass in exactly three places | top bar, theme panel, input only | ✓ |
-| Theme cross-fade 400ms via `:root` custom properties | properties written to `:root`; the colour transition is switched on only for the length of a switch | ✓ |
+| Glass in exactly three places | top bar, theme panel, input; Hover Mode's selector added later as the fourth, as chrome | changed |
+| Theme cross-fade 400ms via `:root` custom properties | properties written to `:root`; the cross-fade was built, then removed because a switch felt better instant, and transitions are held off for the switch so nothing trails | changed |
 | Seventh theme is one object | derived tokens in CSS, components read tokens only | ✓ |
 | No hex outside the theme file | the stylesheet guard covers the new CSS | ✓ |
 | Keyboard focus visible everywhere | accent outline on every control; glow on the input | ✓ |
-| Defaults: Default (Dark), sm, 1 minute, English | Default (Dark) and sm are the preference defaults; there is no timed test or second language in the application, so the length is the practice word count (15/30/60) and no language is offered | changed at integration |
+| Defaults: Default (Dark), sm, 1 minute, English | Classic Milk (was Default (Dark), until the visual identity pass) and sm are the preference defaults; there is no timed test or second language in the application, so the length is the practice word count (15/30/60) and no language is offered | changed at integration |
 
 Conflicts found in the brief, and how the plan resolves them:
 
 1. **§8 says all motion is transform/opacity, but hover, active and focus change
    colour, and §6 asks the input border to transition.** The tint, the input ring
    and its glow are separate layers faded by opacity, so the look is the one asked
-   for and the motion stays on the compositor. The theme cross-fade is the one
-   deliberate colour transition, as §7 requires.
+   for and the motion stays on the compositor. No colour transitions at all:
+   the theme cross-fade §7 asked for was removed in favour of an instant switch.
 2. **§6 gives the input focus 200ms; §8's table lists no such row and says
    "nothing beyond this list".** Kept at 200ms, the more specific instruction,
    and added to the table above so the budget is complete.
@@ -108,7 +150,8 @@ Conflicts found in the brief, and how the plan resolves them:
    slow transform/opacity pulse, then removed at integration along with the live
    user count it sat beside, which had nothing real behind it.
 4. **§7 transitions colour on `:root`, which would also animate every character
-   changing state mid-test.** The transition exists only during a theme switch.
+   changing state mid-test.** First built to exist only during a switch; now
+   there is no theme transition at all.
 5. **§5's fixed stream height versus five sizes.** Solved by whole-line counts per
    size (above) rather than a height that fits xl and wastes space at sm.
 6. **Live users, avatar, username, level, language, F1–F4 and the view toggles

@@ -1,19 +1,45 @@
+/*
+ * The mode on the left and the settings beside it; Hover Mode's branches unfold
+ * in a row of their own underneath, so opening them never moves a setting
+ * sideways. On a narrow screen the branches hang directly under the mode, with
+ * the settings after them.
+ *
+ * A grid rather than a wrapping row, so the branch row takes no space at all
+ * when it is not there: no gap is left behind when it folds away.
+ */
 .toolbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'modes settings'
+    'branches branches';
+  align-items: center;
+}
+
+.settings {
+  grid-area: settings;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   row-gap: 0.75rem;
-}
-
-.modes {
-  display: flex;
-  align-items: center;
-  gap: 2px;
+  min-width: 0;
 }
 
 /* Without separators, groups need their own spacing once they wrap. */
 @media (max-width: 720px) {
   .toolbar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'modes'
+      'branches'
+      'settings';
+  }
+
+  .settings {
     column-gap: 1.25rem;
+  }
+
+  .settings:not(:first-child) {
+    margin-top: 0.75rem;
   }
 }

@@ -1,5 +1,5 @@
 /**
- * The theme panel. Glass #2 of 3.
+ * The theme panel. Glass, of the one material the chrome is made of.
  *
  * Slides in from the right edge. While it is open the rest of the shell is
  * inert — focus stays in the panel, and nothing behind it can be clicked or
@@ -8,7 +8,7 @@
  * returns to the button that opened it.
  *
  * Themes are native radios in one group across both sections, so the arrow
- * keys move through all six and a screen reader announces the choice. Picking a
+ * keys move through every theme and a screen reader announces the choice. Picking a
  * theme applies it immediately and leaves the panel open, so themes can be
  * compared one after another.
  */

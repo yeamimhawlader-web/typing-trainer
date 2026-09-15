@@ -7,7 +7,7 @@ import type { UserPreferences } from '@core/types'
 import { createSettingsStore } from './settings.store.ts'
 
 const DEFAULTS: UserPreferences = {
-  theme: 'default-dark',
+  theme: 'classic-milk',
   practiceWordCount: 30,
   textSize: 'sm',
   hoverDifficulty: 'standard',
@@ -23,9 +23,30 @@ describe('settings store', () => {
   it('starts on defaults before hydration', () => {
     const store = createSettingsStore(adapter)
 
-    expect(store.getState().preferences.theme).toBe('default-dark')
+    expect(store.getState().preferences.theme).toBe('classic-milk')
     expect(store.getState().status).toBe('idle')
   })
+
+  it('opens a fresh installation in Classic Milk', async () => {
+    const store = createSettingsStore(adapter)
+
+    await store.getState().hydrate()
+
+    expect(store.getState().preferences.theme).toBe('classic-milk')
+    // Nothing is written just by opening: the default is not saved as a choice.
+    await expect(adapter.read(STORAGE_KEYS.preferences)).resolves.toBeNull()
+  })
+
+  it.each(['default-dark', 'glow', 'default-light', 'classic'])(
+    'keeps a theme already saved — %s — including the dark theme that used to be the default',
+    async (theme) => {
+      await adapter.write(STORAGE_KEYS.preferences, { ...DEFAULTS, theme })
+      const store = createSettingsStore(adapter)
+      await store.getState().hydrate()
+
+      expect(store.getState().preferences.theme).toBe(theme)
+    },
+  )
 
   it('hydrates from persisted preferences', async () => {
     await adapter.write<UserPreferences>(STORAGE_KEYS.preferences, {

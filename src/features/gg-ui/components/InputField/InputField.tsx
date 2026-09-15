@@ -1,5 +1,5 @@
 /**
- * Where the typist types. Glass #3 of 3.
+ * Where the typist types. Glass, of the one material the chrome is made of.
  *
  * GG.Typing's input adapter. It turns what arrives in the field into the typing
  * session's commands — `inputKey`, `deleteWord`, `restart` — and does nothing

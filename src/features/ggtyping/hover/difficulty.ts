@@ -12,9 +12,9 @@ export interface HoverDifficultyDetails {
 }
 
 export const HOVER_DIFFICULTY_DETAILS: Readonly<Record<HoverDifficulty, HoverDifficultyDetails>> = {
-  standard: { label: 'Standard', description: 'One cycle of three repetitions' },
-  'all-in': { label: 'All In', description: 'Two cycles of three repetitions' },
-  tired: { label: 'Tired', description: 'Until it clears, up to ten clean repetitions' },
+  standard: { label: 'Standard', description: 'One 3-repetition cycle' },
+  'all-in': { label: 'All In', description: 'Two 3-repetition cycles' },
+  tired: { label: 'Tired', description: 'Repeat until cleared, up to the safety limit' },
 }
 
 export const HOVER_DIFFICULTY_OPTIONS: readonly (HoverDifficultyDetails & { readonly value: HoverDifficulty })[] =

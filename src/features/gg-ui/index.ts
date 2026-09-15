@@ -3,7 +3,7 @@
  *
  * The GG.Typing interface over the application's real typing session: a shell
  * (top bar, theme panel) around a typing screen (control row, toolbar, word
- * stream, input), with six themes. It owns no typing, scoring, storage or
+ * stream, input), with seven themes. It owns no typing, scoring, storage or
  * settings of its own — those are `@features/typing`, `@core/sessions`,
  * `@core/telemetry` and the settings store, the same ones the classic screens
  * use. The token plan and the decisions behind it are in TOKEN_PLAN.md beside

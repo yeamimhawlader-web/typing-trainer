@@ -14,7 +14,7 @@
   inset: 0;
 }
 
-/* Glass #2 of 3. Off-canvas to the right until opened; the slide is transform
+/* Glass (see gg-foundation.css). Off-canvas to the right until opened; the slide is transform
    only. Hidden from paint once closed, after the slide has finished. */
 .panel {
   position: absolute;
@@ -27,7 +27,7 @@
   width: min(360px, 100vw);
   padding: 20px 24px 28px;
   overflow-y: auto;
-  background-color: var(--gg-glass-bg);
+  background-color: var(--gg-glass-fill);
   border-left: 1px solid var(--gg-glass-border);
   box-shadow: inset 1px 0 0 var(--gg-glass-highlight);
   backdrop-filter: var(--gg-glass-filter);

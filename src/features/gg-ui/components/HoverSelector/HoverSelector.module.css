@@ -1,0 +1,390 @@
+/**
+ * Hover Mode's selector: a glass node, and three glass branches on stems.
+ *
+ * Every piece of glass here is the one material in gg-foundation.css — fill,
+ * edge, inner light, shadow, blur — and nothing about it is written by hand.
+ * Touch is the material answering: a lift and a deeper shadow on hover, a give
+ * and a flexed light on press, all transform and opacity on the touch spring.
+ * Colour never transitions.
+ *
+ * The unfolding itself is played by useUnfold.ts; this file is only every
+ * state at rest, which is where those animations begin and end.
+ */
+
+/* --- The mode nav ----------------------------------------------------- */
+
+.modes {
+  grid-area: modes;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* --- The node --------------------------------------------------------- */
+
+.node {
+  position: relative;
+  display: inline-flex;
+  border-radius: var(--gg-radius-full);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.node:focus-visible {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 3px;
+  border-radius: var(--gg-radius-full);
+}
+
+.nodeGlass,
+.glass {
+  position: relative;
+  background-color: var(--gg-glass-fill);
+  border: 1px solid var(--gg-glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--gg-glass-highlight),
+    var(--gg-glass-shadow);
+  backdrop-filter: var(--gg-glass-filter);
+  -webkit-backdrop-filter: var(--gg-glass-filter);
+  transition: transform var(--gg-duration-touch) var(--gg-ease-touch);
+}
+
+/* The inner light, and the deeper shadow a lifted piece casts. Both are layers
+   whose opacity changes, so touching glass never repaints its colours. */
+.nodeGlass::before,
+.glass::before,
+.nodeGlass::after,
+.glass::after {
+  content: '';
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: opacity var(--gg-duration-touch) var(--gg-ease-touch);
+}
+
+.nodeGlass::before,
+.glass::before {
+  inset: 0;
+  background-image: var(--gg-glass-sheen);
+  opacity: 0.7;
+}
+
+.nodeGlass::after,
+.glass::after {
+  inset: -1px;
+  box-shadow: var(--gg-glass-shadow-lifted);
+  opacity: 0;
+}
+
+.nodeGlass {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: var(--gg-pill-height);
+  padding: 0 0.8rem 0 0.6rem;
+  border-radius: inherit;
+  font-size: var(--gg-text-pill);
+  line-height: 1;
+  color: var(--gg-muted);
+  white-space: nowrap;
+}
+
+/* The flex of light across the glass when it is pressed; played, never resting. */
+.nodeLight {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: linear-gradient(to bottom, var(--gg-glass-highlight), transparent 85%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The core: a hollow ring folded shut, a lit bead when open. */
+.nodeSeat {
+  position: relative;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--gg-radius-full);
+  box-shadow: inset 0 0 0 1.25px currentColor;
+}
+
+.nodeCore {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background-color: var(--gg-accent);
+  box-shadow: 0 0 0 3px var(--gg-accent-glow);
+  opacity: 0;
+  transform: scale(0.4);
+}
+
+.nodeLabel {
+  position: relative;
+}
+
+.node[data-open='true'] .nodeGlass {
+  background-color: var(--gg-glass-fill-strong);
+  color: var(--gg-fg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.node[data-open='true'] .nodeSeat {
+  color: var(--gg-accent);
+}
+
+.node[data-open='true'] .nodeCore {
+  opacity: 1;
+  transform: none;
+}
+
+/* --- The row the branches take -------------------------------------- */
+
+.row {
+  grid-area: branches;
+  position: relative;
+}
+
+/* Room for the stems between the node and the branches. */
+.inner {
+  position: relative;
+  padding-top: 18px;
+}
+
+.stems {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* Drawn along their length: the offset is inherited, so the unfolding moves it
+   once, here, for every stem. */
+.stemGroup {
+  stroke-dashoffset: 0;
+}
+
+.stems path {
+  fill: none;
+  stroke: var(--gg-glass-stem);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+}
+
+.list {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+/* --- A branch --------------------------------------------------------- */
+
+.branch {
+  position: relative;
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  border-radius: 16px;
+  cursor: pointer;
+}
+
+/* The real control, over the whole branch: hidden, but focusable. */
+.nativeInput {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  border-radius: inherit;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.glass {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  min-height: 50px;
+  padding: 8px 18px 9px 13px;
+  border-radius: inherit;
+}
+
+/* The chosen branch's light, from within. Its opacity belongs to the unfolding;
+   what it holds is only ever the chosen one's. */
+.light {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.beads {
+  position: relative;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--gg-muted);
+}
+
+.bead {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--gg-radius-full);
+  box-shadow: inset 0 0 0 1.25px currentColor;
+}
+
+.text {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: var(--gg-fg);
+}
+
+.subtitle {
+  font-size: var(--gg-text-pill);
+  line-height: 1.3;
+  color: var(--gg-muted);
+}
+
+/* Personality: the more persistent the difficulty, the more of the accent its
+   beads carry, and the deeper its light when chosen. */
+.branch[data-difficulty='all-in'] .beads {
+  color: var(--gg-glass-bead-committed);
+}
+
+.branch[data-difficulty='tired'] .beads {
+  color: var(--gg-glass-bead-persistent);
+}
+
+/* --- Chosen ----------------------------------------------------------- */
+
+.nativeInput:checked + .glass {
+  background-color: var(--gg-glass-fill-strong);
+  border-color: var(--gg-glass-active-border);
+}
+
+.nativeInput:checked + .glass .light {
+  background-color: var(--gg-glass-active-tint-calm);
+}
+
+.branch[data-difficulty='all-in'] .nativeInput:checked + .glass .light {
+  background-color: var(--gg-glass-active-tint);
+}
+
+.branch[data-difficulty='tired'] .nativeInput:checked + .glass .light {
+  background-color: var(--gg-glass-active-tint-deep);
+}
+
+.nativeInput:checked + .glass .beads {
+  color: var(--gg-accent);
+}
+
+/* Filled, not only recoloured: the choice reads without colour. */
+.nativeInput:checked + .glass .bead {
+  background-color: currentColor;
+}
+
+.nativeInput:checked + .glass .subtitle {
+  color: var(--gg-glass-ink-muted);
+}
+
+.nativeInput:focus-visible + .glass {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 3px;
+}
+
+/* --- Touch ------------------------------------------------------------ */
+
+@media (hover: hover) {
+  .node:hover .nodeGlass,
+  .branch:hover .glass {
+    transform: translateY(-1.5px) scale(1.012);
+  }
+
+  .node:hover .nodeGlass {
+    color: var(--gg-fg);
+  }
+
+  .node:hover .nodeGlass::before,
+  .branch:hover .glass::before {
+    opacity: 1;
+  }
+
+  .node:hover .nodeGlass::after,
+  .branch:hover .glass::after {
+    opacity: 1;
+  }
+}
+
+/* A press gives: down, a little smaller, nearer the surface, its light pressed flatter. */
+.node:active .nodeGlass,
+.branch:active .glass {
+  transform: translateY(0.5px) scale(0.97);
+}
+
+.node:active .nodeGlass::after,
+.branch:active .glass::after {
+  opacity: 0;
+}
+
+.node:active .nodeGlass::before,
+.branch:active .glass::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node:hover .nodeGlass,
+  .branch:hover .glass,
+  .node:active .nodeGlass,
+  .branch:active .glass {
+    transform: none;
+  }
+}
+
+/* --- Narrower --------------------------------------------------------- */
+
+@media (max-width: 1000px) {
+  .list {
+    gap: 8px;
+  }
+
+  .glass {
+    padding-right: 14px;
+  }
+}
+
+/* Stacked under the node, hanging off one trunk. */
+@media (max-width: 720px) {
+  .inner {
+    padding-top: 14px;
+  }
+
+  .list {
+    flex-direction: column;
+    max-width: 30rem;
+    padding-left: 24px;
+  }
+
+  .branch {
+    flex: none;
+  }
+
+  .glass {
+    min-height: 52px;
+  }
+}

@@ -6,7 +6,7 @@
  * state and dispatches an intent. Persistence is the store's business, applying
  * the theme to the document is the theme hook's business.
  *
- * The themes listed are the GG.Typing registry's, the same six the theme panel
+ * The themes listed are the GG.Typing registry's, the same ones the theme panel
  * offers, so there is one list of themes and one stored choice.
  */
 

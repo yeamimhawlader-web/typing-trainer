@@ -96,10 +96,17 @@ export interface PillLinkProps {
   /** Said after the label, and shown as a tooltip. */
   readonly description: string
   readonly current: boolean
+  readonly onClick?: (() => void) | undefined
 }
 
-export const PillLink = ({ to, label, description, current }: PillLinkProps) => (
-  <Link to={to} className={styles.pillLink} aria-current={current ? 'page' : undefined} title={description}>
+export const PillLink = ({ to, label, description, current, onClick }: PillLinkProps) => (
+  <Link
+    to={to}
+    className={styles.pillLink}
+    aria-current={current ? 'page' : undefined}
+    title={description}
+    onClick={onClick}
+  >
     <span className={styles.pillFace}>
       {label}
       <span className="visually-hidden">: {description}</span>

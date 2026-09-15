@@ -184,6 +184,8 @@ describe('GG.Typing hot path in Hover Mode', () => {
   const measureHover = (text: string, before: string, keys: string) => {
     const { getByRole, unmount } = renderScreen(text, 'hover')
     const field = getByRole('textbox', { name: 'Type the words above' }) as HTMLTextAreaElement
+    // Hover Mode's selector is open, glass branches and all, for everything measured below.
+    expect(document.querySelector('[data-phase="open"]')).not.toBeNull()
     typeInto(field, before)
 
     probe.renders = 0

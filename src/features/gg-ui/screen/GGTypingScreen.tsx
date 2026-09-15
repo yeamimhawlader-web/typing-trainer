@@ -153,10 +153,9 @@ export const GGTypingScreen = ({
     },
     [hover, onHoverDifficultyChange, restart],
   )
-  const hoverDifficultyControl = useMemo(
-    () => (hover === null || drillSequence !== null ? undefined : { value: hoverDifficulty, onChange: changeHoverDifficulty }),
-    [changeHoverDifficulty, drillSequence, hover, hoverDifficulty],
-  )
+  // Outside Hover Mode the branches are only ever seen folding away, showing the
+  // difficulty last chosen.
+  const rememberedDifficulty = useSettingsStore((state) => state.preferences.hoverDifficulty)
 
   // A pointer click on a control means the typist is about to type again. A
   // click the keyboard produced (detail 0) leaves focus where it is, so arrow
@@ -180,7 +179,8 @@ export const GGTypingScreen = ({
       <div onClick={returnFocusAfterClick}>
         <Toolbar
           mode={drillSequence === null ? mode : null}
-          hoverDifficulty={hoverDifficultyControl}
+          hoverDifficulty={hover === null ? rememberedDifficulty : hoverDifficulty}
+          onHoverDifficultyChange={hover === null ? undefined : changeHoverDifficulty}
           size={size}
           onSizeChange={changeSize}
           wordCount={drillSequence === null ? wordCount : null}

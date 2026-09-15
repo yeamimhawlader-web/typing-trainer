@@ -8,7 +8,13 @@
  * settings page writes and the classic pages follow by scheme — so it is read
  * from and saved to one place, and survives a reload. This layout only puts it
  * on the page. It waits for settings to load, so the first frame is already in
- * the stored theme rather than the default one fading into it.
+ * the stored theme rather than the default one switching to it.
+ *
+ * ## Hover Mode's selector
+ *
+ * Ordinary practice and Hover Mode are separate pages, each with its own mode
+ * selector. The shell keeps what the selector was doing between them, so the
+ * one on the new page unfolds or folds on from where the old one was.
  *
  * ## Shared pages inside the shell
  *
@@ -23,6 +29,7 @@ import { Outlet } from 'react-router'
 
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 
+import { createUnfoldMemory, UnfoldMemoryContext } from '../components/HoverSelector/unfold-memory.ts'
 import { ThemePanel } from '../components/ThemePanel/ThemePanel.tsx'
 import { TopBar } from '../components/TopBar/TopBar.tsx'
 import { applyTheme, removeTheme } from '../themes/apply-theme.ts'
@@ -37,15 +44,14 @@ export const GGLayout = () => {
   const setTheme = useSettingsStore((state) => state.setTheme)
 
   const [themesOpen, setThemesOpen] = useState(false)
+  // Hover Mode's selector, remembered across the pages it appears on.
+  const [unfoldMemory] = useState(createUnfoldMemory)
   const themesButton = useRef<HTMLButtonElement>(null)
-  const appliedOnce = useRef(false)
 
-  // Before paint, so the first frame is already in the theme. Only later
-  // changes cross-fade: the first one is a page load, not a switch.
+  // Before paint, so the first frame is already in the theme, and a switch
+  // lands on the next frame whole.
   useLayoutEffect(() => {
-    if (!ready) return
-    applyTheme(themeById(themeId), { fade: appliedOnce.current })
-    appliedOnce.current = true
+    if (ready) applyTheme(themeById(themeId))
   }, [ready, themeId])
 
   useEffect(() => () => removeTheme(), [])
@@ -74,16 +80,18 @@ export const GGLayout = () => {
   if (!ready) return null
 
   return (
-    <div className={styles.app}>
-      <div inert={themesOpen}>
-        <TopBar themesOpen={themesOpen} onOpenThemes={() => setThemesOpen(true)} themesButtonRef={themesButton} />
+    <UnfoldMemoryContext value={unfoldMemory}>
+      <div className={styles.app}>
+        <div inert={themesOpen}>
+          <TopBar themesOpen={themesOpen} onOpenThemes={() => setThemesOpen(true)} themesButtonRef={themesButton} />
 
-        <main className={styles.main}>
-          <Outlet />
-        </main>
+          <main className={styles.main}>
+            <Outlet />
+          </main>
+        </div>
+
+        <ThemePanel open={themesOpen} activeThemeId={themeId} onSelect={selectTheme} onClose={closeThemes} />
       </div>
-
-      <ThemePanel open={themesOpen} activeThemeId={themeId} onSelect={selectTheme} onClose={closeThemes} />
-    </div>
+    </UnfoldMemoryContext>
   )
 }

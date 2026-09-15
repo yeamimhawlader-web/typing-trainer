@@ -174,9 +174,9 @@ describe('Hover Mode on the GG.Typing screen', () => {
       const difficulties = screen.getByRole('radiogroup', { name: 'Hover difficulty' })
 
       expect(within(difficulties).getAllByRole('radio').map((radio) => radio.getAttribute('aria-label'))).toEqual([
-        'Standard: One cycle of three repetitions',
-        'All In: Two cycles of three repetitions',
-        'Tired: Until it clears, up to ten clean repetitions',
+        'Standard: One 3-repetition cycle',
+        'All In: Two 3-repetition cycles',
+        'Tired: Repeat until cleared, up to the safety limit',
       ])
       expect(within(difficulties).getByRole('radio', { name: /^All In/ })).toBeChecked()
     })

@@ -1,14 +1,26 @@
 import { fileURLToPath } from 'node:url'
 
 import react from '@vitejs/plugin-react'
+import type { Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
+
+import { firstPaintScript } from './src/features/gg-ui/themes/first-paint.ts'
 
 const resolveSrc = (segment: string) =>
   fileURLToPath(new URL(`./src/${segment}`, import.meta.url))
 
+/**
+ * Sets the saved theme's scheme before the first paint, so a fresh installation
+ * never flashes dark on its way to Classic Milk. See first-paint.ts.
+ */
+const firstPaint = (): Plugin => ({
+  name: 'gg-first-paint',
+  transformIndexHtml: () => [{ tag: 'script', children: firstPaintScript(), injectTo: 'head-prepend' }],
+})
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), firstPaint()],
   resolve: {
     alias: {
       '@app': resolveSrc('app'),

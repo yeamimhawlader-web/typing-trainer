@@ -8,8 +8,9 @@
 import type { UserPreferences } from '@core/types'
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
-  // Dark by default: this is a tool for long, focused, daily sessions.
-  theme: 'default-dark',
+  // Classic Milk: the first impression of a fresh installation. Only a
+  // preference that was never saved takes it; a chosen theme is kept.
+  theme: 'classic-milk',
   practiceWordCount: 30,
   textSize: 'sm',
   // The least persistent: a word is repeated for one cycle and let go.

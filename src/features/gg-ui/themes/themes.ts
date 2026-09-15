@@ -2,15 +2,42 @@
  * GG.Typing themes — the only file in the GG UI with colour values.
  *
  * A theme is six base colours and a glass recipe. Everything else a component
- * uses — tints, hairlines, the glass fill, dimmed passed text — is derived from
- * these in `styles/gg-foundation.css` with `color-mix()`. So adding a theme is
- * adding one object to `GG_THEMES`, and no component ever reads a theme name.
+ * uses — tints, hairlines, the glass material, dimmed passed text, the page's
+ * light — is derived from these in `styles/gg-foundation.css` with `color-mix()`.
+ * So adding a theme is adding one object to `GG_THEMES`, and no component ever
+ * reads a theme name.
  *
- * Every theme is held to a contrast floor by `themes.test.ts`; see
- * TOKEN_PLAN.md for the numbers and why each one applies.
+ * Every theme is held to a contrast floor by `themes.test.ts`, on the page and
+ * through its glass; see TOKEN_PLAN.md for the numbers and why each one applies.
  */
 
 export type ThemeScheme = 'light' | 'dark'
+
+/**
+ * How a theme's glass is made. Numbers only: the colours come from the theme's
+ * own surface, text and accent, so glass is always the same material as the
+ * page it sits on.
+ */
+export interface GlassRecipe {
+  /** Backdrop blur, in pixels. */
+  readonly blur: number
+  /** `saturate()` inside the backdrop filter, in percent. */
+  readonly saturate: number
+  /** How much of the surface colour the ordinary glass fill holds, in percent. */
+  readonly fill: number
+  /** The denser fill: the input, and a chosen branch. In percent. */
+  readonly fillStrong: number
+  /** Border strength, as a percentage of `fg`. */
+  readonly borderPercent: number
+  /** The bright edge and inner light that catch a fake light source, as white at this alpha. */
+  readonly highlightAlpha: number
+  /** Strength of the soft shadow under raised glass, in percent of the theme's shade. */
+  readonly shadowPercent: number
+  /** How much of the accent the glass reflects, in percent. */
+  readonly tintPercent: number
+  /** Strength of the barely-there light across the page, in percent. Zero for none. */
+  readonly ambientPercent: number
+}
 
 export interface GGTheme {
   readonly id: string
@@ -19,7 +46,7 @@ export interface GGTheme {
   readonly colors: {
     /** The page. A true surface, never a tinted near-black standing in for one. */
     readonly bg: string
-    /** Base of the glass materials: top bar, theme panel, input. */
+    /** Base of the glass materials: top bar, theme panel, input, Hover Mode's selector. */
     readonly surface: string
     /** Text, and the words still to type. */
     readonly fg: string
@@ -30,22 +57,66 @@ export interface GGTheme {
     /** The underline on an incorrect character. */
     readonly error: string
   }
-  readonly glass: {
-    /** `saturate()` inside the backdrop filter, in percent. */
-    readonly saturate: number
-    /** Border strength, as a percentage of `fg`. */
-    readonly borderPercent: number
-    /** The faint top edge that catches a fake light source, as white at this alpha. */
-    readonly highlightAlpha: number
-  }
+  readonly glass: GlassRecipe
 }
 
-const LIGHT_GLASS = { saturate: 180, borderPercent: 12, highlightAlpha: 0.18 } as const
+const LIGHT_GLASS: GlassRecipe = {
+  blur: 20,
+  saturate: 180,
+  fill: 70,
+  fillStrong: 85,
+  borderPercent: 12,
+  highlightAlpha: 0.18,
+  shadowPercent: 10,
+  tintPercent: 4,
+  ambientPercent: 0,
+}
+
 // Dark glass drops the saturation, which only muddies near-black, and lifts the
-// border so the edge is still legible against it.
-const DARK_GLASS = { saturate: 120, borderPercent: 16, highlightAlpha: 0.06 } as const
+// border so the edge is still legible against it. Its depth is its edge light:
+// a shadow on near-black has nothing to fall on.
+const DARK_GLASS: GlassRecipe = {
+  blur: 20,
+  saturate: 120,
+  fill: 70,
+  fillStrong: 85,
+  borderPercent: 16,
+  highlightAlpha: 0.07,
+  shadowPercent: 60,
+  tintPercent: 6,
+  ambientPercent: 0,
+}
+
+// Milk glass: lighter than the page it sits on, so it reads as a pane of the
+// same cream rather than a white card; a brighter inner light, a warmer
+// reflection of the accent, and a faint light across the page behind it.
+const MILK_GLASS: GlassRecipe = {
+  blur: 18,
+  saturate: 140,
+  fill: 62,
+  fillStrong: 84,
+  borderPercent: 10,
+  highlightAlpha: 0.6,
+  shadowPercent: 9,
+  tintPercent: 7,
+  ambientPercent: 80,
+}
 
 export const GG_THEMES = [
+  {
+    id: 'classic-milk',
+    name: 'Classic Milk',
+    scheme: 'light',
+    colors: {
+      bg: '#f7f4ee',
+      surface: '#fefcf8',
+      fg: '#24221e',
+      muted: '#6a655d',
+      accent: '#86592f',
+      error: '#b42318',
+    },
+    glass: MILK_GLASS,
+  },
   {
     id: 'default-light',
     name: 'Default (Light)',
@@ -134,7 +205,12 @@ export const GG_THEMES = [
 
 export type GGThemeId = (typeof GG_THEMES)[number]['id']
 
-export const DEFAULT_THEME_ID: GGThemeId = 'default-dark'
+/**
+ * The theme a fresh installation opens in, and the fallback for an id this build
+ * does not know. A theme someone already chose is never replaced by it: the
+ * default only fills a preference that was never saved.
+ */
+export const DEFAULT_THEME_ID: GGThemeId = 'classic-milk'
 
 /**
  * The theme a stored preference names, or null if it names none.
@@ -144,7 +220,7 @@ export const DEFAULT_THEME_ID: GGThemeId = 'default-dark'
  * theme of the same scheme rather than being thrown away.
  */
 export const themeIdFromStored = (value: unknown): GGThemeId | null => {
-  if (value === 'dark') return DEFAULT_THEME_ID
+  if (value === 'dark') return 'default-dark'
   if (value === 'light') return 'default-light'
   return GG_THEMES.find((theme) => theme.id === value)?.id ?? null
 }
@@ -165,8 +241,17 @@ export const themeProperties = (theme: GGTheme): Readonly<Record<string, string>
   '--gg-base-muted': theme.colors.muted,
   '--gg-base-accent': theme.colors.accent,
   '--gg-base-error': theme.colors.error,
+  // What shadows are made of: the text colour on a light page, the page itself
+  // on a dark one, where a light shadow would read as a glow.
+  '--gg-base-shade': theme.scheme === 'light' ? theme.colors.fg : theme.colors.bg,
+  '--gg-glass-blur-size': `${theme.glass.blur}px`,
   '--gg-glass-saturate': `${theme.glass.saturate}%`,
+  '--gg-glass-fill-percent': `${theme.glass.fill}%`,
+  '--gg-glass-fill-strong-percent': `${theme.glass.fillStrong}%`,
   '--gg-glass-border-percent': `${theme.glass.borderPercent}%`,
   '--gg-glass-highlight-alpha': String(theme.glass.highlightAlpha),
+  '--gg-glass-shadow-percent': `${theme.glass.shadowPercent}%`,
+  '--gg-glass-tint-percent': `${theme.glass.tintPercent}%`,
+  '--gg-ambient-percent': `${theme.glass.ambientPercent}%`,
   'color-scheme': theme.scheme,
 })

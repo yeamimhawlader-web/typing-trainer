@@ -29,16 +29,65 @@
   /* The fainter underline left under a character that was wrong and was fixed. */
   --gg-error-trace: color-mix(in oklab, var(--gg-error) 50%, transparent);
 
-  /* Glass: the top bar, the theme panel and the input. Nowhere else. */
-  --gg-glass-bg: color-mix(in oklab, var(--gg-surface) 70%, transparent);
-  --gg-glass-bg-input: color-mix(in oklab, var(--gg-surface) 85%, transparent);
+  /*
+   * Glass — the one material GG.Typing's chrome is made of: the top bar, the
+   * theme panel, the input and Hover Mode's selector. Never the typing text:
+   * the text is the content, the glass is the chrome.
+   *
+   * Components use these tokens and nothing else for glass; no blur, fill or
+   * shadow is written by hand in a component (src/styles/gg-ui-sources.test.ts).
+   * Every value is built from the theme's six colours and its glass recipe.
+   */
+  --gg-glass-fill: color-mix(in oklab, var(--gg-surface) var(--gg-glass-fill-percent), transparent);
+  --gg-glass-fill-strong: color-mix(in oklab, var(--gg-surface) var(--gg-glass-fill-strong-percent), transparent);
   --gg-glass-border: color-mix(in oklab, var(--gg-fg) var(--gg-glass-border-percent), transparent);
-  --gg-glass-highlight: color-mix(
-    in srgb,
-    white calc(var(--gg-glass-highlight-alpha) * 100%),
-    transparent
-  );
-  --gg-glass-filter: blur(20px) saturate(var(--gg-glass-saturate));
+  /* The lit edge along the top, and the inner light that fades down from it. */
+  --gg-glass-highlight: color-mix(in srgb, white calc(var(--gg-glass-highlight-alpha) * 100%), transparent);
+  /* The accent, faintly reflected: champagne in milk glass, a cool sheen in the dark. */
+  --gg-glass-surface-tint: color-mix(in oklab, var(--gg-accent) var(--gg-glass-tint-percent), transparent);
+  /* A chosen piece of glass: lit from within by the accent, at three depths for
+     choices that differ in how much they ask. Its edge and its quieter text. */
+  --gg-glass-active-tint-calm: color-mix(in oklab, var(--gg-accent) 9%, transparent);
+  --gg-glass-active-tint: color-mix(in oklab, var(--gg-accent) 13%, transparent);
+  --gg-glass-active-tint-deep: color-mix(in oklab, var(--gg-accent) 18%, transparent);
+  --gg-glass-active-border: color-mix(in oklab, var(--gg-accent) 40%, transparent);
+  --gg-glass-ink-muted: color-mix(in oklab, var(--gg-muted) 55%, var(--gg-fg));
+  /* Marks on glass that grow more committed: from secondary text towards the accent. */
+  --gg-glass-bead-committed: color-mix(in oklab, var(--gg-accent) 45%, var(--gg-muted));
+  --gg-glass-bead-persistent: color-mix(in oklab, var(--gg-accent) 75%, var(--gg-muted));
+  /* The stems glass hangs from: solid, so where two cross they do not darken. */
+  --gg-glass-stem: color-mix(in oklab, var(--gg-fg) 22%, var(--gg-bg));
+  --gg-glass-blur: var(--gg-glass-blur-size);
+  --gg-glass-filter: blur(var(--gg-glass-blur)) saturate(var(--gg-glass-saturate));
+  /* Barely there at rest; a little deeper when a piece of glass is lifted. */
+  --gg-glass-shade: var(--gg-base-shade);
+  --gg-glass-shadow:
+    0 1px 2px color-mix(in oklab, var(--gg-glass-shade) calc(var(--gg-glass-shadow-percent) * 0.6), transparent),
+    0 6px 18px -10px color-mix(in oklab, var(--gg-glass-shade) var(--gg-glass-shadow-percent), transparent);
+  --gg-glass-shadow-lifted:
+    0 2px 4px color-mix(in oklab, var(--gg-glass-shade) calc(var(--gg-glass-shadow-percent) * 0.7), transparent),
+    0 12px 26px -12px color-mix(in oklab, var(--gg-glass-shade) calc(var(--gg-glass-shadow-percent) * 1.6), transparent);
+  /* The inner light: bright at the top edge, gone by the middle, with the tint under it. */
+  --gg-glass-sheen: linear-gradient(
+    to bottom,
+    var(--gg-glass-highlight),
+    transparent 55%
+  ),
+  linear-gradient(to top, var(--gg-glass-surface-tint), transparent 70%);
+
+  /* The page's light: a soft glow from above and a warm trace low in one corner.
+     Zero in themes with no ambient light, and never under the contrast floors. */
+  --gg-atmosphere:
+    radial-gradient(
+      120vw 70vh at 50% -14vh,
+      color-mix(in oklab, var(--gg-surface) var(--gg-ambient-percent), transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      70vw 60vh at 100% 105vh,
+      color-mix(in oklab, var(--gg-accent) calc(var(--gg-ambient-percent) * 0.05), transparent),
+      transparent 70%
+    );
 
   /* --- Type ----------------------------------------------------------- */
   --gg-font-ui: var(--font-sans);
@@ -69,13 +118,21 @@
   /* --- Motion: the whole budget --------------------------------------- */
   --gg-ease-out: ease-out;
   --gg-ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
-  --gg-ease-fade: ease-in-out;
+  /* A touch response: quick to move, settling past its mark by a hair. The
+     sampled curve of the spring in HoverSelector/unfold.motion.ts's TOUCH_SPRING
+     (26 rad/s, damping 0.72): 440ms to rest, 3.8% overshoot of a movement that
+     is itself a pixel or two. */
+  --gg-ease-touch: linear(
+    0, 0.013 1.5%, 0.101 4.4%, 0.291 8.5%, 0.542 13.5%, 0.779 19.3%, 0.944 25.8%,
+    1.023 33%, 1.038 40.8%, 1.025 49.3%, 1.009 58.4%, 1.001 68%, 0.999 78.1%, 1
+  );
 
   --gg-duration-cursor: 90ms;
   --gg-duration-hover: 150ms;
   --gg-duration-focus: 200ms;
   --gg-duration-panel: 260ms;
-  --gg-duration-theme: 400ms;
+  /* Hover, press and release on a piece of glass: the touch spring's time to rest. */
+  --gg-duration-touch: 440ms;
 }
 
 @media (max-width: 520px) {
@@ -91,21 +148,28 @@
     --gg-duration-hover: 0ms;
     --gg-duration-focus: 0ms;
     --gg-duration-panel: 0ms;
-    --gg-duration-theme: 120ms;
+    --gg-duration-touch: 0ms;
+  }
+}
+
+/* Where transparency is unwanted, glass is solid surface: the same shape,
+   edge and light, with nothing seen through it and nothing blurred. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --gg-glass-fill: var(--gg-surface);
+    --gg-glass-fill-strong: var(--gg-surface);
+    --gg-glass-filter: none;
   }
 }
 
 /*
- * The theme cross-fade. On only while a switch is happening (see
- * themes/apply-theme.ts), so a character changing state mid-test is never
- * faded — that feedback has to land on the frame the key does.
+ * A theme switch is instant. For the moment the new theme is written (see
+ * themes/apply-theme.ts), nothing may start a transition, so a component that
+ * eases its own colours changes on the same frame as everything else.
  */
-:root[data-gg-theme-fading],
-:root[data-gg-theme-fading] *,
-:root[data-gg-theme-fading] *::before,
-:root[data-gg-theme-fading] *::after {
-  transition:
-    background-color var(--gg-duration-theme) var(--gg-ease-fade),
-    color var(--gg-duration-theme) var(--gg-ease-fade),
-    border-color var(--gg-duration-theme) var(--gg-ease-fade) !important;
+:root[data-gg-theme-switching],
+:root[data-gg-theme-switching] *,
+:root[data-gg-theme-switching] *::before,
+:root[data-gg-theme-switching] *::after {
+  transition: none !important;
 }

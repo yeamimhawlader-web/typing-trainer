@@ -1,8 +1,8 @@
-/* Glass #3 of 3. */
+/* Glass: the chrome material (gg-foundation.css), denser here, for text typed into it. */
 .field {
   position: relative;
   border-radius: var(--gg-radius-input);
-  background-color: var(--gg-glass-bg-input);
+  background-color: var(--gg-glass-fill-strong);
   border: 1px solid var(--gg-glass-border);
   box-shadow: inset 0 1px 0 var(--gg-glass-highlight);
   backdrop-filter: var(--gg-glass-filter);

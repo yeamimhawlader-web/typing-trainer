@@ -1,6 +1,9 @@
 .app {
   min-height: 100dvh;
   background-color: var(--gg-bg);
+  /* The page's own light, barely there; none at all in most themes. */
+  background-image: var(--gg-atmosphere);
+  background-repeat: no-repeat;
   color: var(--gg-fg);
   font-family: var(--gg-font-ui);
 

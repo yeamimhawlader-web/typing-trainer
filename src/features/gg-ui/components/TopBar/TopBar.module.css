@@ -1,10 +1,10 @@
-/* Glass #1 of 3. */
+/* Glass: the chrome material (gg-foundation.css). */
 .bar {
   position: sticky;
   top: 0;
   z-index: 20;
   height: var(--gg-bar-height);
-  background-color: var(--gg-glass-bg);
+  background-color: var(--gg-glass-fill);
   border-bottom: 1px solid var(--gg-divider);
   box-shadow: inset 0 1px 0 var(--gg-glass-highlight);
   backdrop-filter: var(--gg-glass-filter);

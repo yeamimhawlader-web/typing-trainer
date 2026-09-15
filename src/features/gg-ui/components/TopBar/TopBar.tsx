@@ -1,7 +1,7 @@
 /**
  * The top bar: brand on the left, navigation and the theme palette on the right.
  *
- * Glass, and one of only three glass surfaces in the UI. It sits above the page
+ * Glass, like the rest of the chrome and never the typing text. It sits above the page
  * rather than on it, so it is sticky and the page runs underneath.
  *
  * Everything in it is real. History and statistics are the application's own
