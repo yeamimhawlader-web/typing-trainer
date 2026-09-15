@@ -1,0 +1,65 @@
+/* Glass #3 of 3. */
+.field {
+  position: relative;
+  border-radius: var(--gg-radius-input);
+  background-color: var(--gg-glass-bg-input);
+  border: 1px solid var(--gg-glass-border);
+  box-shadow: inset 0 1px 0 var(--gg-glass-highlight);
+  backdrop-filter: var(--gg-glass-filter);
+  -webkit-backdrop-filter: var(--gg-glass-filter);
+}
+
+/* The focus indicator: an accent edge and a 4px halo, drawn once and faded in.
+   Opacity only, over the 200ms the brief gives focus. Visible in every theme:
+   the edge is the accent, which clears 3:1 against every background. */
+.field::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 1px solid var(--gg-accent);
+  box-shadow: 0 0 0 4px var(--gg-accent-glow);
+  opacity: 0;
+  transition: opacity var(--gg-duration-focus) var(--gg-ease-out);
+  pointer-events: none;
+}
+
+.field:focus-within::after {
+  opacity: 1;
+}
+
+.input {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  padding: 20px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  resize: none;
+  font-family: var(--gg-font-mono);
+  font-size: 1.375rem;
+  line-height: 1.5;
+  letter-spacing: var(--gg-stream-tracking);
+  color: var(--gg-fg);
+  caret-color: var(--gg-accent);
+}
+
+/* The glow is the focus indicator; no ring on top of it. */
+.input:focus,
+.input:focus-visible {
+  outline: none;
+  border-radius: inherit;
+}
+
+.input::placeholder {
+  color: var(--gg-muted);
+  opacity: 1;
+}
+
+@media (max-width: 520px) {
+  .input {
+    font-size: 1.125rem;
+    padding: 16px;
+  }
+}

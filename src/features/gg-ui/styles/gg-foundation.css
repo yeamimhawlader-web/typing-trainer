@@ -1,0 +1,115 @@
+/**
+ * GG.Typing foundation — every non-colour token, and every colour derived from
+ * the six base colours a theme writes to :root (see themes/themes.ts).
+ *
+ * Components use only the semantic tokens defined here. No literal colours: the
+ * stylesheet guard in src/styles/tokens.test.ts checks this file too.
+ */
+
+:root {
+  /* --- Colour, derived ------------------------------------------------ */
+  --gg-bg: var(--gg-base-bg);
+  --gg-surface: var(--gg-base-surface);
+  --gg-fg: var(--gg-base-fg);
+  --gg-muted: var(--gg-base-muted);
+  --gg-accent: var(--gg-base-accent);
+  --gg-error: var(--gg-base-error);
+
+  /* The only decorative colour: active pills, icon circles, the cursor. */
+  --gg-accent-tint: color-mix(in oklab, var(--gg-accent) 14%, transparent);
+  --gg-accent-tint-strong: color-mix(in oklab, var(--gg-accent) 26%, transparent);
+  --gg-accent-glow: color-mix(in oklab, var(--gg-accent) 12%, transparent);
+
+  --gg-hairline: color-mix(in oklab, var(--gg-fg) 10%, transparent);
+  --gg-divider: color-mix(in oklab, var(--gg-fg) 8%, transparent);
+  --gg-control-border: color-mix(in oklab, var(--gg-fg) 16%, transparent);
+
+  /* Passed characters: a step back, still comfortably readable. */
+  --gg-passed: color-mix(in oklab, var(--gg-fg) 62%, var(--gg-bg));
+
+  /* Glass: the top bar, the theme panel and the input. Nowhere else. */
+  --gg-glass-bg: color-mix(in oklab, var(--gg-surface) 70%, transparent);
+  --gg-glass-bg-input: color-mix(in oklab, var(--gg-surface) 85%, transparent);
+  --gg-glass-border: color-mix(in oklab, var(--gg-fg) var(--gg-glass-border-percent), transparent);
+  --gg-glass-highlight: color-mix(
+    in srgb,
+    white calc(var(--gg-glass-highlight-alpha) * 100%),
+    transparent
+  );
+  --gg-glass-filter: blur(20px) saturate(var(--gg-glass-saturate));
+
+  /* --- Type ----------------------------------------------------------- */
+  --gg-font-ui: var(--font-sans);
+  --gg-font-mono: var(--font-mono);
+  --gg-text-nav: 0.9375rem;
+  --gg-text-control: 0.9375rem;
+  --gg-text-pill: 0.8125rem;
+  --gg-text-keycap: 0.6875rem;
+  --gg-text-badge: 0.75rem;
+
+  /* Word stream sizes. The block around them never changes height. */
+  --gg-stream-scale: 1;
+  --gg-stream-line-height: 1.6;
+  --gg-stream-tracking: 0.02em;
+  --gg-stream-block: calc(9.3rem * var(--gg-stream-scale));
+
+  /* --- Space and shape ------------------------------------------------ */
+  --gg-column: 1400px;
+  --gg-gutter: clamp(20px, 5vw, 64px);
+  --gg-bar-height: 64px;
+
+  --gg-radius-logo: 10px;
+  --gg-radius-keycap: 6px;
+  --gg-radius-pill: 8px;
+  --gg-radius-input: 14px;
+  --gg-radius-full: 9999px;
+
+  --gg-icon-circle: 36px;
+  --gg-pill-height: 30px;
+
+  /* --- Motion: the whole budget --------------------------------------- */
+  --gg-ease-out: ease-out;
+  --gg-ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --gg-ease-fade: ease-in-out;
+
+  --gg-duration-cursor: 90ms;
+  --gg-duration-hover: 150ms;
+  --gg-duration-focus: 200ms;
+  --gg-duration-tab: 220ms;
+  --gg-duration-panel: 260ms;
+  --gg-duration-theme: 400ms;
+  --gg-duration-pulse: 2400ms;
+}
+
+@media (max-width: 520px) {
+  :root {
+    /* sm 1.9rem → 1.1rem, every other size in proportion. */
+    --gg-stream-scale: 0.58;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --gg-duration-cursor: 0ms;
+    --gg-duration-hover: 0ms;
+    --gg-duration-focus: 0ms;
+    --gg-duration-tab: 0ms;
+    --gg-duration-panel: 0ms;
+    --gg-duration-theme: 120ms;
+  }
+}
+
+/*
+ * The theme cross-fade. On only while a switch is happening (see
+ * themes/apply-theme.ts), so a character changing state mid-test is never
+ * faded — that feedback has to land on the frame the key does.
+ */
+:root[data-gg-theme-fading],
+:root[data-gg-theme-fading] *,
+:root[data-gg-theme-fading] *::before,
+:root[data-gg-theme-fading] *::after {
+  transition:
+    background-color var(--gg-duration-theme) var(--gg-ease-fade),
+    color var(--gg-duration-theme) var(--gg-ease-fade),
+    border-color var(--gg-duration-theme) var(--gg-ease-fade) !important;
+}

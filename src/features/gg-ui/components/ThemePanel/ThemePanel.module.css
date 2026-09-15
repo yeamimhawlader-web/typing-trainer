@@ -1,0 +1,174 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.layer[data-open='true'] {
+  pointer-events: auto;
+}
+
+.outside {
+  position: absolute;
+  inset: 0;
+}
+
+/* Glass #2 of 3. Off-canvas to the right until opened; the slide is transform
+   only. Hidden from paint once closed, after the slide has finished. */
+.panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  width: min(360px, 100vw);
+  padding: 20px 24px 28px;
+  overflow-y: auto;
+  background-color: var(--gg-glass-bg);
+  border-left: 1px solid var(--gg-glass-border);
+  box-shadow: inset 1px 0 0 var(--gg-glass-highlight);
+  backdrop-filter: var(--gg-glass-filter);
+  -webkit-backdrop-filter: var(--gg-glass-filter);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform var(--gg-duration-panel) var(--gg-ease-sheet),
+    visibility 0s linear var(--gg-duration-panel);
+}
+
+.layer[data-open='true'] .panel {
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    transform var(--gg-duration-panel) var(--gg-ease-sheet),
+    visibility 0s linear 0s;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--gg-fg);
+}
+
+/* --- Sections -------------------------------------------------------- */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-size: var(--gg-text-pill);
+  font-weight: var(--font-weight-medium);
+  color: var(--gg-muted);
+}
+
+/* --- Rows: name right-aligned, then its swatch ------------------------ */
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.875rem;
+  min-height: 44px;
+  padding: 0 8px 0 12px;
+  border-radius: var(--gg-radius-pill);
+  cursor: pointer;
+}
+
+.row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--gg-accent-tint);
+  opacity: 0;
+  transition: opacity var(--gg-duration-hover) var(--gg-ease-out);
+  pointer-events: none;
+}
+
+.row:hover::before {
+  opacity: 0.45;
+}
+
+.nativeInput {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.nativeInput:focus-visible ~ .name {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.name {
+  position: relative;
+  font-size: var(--gg-text-control);
+  color: var(--gg-muted);
+}
+
+.row:hover .name {
+  color: var(--gg-fg);
+}
+
+/* The chosen theme's name, in its own accent. */
+.nativeInput:checked ~ .name {
+  color: var(--gg-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+.swatch {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 7px;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-surface);
+  box-shadow: inset 0 0 0 1px var(--gg-hairline);
+}
+
+.swatch > span {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--gg-radius-full);
+  /* A hairline ring, so a dot the same colour as the capsule still reads. */
+  box-shadow: 0 0 0 1px var(--gg-control-border);
+}
+
+.dotBg {
+  background-color: var(--swatch-bg);
+}
+
+.dotAccent {
+  background-color: var(--swatch-accent);
+}
+
+.dotFg {
+  background-color: var(--swatch-fg);
+}

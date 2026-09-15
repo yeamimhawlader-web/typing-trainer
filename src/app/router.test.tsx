@@ -54,6 +54,16 @@ describe('application routes', () => {
     ).toBeInTheDocument()
   })
 
+  it('renders the GG.Typing shell at its own route, outside the application layout', async () => {
+    renderAt(ROUTES.gg)
+
+    expect(await screen.findByRole('region', { name: 'Words to type' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'GG.Typing' })).toBeInTheDocument()
+    // Its own top bar, not the application's navigation.
+    expect(screen.queryByRole('navigation', { name: 'Primary' })).not.toBeInTheDocument()
+    expect(document.title).toBe('Typing Test · GG.Typing')
+  })
+
   it('keeps the primary navigation on every page', async () => {
     renderAt(ROUTES.practice)
 

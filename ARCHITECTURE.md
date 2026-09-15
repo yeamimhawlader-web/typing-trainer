@@ -852,6 +852,37 @@ future effects have a pattern to copy. The conventions are in
   phone. A fixed 12 px jump made the word's text box overlap the line above by
   1.3 px on a phone; at 0.43 em it clears it by about 2 px.
 
+### The GG.Typing UI shell sits beside the working app until it is wired
+
+`@features/gg-ui` is the front end of the GG.Typing redesign: top bar, control
+row, toolbar, word stream, input and theme panel, at `/gg`, as a full screen of
+its own outside `AppLayout`. It is a shell. Typing runs through a stub
+`TypingSource` and the controls change in-memory shell state, so it replaces
+nothing yet: practice, history, statistics and drills keep working exactly as
+they did, and swapping the shell in is a route change once it is wired to the
+engine. Its token plan, and the conflicts found in its brief, are in
+`src/features/gg-ui/TOKEN_PLAN.md`.
+
+- **A typing source is a store, not props.** The brief's `onKeyPress`,
+  `currentIndex` and `words[]` are exposed through `subscribe` and
+  `getMark(index)`, so each character subscribes to its own mark and a keystroke
+  changes one element — the rule the existing typing screen already keeps. The
+  stub is deliberately naive; the wiring pass adapts `@core/engine` to the same
+  interface rather than growing the stub.
+- **The cursor never reads layout on a keystroke.** Character positions are
+  measured in one pass when they can change (new text, size, resize, fonts), and a
+  keystroke only writes two transforms. A test counts layout reads and fails if a
+  keystroke makes one.
+- **Themes are six objects of base colours.** Everything else is `color-mix()`
+  in `gg-foundation.css`, so a seventh theme is one object, and a test fails if a
+  component names a theme or any GG file other than `themes.ts` holds a colour.
+  Each theme is held to contrast floors by test.
+- **The theme cross-fade is switched on only during a switch**, so characters
+  changing state mid-test are never faded.
+- **Input comes from `beforeinput`, not `keydown`**, so a phone keyboard,
+  dictation and multi-character insertions reach the stream the same way a
+  physical key does.
+
 ### Accessibility fixes that cost little
 
 - **A mistyped character is not marked by colour alone.** Its red is the same

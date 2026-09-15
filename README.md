@@ -104,6 +104,7 @@ Then open http://localhost:5173.
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — how the project is arranged and why
 - [DEVELOPMENT.md](./DEVELOPMENT.md) — how to add features
 - [GGTYPING.md](./GGTYPING.md) — the standard for feedback effects, starting with the word jump
+- [GG.Typing token plan](./src/features/gg-ui/TOKEN_PLAN.md) — colour, type, spacing and motion for the new UI shell at `/gg`, checked against its design brief
 
 ## Configuration
 

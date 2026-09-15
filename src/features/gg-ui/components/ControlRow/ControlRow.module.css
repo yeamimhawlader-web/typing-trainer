@@ -1,0 +1,64 @@
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+
+/* --- Language ------------------------------------------------------- */
+
+.language {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.select {
+  appearance: none;
+  padding: 0.375rem 1.75rem 0.375rem 0;
+  border: 0;
+  background: none;
+  font-size: var(--gg-text-control);
+  font-weight: var(--font-weight-medium);
+  color: var(--gg-fg);
+  cursor: pointer;
+}
+
+.select:focus-visible {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.select option {
+  background-color: var(--gg-surface);
+  color: var(--gg-fg);
+}
+
+.chevron {
+  position: absolute;
+  right: 0.25rem;
+  color: var(--gg-muted);
+  pointer-events: none;
+}
+
+/* --- Right side ----------------------------------------------------- */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.gap {
+  width: 1rem;
+}
+
+/* --- Divider: 24px below the row, 28px above the toolbar ------------- */
+
+.divider {
+  margin: 24px 0 28px;
+  border: 0;
+  border-top: 1px solid var(--gg-divider);
+}

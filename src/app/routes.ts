@@ -15,6 +15,11 @@ export const ROUTES = {
   settings: '/settings',
   /** Pattern for the router; build real paths with `drillPath`. */
   drill: '/drill/:sequence',
+  /**
+   * The GG.Typing UI shell. Its own full screen, outside the application layout,
+   * and not yet wired to the typing engine — see features/gg-ui.
+   */
+  gg: '/gg',
 } as const
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]

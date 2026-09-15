@@ -16,6 +16,7 @@ import { AppLayout } from '@app/layout/AppLayout.tsx'
 import { NotFoundPage } from '@app/layout/NotFoundPage.tsx'
 import { ROUTES } from '@app/routes.ts'
 import { DrillPage } from '@features/drill'
+import { GGTypingPage } from '@features/gg-ui'
 import { HistoryPage } from '@features/history/pages/HistoryPage.tsx'
 import { historyStore } from '@features/history/state/history.store.ts'
 import { HomePage } from '@features/home/pages/HomePage.tsx'
@@ -25,6 +26,9 @@ import { PracticePage } from '@features/practice/pages/PracticePage.tsx'
 import { SettingsPage } from '@features/settings/pages/SettingsPage.tsx'
 
 export const routeConfig: RouteObject[] = [
+  // The GG.Typing shell is a full screen of its own, outside the application
+  // layout, until it is wired to the engine and takes over from practice.
+  { path: ROUTES.gg, element: <GGTypingPage /> },
   {
     path: ROUTES.home,
     element: <AppLayout />,

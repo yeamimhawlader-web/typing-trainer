@@ -1,0 +1,217 @@
+/* Glass #1 of 3. */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--gg-bar-height);
+  background-color: var(--gg-glass-bg);
+  border-bottom: 1px solid var(--gg-divider);
+  box-shadow: inset 0 1px 0 var(--gg-glass-highlight);
+  backdrop-filter: var(--gg-glass-filter);
+  -webkit-backdrop-filter: var(--gg-glass-filter);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 100%;
+  max-width: var(--gg-column);
+  margin-inline: auto;
+  padding-inline: var(--gg-gutter);
+}
+
+/* --- Brand ---------------------------------------------------------- */
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: var(--gg-radius-logo);
+}
+
+.brand:focus-visible,
+.navLink:focus-visible,
+.account:focus-visible {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 3px;
+}
+
+/* Each keeps its own shape when focused; see controls.module.css. */
+.brand:focus-visible {
+  border-radius: var(--gg-radius-logo);
+}
+
+.navLink:focus-visible {
+  border-radius: var(--gg-radius-pill);
+}
+
+.account:focus-visible {
+  border-radius: var(--gg-radius-full);
+}
+
+.mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--gg-radius-logo);
+  background-color: var(--gg-accent-tint);
+  box-shadow: inset 0 0 0 1px var(--gg-accent-tint-strong);
+  color: var(--gg-accent);
+}
+
+.wordmark {
+  font-size: 1.0625rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.gg {
+  color: var(--gg-accent);
+  font-weight: var(--font-weight-bold);
+}
+
+.rest {
+  color: var(--gg-muted);
+}
+
+/* --- Right cluster -------------------------------------------------- */
+
+.cluster {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: 0.75rem;
+  font-size: var(--gg-text-badge);
+  color: var(--gg-muted);
+  white-space: nowrap;
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+  color: var(--gg-fg);
+  font-weight: var(--font-weight-medium);
+}
+
+/* A still dot with a ring that breathes outward from it. Transform and opacity
+   only; gone entirely under reduced motion. */
+.pulse {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-accent);
+}
+
+.pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--gg-accent);
+  animation: gg-pulse var(--gg-duration-pulse) var(--gg-ease-fade) infinite;
+}
+
+@keyframes gg-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+.navLink {
+  position: relative;
+  padding: 0.4rem 0.75rem;
+  margin-right: 0.5rem;
+  border-radius: var(--gg-radius-pill);
+  font-size: var(--gg-text-nav);
+  font-weight: var(--font-weight-medium);
+  color: var(--gg-muted);
+}
+
+.navLink:hover,
+.navLink[aria-current='page'] {
+  color: var(--gg-fg);
+}
+
+.account {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+  padding: 3px 10px 3px 3px;
+  border-radius: var(--gg-radius-full);
+  font-size: var(--gg-text-control);
+  color: var(--gg-fg);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--gg-radius-full);
+  box-shadow: inset 0 0 0 1px var(--gg-control-border);
+  font-size: 0.8125rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--gg-muted);
+}
+
+.level {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-accent-tint);
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  /* Text in fg, tint in accent: accent text on its own tint drops below 4.5:1
+     in the light themes at this size. */
+  color: var(--gg-fg);
+}
+
+@media (max-width: 860px) {
+  .liveLabel,
+  .username {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .live,
+  .navLink {
+    display: none;
+  }
+
+  .wordmark {
+    font-size: 0.9375rem;
+  }
+}

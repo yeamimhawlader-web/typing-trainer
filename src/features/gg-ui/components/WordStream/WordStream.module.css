@@ -1,0 +1,104 @@
+/*
+ * The block keeps one height at every size, so nothing below it moves when the
+ * size changes. Inside, each size shows a whole number of lines that fits:
+ * xs 4, sm 3, md 2, lg 2, xl 2 (see TOKEN_PLAN.md).
+ */
+.block {
+  height: var(--gg-stream-block);
+  font-family: var(--gg-font-mono);
+  cursor: text;
+}
+
+.block[data-size='xs'] {
+  --gg-stream-size: 1.3rem;
+  --gg-stream-lines: 4;
+}
+
+.block[data-size='sm'] {
+  --gg-stream-size: 1.9rem;
+  --gg-stream-lines: 3;
+}
+
+.block[data-size='md'] {
+  --gg-stream-size: 2.2rem;
+  --gg-stream-lines: 2;
+}
+
+.block[data-size='lg'] {
+  --gg-stream-size: 2.55rem;
+  --gg-stream-lines: 2;
+}
+
+.block[data-size='xl'] {
+  --gg-stream-size: 2.9rem;
+  --gg-stream-lines: 2;
+}
+
+.viewport {
+  position: relative;
+  overflow: hidden;
+  font-size: calc(var(--gg-stream-size) * var(--gg-stream-scale));
+  line-height: var(--gg-stream-line-height);
+  letter-spacing: var(--gg-stream-tracking);
+  height: calc(var(--gg-stream-lines) * var(--gg-stream-line-height) * 1em);
+
+  /* Words two lines ahead fade to 55%, so the eye anchors on the next line.
+     A mask rather than per-word opacity: the current line is always the first
+     line, so "two lines ahead" is a fixed band, and moving on a line costs no
+     restyling at all. With two lines visible the band starts at the bottom
+     edge and nothing fades. */
+  --gg-fade-from: calc(2 * var(--gg-stream-line-height) * 1em);
+  mask-image: linear-gradient(
+    to bottom,
+    black var(--gg-fade-from),
+    color-mix(in srgb, black 55%, transparent) var(--gg-fade-from)
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black var(--gg-fade-from),
+    color-mix(in srgb, black 55%, transparent) var(--gg-fade-from)
+  );
+}
+
+.content {
+  position: relative;
+}
+
+.word {
+  white-space: nowrap;
+}
+
+/* --- Characters: feedback is instant, never transitioned -------------- */
+
+.character {
+  color: var(--gg-fg);
+}
+
+.correct {
+  color: var(--gg-passed);
+}
+
+/* An underline, not a fill: a background is too loud mid-flow. A box shadow
+   rather than text-decoration so a mistyped space still shows it. */
+.incorrect {
+  color: var(--gg-fg);
+  box-shadow: inset 0 -0.085em 0 var(--gg-error);
+}
+
+/* --- Cursor: one block that slides ------------------------------------ */
+
+.cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0.6em;
+  height: 1.2em;
+  border-radius: 0.14em;
+  background-color: var(--gg-accent-tint-strong);
+  transition: transform var(--gg-duration-cursor) var(--gg-ease-out);
+  pointer-events: none;
+}
+
+.cursor[data-placed='false'] {
+  opacity: 0;
+}
