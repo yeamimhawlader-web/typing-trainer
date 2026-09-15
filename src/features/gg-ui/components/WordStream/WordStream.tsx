@@ -15,16 +15,23 @@
  *
  * Words are wrapped so the GGTyping word jump can move one as a unit. It is the
  * same controller the classic screen uses, driven by the same engine events.
+ *
+ * In Hover Mode the stream also carries the focused word's layer (see
+ * `HoverFocus`), and follows the mode's view of where to keep the text. Without
+ * a hover controller none of that exists and the stream is exactly as above.
  */
 
-import { memo, useCallback, useMemo, type MouseEvent, type ReactNode } from 'react'
+import { memo, useCallback, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
 
 import { computeWordRanges, toCharacters, type TypingEngine, type WordRange } from '@core/engine'
 import type { TextSize } from '@core/types'
-import { useWordJumps, type WordJumpController } from '@features/ggtyping'
+import { useWordJumps, type HoverController, type WordJumpController } from '@features/ggtyping'
 import { useEngineValue } from '@features/typing'
 import { cx } from '@shared/lib'
 
+import { createHoverView } from './hover-view.ts'
+import { HoverFocus } from './HoverFocus.tsx'
+import { engineCursorSource } from './stream-cursor.ts'
 import { useStreamCursor } from './useStreamCursor.ts'
 
 import styles from './WordStream.module.css'
@@ -115,13 +122,20 @@ export interface WordStreamProps {
   readonly text: string
   readonly size: TextSize
   readonly onActivate?: () => void
+  /** Hover Mode's controller, when the stream is Hover Mode's. */
+  readonly hover?: HoverController | undefined
 }
 
-export const WordStream = ({ engine, text, size, onActivate }: WordStreamProps) => {
+export const WordStream = ({ engine, text, size, onActivate, hover }: WordStreamProps) => {
   const characters = useMemo(() => toCharacters(text), [text])
   const words = useMemo(() => computeWordRanges(characters), [characters])
-  const jumps = useWordJumps(engine)
-  const { attachViewport, attachContent, attachCursor } = useStreamCursor(engine, text, size)
+  // Hover Mode reacts to a word's first mistake itself, so the jump on the third
+  // in a row is left to ordinary practice.
+  const jumps = useWordJumps(engine, undefined, hover === undefined)
+  const [view] = useState(() => (hover === undefined ? null : createHoverView(engine)))
+  const source = useMemo(() => view ?? engineCursorSource(engine), [engine, view])
+  const cursor = useStreamCursor(source, text, size)
+  const { attachViewport, attachContent, attachCursor } = cursor
   const status = useEngineValue(engine, (snapshot) => snapshot.status)
 
   // Clicking the words means "I want to type": keep focus in the input rather
@@ -144,6 +158,9 @@ export const WordStream = ({ engine, text, size, onActivate }: WordStreamProps) 
         <span ref={attachCursor} className={styles.cursor} data-placed="false" aria-hidden="true" />
         <div ref={attachContent} className={styles.content}>
           <CharacterList engine={engine} characters={characters} words={words} jumps={jumps} />
+          {hover !== undefined && view !== null && (
+            <HoverFocus engine={engine} hover={hover} view={view} cursor={cursor} />
+          )}
         </div>
       </div>
     </section>

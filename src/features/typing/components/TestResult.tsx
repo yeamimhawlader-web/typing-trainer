@@ -14,6 +14,7 @@ import { Button, ButtonLink } from '@shared/ui'
 
 import type { SaveState } from '../hooks/useTypingSession.ts'
 import { DrillResult } from './DrillResult.tsx'
+import { HoverResult } from './HoverResult.tsx'
 
 import styles from './TestResult.module.css'
 
@@ -42,6 +43,9 @@ export const TestResult = ({
     {drill !== null && (
       <DrillResult outcome={drill.outcome} comparison={drill.comparison} />
     )}
+
+    {/* From the saved record, so it is the same account history keeps. */}
+    {session.context.hover !== undefined && <HoverResult record={session.context.hover} />}
 
     <div className={styles.actions}>
       <Button

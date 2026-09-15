@@ -14,7 +14,8 @@
  * target. Letting previous drills into the baseline would mean the thing a
  * drill is compared against drifts towards drill performance after a few
  * repetitions, and the comparison would quietly become drill-against-drill.
- * The baseline is ordinary typing, so only ordinary sessions contribute.
+ * The baseline is ordinary typing, so only ordinary sessions contribute —
+ * Hover Mode sessions are left out for the same reason.
  *
  * The classic drill page and the GG.Typing drill page both take their drill
  * from here, so a drill is the same drill — same words, same baseline — on
@@ -23,7 +24,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import type { SessionService } from '@core/sessions'
+import { isTrainingMode, type SessionService } from '@core/sessions'
 import {
   findSequenceBaseline,
   MAX_SESSIONS_ANALYSED,
@@ -83,7 +84,7 @@ export const useDrillSetup = (
       .then(async (all) => {
         // Ordinary sessions only — see the note at the top of this file.
         const ordinary = all
-          .filter((session) => session.context.mode !== 'drill')
+          .filter((session) => !isTrainingMode(session.context.mode))
           .slice(0, MAX_SESSIONS_ANALYSED)
 
         const entries = await telemetry.getMany(

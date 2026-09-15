@@ -120,6 +120,7 @@
 }
 
 .cursor[data-placed='false'],
-.block[data-status='completed'] .cursor {
+.block[data-status='completed'] .cursor,
+.block[data-hover='repeating'] .cursor {
   opacity: 0;
 }

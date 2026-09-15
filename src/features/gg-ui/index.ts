@@ -13,6 +13,8 @@
 export { GGLayout } from './layout/GGLayout.tsx'
 export { GG_TITLE_SUFFIX, useGGDocumentTitle } from './layout/useGGDocumentTitle.ts'
 export { GGDrillPage } from './pages/GGDrillPage.tsx'
+export { GGHoverPage } from './pages/GGHoverPage.tsx'
+export type { GGHoverPageProps } from './pages/GGHoverPage.tsx'
 export type { GGDrillPageProps } from './pages/GGDrillPage.tsx'
 export { GGPracticePage } from './pages/GGPracticePage.tsx'
 export type { GGPracticePageProps } from './pages/GGPracticePage.tsx'

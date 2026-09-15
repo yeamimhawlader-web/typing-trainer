@@ -14,12 +14,21 @@
  * The result is the application's own result panel, below the input — the same
  * record that went to storage, so what is shown here and what history shows
  * are one set of numbers.
+ *
+ * ## Hover Mode
+ *
+ * The same screen, with Hover Mode's controller between the field and the
+ * session: keys go to the text, or to the focused word's repetitions, and the
+ * session saves the test as Hover Mode with its focus records. The controller
+ * lives for the life of the screen, like the session.
  */
 
-import { useCallback, useEffect, useMemo, useRef, type MouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 
 import { PRACTICE_PATH } from '@app/routes.ts'
 import { computeWordRanges, toCharacters } from '@core/engine'
+import type { Timestamp } from '@core/types'
+import { createHoverController } from '@features/ggtyping'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import {
   ResultAnnouncement,
@@ -32,18 +41,23 @@ import {
 
 import { ControlRow } from '../components/ControlRow/ControlRow.tsx'
 import { InputField } from '../components/InputField/InputField.tsx'
-import { Toolbar } from '../components/Toolbar/Toolbar.tsx'
+import { Toolbar, type GGMode } from '../components/Toolbar/Toolbar.tsx'
 import { WordStream } from '../components/WordStream/WordStream.tsx'
+import { HoverHint } from './HoverHint.tsx'
 
 import styles from './GGTypingScreen.module.css'
 
-export interface GGTypingScreenProps extends TypingScreenOptions {
+export interface GGTypingScreenProps extends Omit<TypingScreenOptions, 'training'> {
   /** The page's heading, for assistive technology. */
   readonly heading: string
+  /** Which mode this screen is. Read once. Standard when absent. */
+  readonly mode?: GGMode
 }
 
-export const GGTypingScreen = ({ heading, ...options }: GGTypingScreenProps) => {
-  const screen = useTypingScreen(options)
+export const GGTypingScreen = ({ heading, mode = 'standard', ...options }: GGTypingScreenProps) => {
+  const [hover] = useState(() => (mode === 'hover' ? createHoverController() : null))
+  const training = useMemo(() => (hover === null ? undefined : { mode: 'hover' as const, hooks: hover }), [hover])
+  const screen = useTypingScreen({ ...options, training })
   const {
     engine,
     target,
@@ -61,6 +75,18 @@ export const GGTypingScreen = ({ heading, ...options }: GGTypingScreenProps) => 
   } = screen
 
   const wordTotal = useMemo(() => computeWordRanges(toCharacters(target.text)).length, [target])
+
+  useEffect(() => hover?.connect(engine), [engine, hover])
+
+  // Keys reach the session through Hover Mode when it is on, and directly when not.
+  const typeKey = useCallback(
+    (key: string, at: Timestamp) => (hover === null ? inputKey(key, at) : hover.inputKey(key, at, inputKey)),
+    [hover, inputKey],
+  )
+  const removeWord = useCallback(
+    (at: Timestamp) => (hover === null ? deleteWord(at) : hover.deleteWord(at, deleteWord)),
+    [deleteWord, hover],
+  )
 
   const size = useSettingsStore((state) => state.preferences.textSize)
   const setSize = useSettingsStore((state) => state.setTextSize)
@@ -100,10 +126,17 @@ export const GGTypingScreen = ({ heading, ...options }: GGTypingScreenProps) => 
     <>
       <h1 className="visually-hidden">{heading}</h1>
 
-      <ControlRow engine={engine} source={provider.label} words={wordTotal} onRestart={restartTest} />
+      <ControlRow
+        engine={engine}
+        source={hover === null ? provider.label : 'Hover Mode'}
+        description={hover === null ? undefined : 'Target mistakes and repeat them'}
+        words={wordTotal}
+        onRestart={restartTest}
+      />
 
       <div onClick={returnFocusAfterClick}>
         <Toolbar
+          mode={drillSequence === null ? mode : null}
           size={size}
           onSizeChange={changeSize}
           wordCount={drillSequence === null ? wordCount : null}
@@ -112,13 +145,19 @@ export const GGTypingScreen = ({ heading, ...options }: GGTypingScreenProps) => 
       </div>
 
       <div className={styles.stream}>
-        <WordStream engine={engine} text={target.text} size={size} onActivate={focusInput} />
+        <WordStream
+          engine={engine}
+          text={target.text}
+          size={size}
+          onActivate={focusInput}
+          hover={hover ?? undefined}
+        />
       </div>
 
-      <InputField ref={input} engine={engine} inputKey={inputKey} deleteWord={deleteWord} restart={restartTest} />
+      <InputField ref={input} engine={engine} inputKey={typeKey} deleteWord={removeWord} restart={restartTest} />
 
       <div className={styles.hint}>
-        <SessionHint engine={engine} />
+        {hover === null ? <SessionHint engine={engine} /> : <HoverHint engine={engine} hover={hover} />}
       </div>
 
       {/* Shown only where the primary pointer is a finger and nothing hovers,

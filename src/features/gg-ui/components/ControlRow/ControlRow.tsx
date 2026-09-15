@@ -61,17 +61,22 @@ const Progress = ({ engine, total }: { engine: TypingEngine; total: number }) =>
 
 export interface ControlRowProps {
   readonly engine: TypingEngine
-  /** The text provider's name: "Common words", or the drill. */
+  /** The text provider's name, "Common words", or the drill; or the mode's. */
   readonly source: string
+  /** A few words on what the source is, shown beside it. */
+  readonly description?: string | undefined
   /** How many words the loaded test has, by the engine's own word rule. */
   readonly words: number
   readonly onRestart: () => void
 }
 
-export const ControlRow = ({ engine, source, words, onRestart }: ControlRowProps) => (
+export const ControlRow = ({ engine, source, description, words, onRestart }: ControlRowProps) => (
   <div className={styles.wrap}>
     <div className={styles.row}>
-      <p className={styles.source}>{source}</p>
+      <p className={styles.source}>
+        {source}
+        {description !== undefined && <span className={styles.description}>{description}</span>}
+      </p>
 
       <div className={styles.actions}>
         {/* Named so it can be told apart from the result announcement, which is

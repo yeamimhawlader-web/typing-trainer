@@ -28,8 +28,9 @@
  * - Ctrl+Backspace or Alt+Backspace arrives as `deleteWordBackward`: the
  *   session's word delete.
  * - Enter, on a finished test, starts the next.
- * - Tab, while a test is running, restarts it. Otherwise Tab moves focus, so
- *   the page stays navigable from here.
+ * - Tab, while a test is under way, restarts it. Otherwise Tab moves focus, so
+ *   the page stays navigable from here. "Under way" includes paused: Hover Mode
+ *   pauses the text while a word is repeated, and the typist is still typing.
  *
  * ## Focus
  *
@@ -78,6 +79,11 @@ export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps
       const element = field.current
       if (element === null) return undefined
 
+      const isUnderWay = () => {
+        const { status } = engine.getSnapshot()
+        return status === 'running' || status === 'paused'
+      }
+
       const isFinished = () => {
         const { status } = engine.getSnapshot()
         return status === 'completed' || status === 'abandoned'
@@ -96,7 +102,7 @@ export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps
             for (const character of Array.from(event.data ?? '')) {
               if (!inputKey(character, at)) continue
               // The last character of a test ends it, and clears the field with it.
-              const typing = engine.getSnapshot().status === 'running'
+              const typing = isUnderWay()
               element.value = typing && !/\s/u.test(character) ? element.value + character : ''
             }
             return
@@ -134,7 +140,7 @@ export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps
         if (event.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
 
         const restartOn =
-          (event.key === 'Tab' && engine.getSnapshot().status === 'running') ||
+          (event.key === 'Tab' && isUnderWay()) ||
           (event.key === 'Enter' && isFinished())
         if (!restartOn) return
 

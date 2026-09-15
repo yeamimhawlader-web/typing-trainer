@@ -25,7 +25,18 @@ import type {
  * adding a field to a record shape after months of history means migrating that
  * history; reserving the shape costs nothing and a migration costs a weekend.
  */
-export type SessionMode = 'words' | 'time' | 'quote' | 'drill'
+export type SessionMode = 'words' | 'time' | 'quote' | 'drill' | 'hover'
+
+/**
+ * Training modes: sessions whose typing was shaped on purpose — a drill's
+ * lopsided text, Hover Mode's repeated words — rather than ordinary practice.
+ *
+ * Analyses of how someone ordinarily types leave these out, so a mode built to
+ * change the typing cannot quietly change the picture of it.
+ */
+export const TRAINING_MODES: readonly SessionMode[] = ['drill', 'hover']
+
+export const isTrainingMode = (mode: SessionMode): boolean => TRAINING_MODES.includes(mode)
 export type SessionDifficulty = 'normal' | 'punctuation' | 'numbers'
 export type KeyboardLayout = 'qwerty' | 'dvorak' | 'colemak'
 /** BCP 47 language tag for the practice text. */
@@ -48,6 +59,43 @@ export interface SessionContext {
    * Optional, so every session already on disk still parses unchanged.
    */
   readonly targetSequence?: string
+  /**
+   * What Hover Mode focused on — present only when `mode` is `'hover'`.
+   *
+   * Optional, like `targetSequence`, so every earlier session still parses.
+   */
+  readonly hover?: HoverSessionRecord
+}
+
+/**
+ * One word Hover Mode focused on after a mistake, and how its repetitions went.
+ *
+ * Counts are of repetitions of the word, each typed through the typing engine
+ * and judged by it: a repetition is clean when the engine recorded no mistake in
+ * it. See GGTYPING.md for the rules that produce these numbers.
+ */
+export interface HoverFocusRecord {
+  /** The word, as it appears in the text. */
+  readonly word: string
+  /** Its position among the text's words, counting from 0. */
+  readonly wordIndex: number
+  /** Clean repetitions needed when the focus ended: 3, plus 3 per failed repetition, to a limit. */
+  readonly required: number
+  /** Clean repetitions completed. */
+  readonly successes: number
+  /** Repetitions with at least one mistake in them. */
+  readonly failures: number
+  /** Whether the required clean repetitions were completed. */
+  readonly completed: boolean
+  /** Whether the focus ended at the attempt limit instead. */
+  readonly limitReached: boolean
+  /** From the mistake that started the focus to its end. */
+  readonly focusMs: number
+}
+
+export interface HoverSessionRecord {
+  /** In the order they happened. Empty when nothing needed a focus. */
+  readonly focuses: readonly HoverFocusRecord[]
 }
 
 /**

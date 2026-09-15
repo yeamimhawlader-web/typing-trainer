@@ -78,12 +78,13 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-const renderScreen = (text: string) => {
+const renderScreen = (text: string, mode: 'standard' | 'hover' = 'standard') => {
   const adapter = createMemoryAdapter()
   return render(
     <MemoryRouter>
       <GGTypingScreen
         heading="Typing test"
+        mode={mode}
         provider={fixedProvider(text)}
         service={createSessionServiceOver(adapter)}
         telemetry={createTelemetryServiceOver(adapter)}
@@ -175,5 +176,50 @@ describe('GG.Typing hot path', () => {
     const late = probe.renders
 
     expect(late).toBeLessThanOrEqual(early)
+  })
+})
+
+describe('GG.Typing hot path in Hover Mode', () => {
+  /** Renders and layout reads per keystroke over `keys`, typed after `before`. */
+  const measureHover = (text: string, before: string, keys: string) => {
+    const { getByRole, unmount } = renderScreen(text, 'hover')
+    const field = getByRole('textbox', { name: 'Type the words above' }) as HTMLTextAreaElement
+    typeInto(field, before)
+
+    probe.renders = 0
+    layoutReads.count = 0
+    typeInto(field, keys)
+    const result = {
+      rendersPerKeystroke: probe.renders / keys.length,
+      layoutReadsPerKeystroke: layoutReads.count / keys.length,
+    }
+    unmount()
+    return result
+  }
+
+  it('costs no more per keystroke than ordinary practice while nothing is focused', () => {
+    const text = textOf(200)
+    const ordinary = measure(text, 24)
+    const hover = measureHover(text, text.slice(0, 1), text.slice(1, 25))
+
+    expect(hover.rendersPerKeystroke).toBeLessThanOrEqual(ordinary.rendersPerKeystroke)
+    expect(hover.layoutReadsPerKeystroke).toBe(0)
+  })
+
+  it('keeps repetitions cheap and flat, whatever the length of the text', () => {
+    // "about" mistyped, left, then repeated.
+    const short = measureHover(textOf(10), 'abxut ', 'about about ')
+    const long = measureHover(textOf(200), 'abxut ', 'about about ')
+
+    expect(short.rendersPerKeystroke).toBeGreaterThan(0)
+    expect(long.rendersPerKeystroke).toBeLessThanOrEqual(short.rendersPerKeystroke)
+    expect(long.rendersPerKeystroke).toBeLessThan(CEILING_PER_KEYSTROKE)
+  })
+
+  it('reads no layout through a whole focus: the mistake, the repetitions and the release', () => {
+    const text = textOf(200)
+    const whole = measureHover(text, 'a', 'bxut about about about these')
+
+    expect(whole.layoutReadsPerKeystroke).toBe(0)
   })
 })

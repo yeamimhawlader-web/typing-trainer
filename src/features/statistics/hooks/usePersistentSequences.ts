@@ -13,7 +13,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import type { TypingSession } from '@core/sessions'
+import { isTrainingMode, type TypingSession } from '@core/sessions'
 import { filterSessionsByRange, isUsableSession, type TimeRange } from '@core/statistics'
 import {
   analysePersistentSequences,
@@ -66,13 +66,15 @@ export const usePersistentSequences = (
     () =>
       filterSessionsByRange(sessions, range)
         .filter(isUsableSession)
-        // Drills are excluded. Their text is built to be lopsided — a quarter
-        // of its characters are one sequence — so a few of them would supply
-        // most of the observations for whatever was drilled and the ranking
-        // would end up describing the drills rather than the typing. The
-        // figures above do count them, which is a different question: a drill
-        // is real typing, and how fast you typed it is a fair thing to record.
-        .filter((session) => session.context.mode !== 'drill')
+        // Training modes are excluded. A drill's text is built to be lopsided
+        // — a quarter of its characters are one sequence — so a few of them
+        // would supply most of the observations for whatever was drilled and
+        // the ranking would end up describing the drills rather than the
+        // typing. Hover Mode stops the text at every mistake to repeat a word,
+        // which changes the rhythm it would be measuring. The figures above do
+        // count both, which is a different question: they are real typing, and
+        // how fast you typed is a fair thing to record.
+        .filter((session) => !isTrainingMode(session.context.mode))
         .toSorted((a, b) => b.completedAt - a.completedAt)
         .slice(0, MAX_SESSIONS_ANALYSED)
         .map(({ id, text }) => ({ id, text })),

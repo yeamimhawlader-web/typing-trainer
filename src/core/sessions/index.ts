@@ -10,6 +10,8 @@ import { storage } from '@core/persistence'
 import { createSessionServiceOver } from './service.ts'
 
 export type {
+  HoverFocusRecord,
+  HoverSessionRecord,
   KeyboardLayout,
   LanguageCode,
   SessionContext,
@@ -18,6 +20,8 @@ export type {
   SessionRepository,
   TypingSession,
 } from './types.ts'
+
+export { isTrainingMode, TRAINING_MODES } from './types.ts'
 
 export { DEFAULT_SESSION_CONTEXT } from './defaults.ts'
 

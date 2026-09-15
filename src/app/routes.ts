@@ -20,6 +20,8 @@ export const ROUTES = {
    * application layout. Practice at the root, drills beneath it.
    */
   gg: '/gg',
+  /** GG.Typing Hover Mode: a mistake focuses its word for repetition. */
+  ggHover: '/gg/hover',
   /** Pattern for the router; build real paths with `drillPath`. */
   ggDrill: '/gg/drill/:sequence',
 } as const

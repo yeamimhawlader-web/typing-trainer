@@ -1,0 +1,22 @@
+/* The ordinary hint's shape (SessionHint.module.css), for the same line. */
+.hint {
+  width: 100%;
+  max-width: var(--layout-reading-width);
+  min-height: var(--space-5);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.word {
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+}
+
+.key {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  padding: 0 var(--space-1);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-secondary);
+}

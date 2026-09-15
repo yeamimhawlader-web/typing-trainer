@@ -433,6 +433,37 @@ describe('parseTypingSession', () => {
     expect(parseTypingSession(broken)).toBeNull()
   })
 
+  it('accepts a Hover Mode session and its focus records', () => {
+    const session = makeSession()
+    const hover = {
+      ...session,
+      context: {
+        ...session.context,
+        mode: 'hover',
+        hover: {
+          focuses: [
+            { word: 'brown', wordIndex: 2, required: 6, successes: 6, failures: 1, completed: true, limitReached: false, focusMs: 5_400 },
+          ],
+        },
+      },
+    }
+
+    expect(parseTypingSession(hover)).not.toBeNull()
+    expect(parseTypingSession({ ...hover, context: { ...hover.context, hover: { focuses: [] } } })).not.toBeNull()
+  })
+
+  it.each([
+    ['not an object', 'focus'],
+    ['focuses missing', {}],
+    ['a focus without its word', { focuses: [{ wordIndex: 0, required: 3, successes: 3, failures: 0, completed: true, limitReached: false, focusMs: 1 }] }],
+    ['a negative count', { focuses: [{ word: 'fox', wordIndex: 0, required: 3, successes: -1, failures: 0, completed: true, limitReached: false, focusMs: 1 }] }],
+    ['a completion that is not a boolean', { focuses: [{ word: 'fox', wordIndex: 0, required: 3, successes: 3, failures: 0, completed: 'yes', limitReached: false, focusMs: 1 }] }],
+  ])('rejects a Hover Mode record with %s', (_label, record) => {
+    const session = makeSession()
+
+    expect(parseTypingSession({ ...session, context: { ...session.context, mode: 'hover', hover: record } })).toBeNull()
+  })
+
   it('rejects an unknown keyboard layout', () => {
     const session = makeSession()
     const broken = {

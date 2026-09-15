@@ -23,6 +23,7 @@ import { createCommonWordsProvider, type TextProvider } from '@core/text'
 
 import {
   useTypingSession,
+  type SessionModeHooks,
   type TypingSessionController,
   type WordCountPreference,
 } from './useTypingSession.ts'
@@ -56,6 +57,11 @@ export interface TypingScreenOptions {
   readonly drill?: DrillSettings | null | undefined
   /** The remembered practice length, for ordinary practice. */
   readonly wordCountPreference?: WordCountPreference | undefined
+  /**
+   * A training mode running on the ordinary text, such as Hover Mode: the mode
+   * the test is saved as, and the hooks it takes part through.
+   */
+  readonly training?: { readonly mode: 'hover'; readonly hooks: SessionModeHooks } | undefined
 }
 
 export interface TypingScreen extends TypingSessionController {
@@ -78,6 +84,7 @@ export const useTypingScreen = ({
   telemetry,
   drill = null,
   wordCountPreference,
+  training,
 }: TypingScreenOptions = {}): TypingScreen => {
   // One provider for the life of the screen. Swapping in quotes or pasted text
   // later is a change here and nowhere else.
@@ -89,15 +96,25 @@ export const useTypingScreen = ({
    * builds it inline does not hand over a new context on every render.
    */
   const sequence = drill?.sequence ?? null
+  const trainingMode = training?.mode ?? null
   const context = useMemo<SessionContext>(
     () =>
-      sequence === null
-        ? DEFAULT_SESSION_CONTEXT
-        : { ...DEFAULT_SESSION_CONTEXT, mode: 'drill', targetSequence: sequence },
-    [sequence],
+      sequence !== null
+        ? { ...DEFAULT_SESSION_CONTEXT, mode: 'drill', targetSequence: sequence }
+        : trainingMode !== null
+          ? { ...DEFAULT_SESSION_CONTEXT, mode: trainingMode }
+          : DEFAULT_SESSION_CONTEXT,
+    [sequence, trainingMode],
   )
 
-  const session = useTypingSession(activeProvider, service, telemetry, context, wordCountPreference)
+  const session = useTypingSession(
+    activeProvider,
+    service,
+    telemetry,
+    context,
+    wordCountPreference,
+    training?.hooks,
+  )
 
   const baselineMs = drill?.baselineMs ?? null
   const typicalRangeMs = drill?.typicalRangeMs ?? null

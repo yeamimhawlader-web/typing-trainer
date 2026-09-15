@@ -82,7 +82,7 @@ export interface CubicBezier {
   readonly y2: number
 }
 
-const bezier = (x1: number, y1: number, x2: number, y2: number): CubicBezier => ({
+export const bezier = (x1: number, y1: number, x2: number, y2: number): CubicBezier => ({
   x1,
   y1,
   x2,
@@ -158,7 +158,12 @@ export const WORD_JUMP_MOTION = {
   },
 } as const
 
-export type WordJumpMotion = typeof WORD_JUMP_MOTION
+/** Numbers widened, so a variant of the jump can be written with its own values. */
+type Widened<T> = {
+  readonly [K in keyof T]: T[K] extends number ? number : T[K] extends string ? string : Widened<T[K]>
+}
+
+export type WordJumpMotion = Widened<typeof WORD_JUMP_MOTION> & { readonly risePower: 2 | 3 }
 
 /** Total length of the jump, from the first frame of anticipation to rest. */
 export const wordJumpDurationMs = (motion: WordJumpMotion = WORD_JUMP_MOTION): number =>
@@ -205,9 +210,9 @@ export const riseSegments = (launchMs: number, apexMs: number, power: 2 | 3): Ri
   }
 }
 
-const round = (value: number): number => Math.round(value * 10_000) / 10_000
+export const round = (value: number): number => Math.round(value * 10_000) / 10_000
 
-const cssEasing = ({ x1, y1, x2, y2 }: CubicBezier): string =>
+export const cssEasing = ({ x1, y1, x2, y2 }: CubicBezier): string =>
   `cubic-bezier(${round(x1)}, ${round(y1)}, ${round(x2)}, ${round(y2)})`
 
 const transform = (translateYEm: number, scaleX: number, scaleY: number, tiltDeg: number): string =>

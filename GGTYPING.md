@@ -95,6 +95,87 @@ hook the typing surface uses. The only change to the typing screen is that each
 word's letters sit inside an `inline-block` element the jump can move, which
 was measured to leave every character's position unchanged.
 
+## Mode 1: Hover Mode
+
+A training mode rather than an effect, and the first place GGTyping openly
+indulges in motion. At `/gg/hover`, beside ordinary practice.
+
+**Cause.** One mistake on a word, by the engine's own definition.
+
+**Reaction.** The word jumps where it is — the word jump above, after one
+mistake instead of three — and three rings appear under it. The typist finishes
+the word as usual. When they leave it, the word lifts off the line and hovers,
+and every key types the word again until it has gone cleanly the required
+number of times. Then it settles back onto the line and the text carries on.
+
+**Rules.**
+
+| Event | Effect |
+| --- | --- |
+| A mistake, nothing focused | That word is focused: 3 clean repetitions required |
+| A mistake, something already focused | Nothing — one focus at a time |
+| Leaving the focused word in the text | Repetitions begin; the text pauses at the next word |
+| A repetition with no mistake | One clean repetition; a ring fills |
+| A repetition with a mistake | Required +3 (never beyond 12), once per repetition however many mistakes; clean ones already done are kept |
+| Clean repetitions reach the requirement | Released: the text resumes where it was left |
+| 20 repetitions, clean or not | Released as not completed, so no focus can hold a typist indefinitely |
+| The last word focused | The test stays open until it is released |
+| Restart, new text, word count change | Everything cleared |
+
+A repetition is the word and the space after it, typed through a second instance
+of the typing engine: its correctness, extras, early spaces and backspace are the
+engine's, and a mistake later corrected still counts, as it does in the engine's
+error count.
+
+**What is recorded.** The session's speed, accuracy and keystroke log are the
+pass through the text, by the engine's unchanged definitions: the session engine
+is paused while a word is repeated, and repetitions never reach it. The session
+is saved with mode `hover` and one record per focus — the word, its position,
+the final requirement, clean repetitions, repetitions with a mistake, whether it
+was completed or hit the limit, and how long it held the typist. Hover Mode
+sessions are left out of the slow-sequence analysis and drill baselines, like
+drills, because stopping at every mistake changes the rhythm those measure.
+
+**Motion.** Parameters and rationale in
+[`hover.motion.ts`](./src/features/ggtyping/motion/hover.motion.ts). In short:
+
+- Lift-off gathers (a hair of sink), then rises 0.24 em on a curve that stops at
+  the top: 730 ms.
+- The hover is five loops on nested layers — float (3.4 s, 0.07 em, rising more
+  slowly than it sinks), drift (6.1 s), tilt (4.7 s, under a degree), and a glow
+  and a light on the line that breathe with the float. Keyframes sit only at each
+  loop's extremes with a sine ease-in-out between, so every join, including the
+  wrap, is smooth in position and speed; drift and tilt run on periods of their
+  own, so the whole never visibly repeats.
+- A clean repetition: its ring fills with a small pop, and the word dips 0.045 em
+  and recovers.
+- A repetition with a mistake: the word jump itself, played by its own player at
+  0.26 em and 375 ms, over the hover, which carries on underneath; three new
+  rings grow in.
+- Release: from wherever the hover is, down to the line with a 0.018 em
+  undershoot and settle, 780 ms; glow, light and rings fade on the way. The layer
+  lands exactly on the word in the text, which then reappears with the original
+  mistake still marked.
+
+**How it is drawn.** The text is never rewritten or duplicated in its layout.
+The focused word is drawn a second time in a layer positioned over it from the
+stream's own measurements, and the word in the text is hidden with `visibility`
+while the layer stands in for it, so nothing reflows. While a word is repeated
+the stream keeps its line in view even if the text's cursor has moved on to the
+next line. With `prefers-reduced-motion: reduce` nothing moves; the layer, its
+glow, the rings and the caret are drawn still, and a status region announces the
+count to screen readers in every case.
+
+**Performance.** Measured in Chromium at 120, 150 and 240 WPM through several
+focuses, with misses: no dropped keys, no layout reads, no long tasks, median
+input-to-DOM 0.2 ms for the text (as in ordinary practice) and 0.5–0.6 ms for
+repetitions. The only style read is the hover's pose at release, once per focus.
+
+**Where it lives.** Rules and controller in
+[`src/features/ggtyping/hover`](./src/features/ggtyping/hover), motion in
+[`src/features/ggtyping/motion`](./src/features/ggtyping/motion), and the layer in
+`src/features/gg-ui/components/WordStream/HoverFocus.tsx`.
+
 ## Adding an effect
 
 Before building one, write its row in this file: the cause, the reaction, the

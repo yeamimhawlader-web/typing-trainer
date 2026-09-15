@@ -5,6 +5,12 @@
   row-gap: 0.75rem;
 }
 
+.modes {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 /* Without separators, groups need their own spacing once they wrap. */
 @media (max-width: 720px) {
   .toolbar {

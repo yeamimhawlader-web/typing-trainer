@@ -19,12 +19,17 @@ import {
 export const useWordJumps = (
   engine: TypingEngine,
   options?: WordJumpControllerOptions,
+  /**
+   * False where a mode reacts to mistakes itself — Hover Mode focuses a word on
+   * its first mistake, so the three-in-a-row jump is not also played there.
+   */
+  enabled = true,
 ): WordJumpController => {
   // State rather than a memo: React may discard a memoised value, and a
   // controller replaced mid-session would lose its registered words.
   const [controller] = useState(() => createWordJumpController(options))
 
-  useEffect(() => controller.connect(engine), [controller, engine])
+  useEffect(() => (enabled ? controller.connect(engine) : undefined), [controller, engine, enabled])
 
   return controller
 }

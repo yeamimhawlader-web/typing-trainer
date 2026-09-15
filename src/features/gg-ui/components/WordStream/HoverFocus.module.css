@@ -1,0 +1,117 @@
+/*
+ * Hover Mode's focus layer. Positioned by transform from the stream's own
+ * measurements, over the word it stands in for, inheriting the stream's font,
+ * size, line height and tracking so its letters sit exactly where the text's
+ * did. Every moving part is a transform or an opacity, played by
+ * features/ggtyping/motion/hover.ts; nothing here transitions.
+ */
+.anchor {
+  /* Derived from the theme's accent, like every GG colour. */
+  --hover-glow: color-mix(in oklab, var(--gg-accent) 20%, transparent);
+  --hover-pool: color-mix(in oklab, var(--gg-accent) 32%, transparent);
+
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  white-space: pre;
+  pointer-events: none;
+}
+
+/* The nested layers each carry one kind of motion (see hover.motion.ts). */
+.layer {
+  display: block;
+  transform-origin: 50% 100%;
+}
+
+.letters {
+  position: relative;
+  display: block;
+  /* Hidden until the layer stands in for the word; until then the word in the
+     text is the one being typed. */
+  opacity: 0;
+}
+
+.anchor[data-stage='repeating'] .letters,
+.anchor[data-stage='releasing'] .letters {
+  opacity: 1;
+}
+
+.word {
+  position: relative;
+  display: inline-block;
+}
+
+/* The caret inside the focused word: the stream's own block, which is hidden
+   while this one shows. */
+.caret {
+  background-color: var(--gg-accent-tint-strong);
+  border-radius: 0.14em;
+}
+
+/* --- Glow and light ---------------------------------------------------- */
+
+/* Close to the word: a glow reaching far past it is cut off hard where a word
+   starts a line, at the edge of the stream. */
+.glow {
+  position: absolute;
+  inset: 0.05em -0.22em;
+  border-radius: 0.8em;
+  background: radial-gradient(closest-side, var(--hover-glow), transparent);
+  opacity: 0;
+}
+
+/* A soft light on the line under the word, which narrows as the word rises. */
+.pool {
+  position: absolute;
+  top: 1.12em;
+  left: -0.1em;
+  right: 0.5em;
+  height: 0.34em;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--hover-pool), transparent);
+  transform-origin: 50% 50%;
+  opacity: 0;
+}
+
+/* --- Progress nodes ---------------------------------------------------- */
+
+/* From the start of the word, reading left to right like the word itself.
+   Centred, a row wider than a short word would reach back past the start of
+   the line, where the stream clips it. */
+.nodes {
+  position: absolute;
+  top: calc(100% - 0.16em);
+  left: 0.04em;
+  display: flex;
+  gap: 0.17em;
+}
+
+/* A ring for a repetition to come, a dot for one done: told apart by shape. */
+.node {
+  display: block;
+  /* Never smaller than 4px: the phone-size text would otherwise make them specks. */
+  width: max(0.2em, 4px);
+  height: max(0.2em, 4px);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 max(0.045em, 1px) var(--gg-muted);
+}
+
+.node[data-filled='true'] {
+  background-color: var(--gg-accent);
+  box-shadow: none;
+}
+
+/*
+ * Without motion the layer does not lift or move, so the focus has to be seen
+ * standing still: the glow and the light are simply on.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .anchor[data-stage='repeating'] .glow {
+    opacity: 0.75;
+  }
+
+  .anchor[data-stage='repeating'] .pool {
+    opacity: 0.6;
+  }
+}

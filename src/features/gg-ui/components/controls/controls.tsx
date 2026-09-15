@@ -4,6 +4,7 @@
  * - `PillGroup` — a single choice among short text labels, as native radios.
  * - `IconCircle` — an icon action, transparent until hovered or active.
  * - `IconLink` — the same shape, for navigation.
+ * - `PillLink` — a pill for navigation, such as choosing a mode.
  * - `Separator` — the hairline between groups.
  *
  * Choices use native radio inputs rather than buttons with ARIA: arrow keys,
@@ -86,6 +87,23 @@ export interface IconLinkProps {
 export const IconLink = ({ to, label, children }: IconLinkProps) => (
   <Link to={to} className={styles.iconCircle} aria-label={label} title={label}>
     {children}
+  </Link>
+)
+
+export interface PillLinkProps {
+  readonly to: string
+  readonly label: string
+  /** Said after the label, and shown as a tooltip. */
+  readonly description: string
+  readonly current: boolean
+}
+
+export const PillLink = ({ to, label, description, current }: PillLinkProps) => (
+  <Link to={to} className={styles.pillLink} aria-current={current ? 'page' : undefined} title={description}>
+    <span className={styles.pillFace}>
+      {label}
+      <span className="visually-hidden">: {description}</span>
+    </span>
   </Link>
 )
 

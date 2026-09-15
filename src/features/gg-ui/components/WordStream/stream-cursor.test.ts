@@ -12,7 +12,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createTypingEngine } from '@core/engine'
 import { timestamp } from '@core/types'
 
-import { createStreamCursor, lineIndexOf } from './stream-cursor.ts'
+import { createStreamCursor, engineCursorSource, lineIndexOf } from './stream-cursor.ts'
 
 const CHARACTER_WIDTH = 10
 const LINE = 40
@@ -68,7 +68,7 @@ const connect = (count: number, words: string[]) => {
       engine.input(key, timestamp(clock))
     }
   }
-  const stop = controller.follow(engine)
+  const stop = controller.follow(engineCursorSource(engine))
   controller.measure()
   return { ...elements, controller, engine, type, stop }
 }

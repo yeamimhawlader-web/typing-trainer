@@ -18,13 +18,14 @@
  * metrics, telemetry or persistence knows or cares.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
   BACKSPACE,
   createTypingEngine,
   IDLE_GAP_CAP_MS,
   isTypeableCharacter,
+  type CompletionPolicy,
   type TypingEngine,
 } from '@core/engine'
 import {
@@ -72,6 +73,22 @@ export interface WordCountPreference {
   readonly remember: (count: WordCount) => void
 }
 
+/**
+ * How a training mode takes part in a session without the session knowing the
+ * mode.
+ *
+ * Both are seams that already existed: the engine's completion policy, which is
+ * how modes were always meant to decide when a test is over, and the context a
+ * test is saved with. Ordinary practice passes nothing and gets the engine's
+ * default rule and the context it was given, exactly as before.
+ */
+export interface SessionModeHooks {
+  /** When the test is over. Read once, when the engine is created. */
+  readonly isComplete: CompletionPolicy
+  /** The context the finished test is saved with, built from the one it ran with. */
+  readonly finalContext: (context: SessionContext) => SessionContext
+}
+
 /** Whether the finished test made it to storage. */
 export type SaveState = 'idle' | 'saving' | 'saved' | 'failed'
 
@@ -116,9 +133,18 @@ export const useTypingSession = (
   telemetry: TelemetryService = defaultTelemetryService,
   context: SessionContext = DEFAULT_SESSION_CONTEXT,
   preference?: WordCountPreference,
+  mode?: SessionModeHooks,
 ): TypingSessionController => {
-  // The idle cap is a rule of word-count practice: see IDLE_GAP_CAP_MS.
-  const engine = useMemo(() => createTypingEngine({ maxGapMs: IDLE_GAP_CAP_MS }), [])
+  // The idle cap is a rule of word-count practice: see IDLE_GAP_CAP_MS. State
+  // rather than a memo, because React may discard a memo and an engine
+  // replaced mid-test would lose the test.
+  const [engine] = useState(() =>
+    createTypingEngine(
+      mode === undefined
+        ? { maxGapMs: IDLE_GAP_CAP_MS }
+        : { maxGapMs: IDLE_GAP_CAP_MS, isComplete: (snapshot) => mode.isComplete(snapshot) },
+    ),
+  )
 
   /**
    * Held in a ref rather than in the effect below's dependencies.
@@ -133,6 +159,10 @@ export const useTypingSession = (
   useEffect(() => {
     contextRef.current = context
   }, [context])
+  const modeRef = useRef(mode)
+  useEffect(() => {
+    modeRef.current = mode
+  }, [mode])
   const [lastSession, setLastSession] = useState<TypingSession | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [sequences, setSequences] = useState<SequenceReport | null>(null)
@@ -277,7 +307,7 @@ export const useTypingSession = (
 
       const session = createTypingSession({
         result: event.result,
-        context: contextRef.current,
+        context: modeRef.current?.finalContext(contextRef.current) ?? contextRef.current,
         completedAt: timestamp(Date.now()),
       })
 

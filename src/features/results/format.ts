@@ -55,6 +55,7 @@ const MODE_LABELS: Record<TypingSession['context']['mode'], string> = {
   time: 'Time',
   quote: 'Quote',
   drill: 'Drill',
+  hover: 'Hover Mode',
 }
 
 /**

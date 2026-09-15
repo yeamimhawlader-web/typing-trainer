@@ -35,9 +35,36 @@
  * not cut off at the top. That strip would otherwise show the bottom of the line
  * before, so that one line is hidden while it sits there. It changes when the
  * line does, a few times a test, and costs a style change with no layout.
+ *
+ * ## Holding the view
+ *
+ * Normally the caret's line is the first line. A source can name another
+ * character to keep in view instead — Hover Mode keeps the focused word's line
+ * first while the word is repeated, even when the text's cursor has already
+ * moved on to the next line. The caret is still drawn where the source says.
  */
 
-import type { TypingEngine } from '@core/engine'
+import type { TypingEngine, Unsubscribe } from '@core/engine'
+
+/** Where the caret is, and which character's line to keep first. */
+export interface CursorSource {
+  getCursorIndex(): number
+  /** Defaults to the caret's own position. */
+  getAnchorIndex?(): number
+  subscribe(listener: () => void): Unsubscribe
+}
+
+export const engineCursorSource = (engine: TypingEngine): CursorSource => ({
+  getCursorIndex: () => engine.getSnapshot().cursorIndex,
+  subscribe: engine.subscribe,
+})
+
+/** A character's position, as the last measurement found it, in content coordinates. */
+export interface CharacterOrigin {
+  readonly x: number
+  /** Top of the line box the character sits in, not of the glyph box. */
+  readonly lineTop: number
+}
 
 interface StreamLayout {
   readonly spans: readonly HTMLElement[]
@@ -49,6 +76,8 @@ interface StreamLayout {
   readonly lineStarts: readonly number[]
   readonly endX: number
   readonly endY: number
+  /** Distance from the top of a line box to the top of a character's box in it. */
+  readonly glyphInset: number
 }
 
 export interface StreamCursor {
@@ -58,10 +87,14 @@ export interface StreamCursor {
   readonly attachCursor: (element: HTMLSpanElement | null) => void
   /** Re-measure after anything that moves characters: new text, a new size. */
   measure(): void
-  /** Moves the cursor to the engine's position. Cheap; no layout reads. */
+  /** Moves the cursor to the source's position. Cheap; no layout reads. */
   place(): void
-  /** Follows an engine's cursor until the returned stop is called. */
-  follow(engine: TypingEngine): () => void
+  /** Follows a cursor source until the returned stop is called. */
+  follow(source: CursorSource): () => void
+  /** A character's measured position, or null before the first measurement. No layout reads. */
+  originOf(index: number): CharacterOrigin | null
+  /** Called after every measurement, for anything positioned from it. */
+  onMeasure(listener: () => void): Unsubscribe
   /** Starts watching for resizes and font loading. Returns the stop. */
   observe(): () => void
 }
@@ -86,10 +119,12 @@ export const createStreamCursor = (): StreamCursor => {
   let viewport: HTMLDivElement | null = null
   let content: HTMLDivElement | null = null
   let cursor: HTMLSpanElement | null = null
-  let engine: TypingEngine | null = null
+  let source: CursorSource | null = null
   let layout: StreamLayout | null = null
   let scroll = Number.NaN
   let placedIndex = Number.NaN
+  let placedAnchor = Number.NaN
+  const measureListeners = new Set<() => void>()
   let hidden: readonly HTMLElement[] = []
 
   const setHidden = (spans: readonly HTMLElement[]): void => {
@@ -99,18 +134,21 @@ export const createStreamCursor = (): StreamCursor => {
   }
 
   const place = (): void => {
-    if (layout === null || content === null || cursor === null || engine === null) return
+    if (layout === null || content === null || cursor === null || source === null) return
 
-    const index = engine.getSnapshot().cursorIndex
+    const index = source.getCursorIndex()
+    const anchor = source.getAnchorIndex?.() ?? index
     // The engine notifies on clock ticks too; those move nothing.
-    if (index === placedIndex) return
+    if (index === placedIndex && anchor === placedAnchor) return
     placedIndex = index
+    placedAnchor = anchor
 
-    const inText = index < layout.xs.length
-    const x = inText ? (layout.xs[index] as number) : layout.endX
-    const y = inText ? (layout.ys[index] as number) : layout.endY
+    const yOf = (position: number): number =>
+      position < (layout as StreamLayout).ys.length ? ((layout as StreamLayout).ys[position] as number) : (layout as StreamLayout).endY
+    const x = index < layout.xs.length ? (layout.xs[index] as number) : layout.endX
+    const y = yOf(index)
 
-    const line = lineIndexOf(layout.lineTops, y)
+    const line = lineIndexOf(layout.lineTops, yOf(anchor))
     const offset = (layout.lineTops[line] as number) - (layout.lineTops[0] ?? 0)
 
     if (offset !== scroll) {
@@ -161,6 +199,11 @@ export const createStreamCursor = (): StreamCursor => {
     const firstRect = (spans[0] as HTMLElement).getBoundingClientRect()
     const endRect = lastRect ?? firstRect
     layout = {
+      // The first line's box starts at the top of the content, so how far down
+      // its first character sits is exactly how far every character sits below
+      // the top of its line. Measured rather than worked out from the font:
+      // baseline alignment of the word boxes moves it by fractions of a pixel.
+      glyphInset: ys[0] ?? 0,
       spans,
       xs,
       ys,
@@ -176,10 +219,13 @@ export const createStreamCursor = (): StreamCursor => {
     cursor.style.height = `${firstRect.height}px`
     scroll = Number.NaN
     placedIndex = Number.NaN
+    placedAnchor = Number.NaN
     place()
     void cursor.offsetWidth
     cursor.style.transition = ''
     cursor.dataset.placed = 'true'
+
+    for (const listener of measureListeners) listener()
   }
 
   return {
@@ -197,13 +243,30 @@ export const createStreamCursor = (): StreamCursor => {
     place,
 
     follow: (next) => {
-      engine = next
+      source = next
       placedIndex = Number.NaN
+      placedAnchor = Number.NaN
       place()
       const stop = next.subscribe(place)
       return () => {
         stop()
-        if (engine === next) engine = null
+        if (source === next) source = null
+      }
+    },
+
+    originOf: (index) => {
+      if (layout === null) return null
+      const inText = index < layout.xs.length
+      return {
+        x: inText ? (layout.xs[index] as number) : layout.endX,
+        lineTop: (inText ? (layout.ys[index] as number) : layout.endY) - layout.glyphInset,
+      }
+    },
+
+    onMeasure: (listener) => {
+      measureListeners.add(listener)
+      return () => {
+        measureListeners.delete(listener)
       }
     },
 

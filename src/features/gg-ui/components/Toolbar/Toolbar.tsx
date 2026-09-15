@@ -1,7 +1,11 @@
 /**
- * The toolbar: text size and test length.
+ * The toolbar: the mode, text size and test length.
  *
- * Both are real settings with nowhere else to live. Text size is a preference,
+ * The mode is a route rather than a setting — ordinary practice at `/gg`, Hover
+ * Mode at `/gg/hover` — so a mode is a page that can be linked to and returned
+ * to, and the two can never be mixed within one test.
+ *
+ * Text size and length are real settings with nowhere else to live. Text size is a preference,
  * kept by the settings store with the rest. Test length is the typing session's
  * own word count, which remembers itself through the same preference practice
  * already used — so a length chosen here is the length the classic screen opens
@@ -12,10 +16,11 @@
  * length group is not offered for one.
  */
 
+import { ROUTES } from '@app/routes.ts'
 import { TEXT_SIZES, type TextSize } from '@core/types'
 import { WORD_COUNT_OPTIONS, type WordCount } from '@features/typing'
 
-import { PillGroup, Separator, type PillOption } from '../controls/controls.tsx'
+import { PillGroup, PillLink, Separator, type PillOption } from '../controls/controls.tsx'
 
 import styles from './Toolbar.module.css'
 
@@ -39,7 +44,16 @@ const LENGTH_OPTIONS: readonly PillOption<WordCount>[] = WORD_COUNT_OPTIONS.map(
   accessibleLabel: `${count} words`,
 }))
 
+export type GGMode = 'standard' | 'hover'
+
+const MODES: readonly { readonly mode: GGMode; readonly to: string; readonly label: string; readonly description: string }[] = [
+  { mode: 'standard', to: ROUTES.gg, label: 'Standard', description: 'Words, typed straight through' },
+  { mode: 'hover', to: ROUTES.ggHover, label: 'Hover Mode', description: 'Target mistakes and repeat them' },
+]
+
 export interface ToolbarProps {
+  /** The mode on screen. Null where there is no choice, such as a drill. */
+  readonly mode: GGMode | null
   readonly size: TextSize
   readonly onSizeChange: (size: TextSize) => void
   /** Null for a drill, which has no length to choose. */
@@ -47,8 +61,25 @@ export interface ToolbarProps {
   readonly onWordCountChange: (count: WordCount) => void
 }
 
-export const Toolbar = ({ size, onSizeChange, wordCount, onWordCountChange }: ToolbarProps) => (
+export const Toolbar = ({ mode, size, onSizeChange, wordCount, onWordCountChange }: ToolbarProps) => (
   <div className={styles.toolbar}>
+    {mode !== null && (
+      <>
+        <nav aria-label="Mode" className={styles.modes}>
+          {MODES.map((option) => (
+            <PillLink
+              key={option.mode}
+              to={option.to}
+              label={option.label}
+              description={option.description}
+              current={option.mode === mode}
+            />
+          ))}
+        </nav>
+        <Separator />
+      </>
+    )}
+
     <PillGroup name="gg-size" label="Text size" options={SIZE_OPTIONS} value={size} onChange={onSizeChange} />
 
     {wordCount !== null && (

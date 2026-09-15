@@ -20,6 +20,7 @@
 import type { SessionMetrics } from '@core/types'
 
 import type {
+  HoverFocusRecord,
   KeyboardLayout,
   SessionContext,
   SessionDifficulty,
@@ -27,7 +28,7 @@ import type {
   TypingSession,
 } from './types.ts'
 
-const MODES: readonly SessionMode[] = ['words', 'time', 'quote', 'drill']
+const MODES: readonly SessionMode[] = ['words', 'time', 'quote', 'drill', 'hover']
 const DIFFICULTIES: readonly SessionDifficulty[] = ['normal', 'punctuation', 'numbers']
 const LAYOUTS: readonly KeyboardLayout[] = ['qwerty', 'dvorak', 'colemak']
 const STATUSES = ['completed', 'abandoned'] as const
@@ -69,6 +70,20 @@ const parseMetrics = (value: unknown): SessionMetrics | null => {
   return value as unknown as SessionMetrics
 }
 
+const isFocusRecord = (value: unknown): value is HoverFocusRecord =>
+  isRecord(value) &&
+  isNonEmptyString(value['word']) &&
+  isCount(value['wordIndex']) &&
+  isCount(value['required']) &&
+  isCount(value['successes']) &&
+  isCount(value['failures']) &&
+  isCount(value['focusMs']) &&
+  typeof value['completed'] === 'boolean' &&
+  typeof value['limitReached'] === 'boolean'
+
+const isHoverRecord = (value: unknown): boolean =>
+  isRecord(value) && Array.isArray(value['focuses']) && value['focuses'].every(isFocusRecord)
+
 const parseContext = (value: unknown): SessionContext | null => {
   if (!isRecord(value)) return null
   if (!isOneOf(value['mode'], MODES)) return null
@@ -80,6 +95,9 @@ const parseContext = (value: unknown): SessionContext | null => {
   // defect in those records — only a present-but-wrong value is.
   const target = value['targetSequence']
   if (target !== undefined && !isNonEmptyString(target)) return null
+
+  const hover = value['hover']
+  if (hover !== undefined && !isHoverRecord(hover)) return null
 
   return value as unknown as SessionContext
 }
