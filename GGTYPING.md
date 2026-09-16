@@ -140,18 +140,35 @@ to say, so words arriving move nothing on the page, and the state is carried by
 a mark as well as by colour. It changes once when the state changes, not with
 every keystroke.
 
-**Sound.** Off until a keyboard is chosen, and then remembered. The speaker in
-the toolbar is a glass node that unfolds into the keyboards to type on, the same
+**Sound.** Off until a sound is chosen, and then remembered. The speaker in
+the toolbar is a glass node that unfolds into the sounds to type to, the same
 way Hover Mode's node unfolds into its difficulties; choosing one plays it as you
-choose it, because a keyboard cannot be read, only heard.
+choose it, because a sound cannot be read, only heard. Sounds come in four
+styles, chosen beside the volume: the branches are the sounds of the style
+showing, and the tree opens on the style of the sound in use.
 
-| Pack | What it sounds like |
-| --- | --- |
-| Thock | Deep and dampened, like a heavy board on a desk mat |
-| Cream | Smooth and rounded, a long buttery bottom-out |
-| Click | Crisp and tactile, with a bright top to every press |
-| Hush | Barely there, for a shared room or a late night |
-| Typewriter | A hard strike with a little ring left behind it |
+| Style | Sound | What it sounds like |
+| --- | --- | --- |
+| Mechanical | Thock | Deep and dampened, like a heavy board on a desk mat |
+| | Cream | Smooth and rounded, a long buttery bottom-out |
+| | Click | Crisp and tactile, with a bright top to every press |
+| | Hush | Barely there, for a shared room or a late night |
+| | Typewriter | A hard strike with a little ring left behind it |
+| Neon | Woosh | A rush of air on every key, like a neon sign flickering on |
+| | Laser | A quick pew of light, pitched down as it goes |
+| | Synthwave | Detuned saw plucks through a closing filter, a note of a minor scale on every key |
+| | Hologram | A glassy shimmer, like light through a prism, in a bright scale |
+| Soft | Bubble | A small round pop, like bubbles rising |
+| | Droplet | Water dropping into a still bowl |
+| | Chime | A soft glass chime, a different note on every key |
+| Arcade | Blip | A tidy eight-bit blip |
+| | Coin | Two quick notes, the sound of a pickup |
+| | Chiptune | Square-wave notes in a major key: a tune as you type |
+
+The styles that are not keyboards were balanced against the keyboards by ear
+weighting, not by the numbers in their recipes: every voice of every sound was
+rendered in Chromium and measured A-weighted, and each sits within the range the
+keyboards themselves span — none louder than Cream or the typewriter.
 
 The master volume sits beside the keyboards, from silent to the level the packs
 were made at. Every sound is built in the browser rather than played from a file:

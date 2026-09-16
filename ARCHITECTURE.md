@@ -944,11 +944,22 @@ shell rather than rebuilt in it. Its token plan is in
   any volume. The slider is squared rather than straight, because hearing is
   not linear: half the slider is about 12 dB down, which is roughly half as
   loud, and zero is silence rather than a whisper.
-- **A sound pack is a character, not a copy.** Every pack is built from one set
-  of recipes bent by a handful of numbers — depth, length, brightness, hardness,
-  dampening, and whether it rings — so another keyboard is one small object and
-  none can drift out of proportion. Hover Mode's notes and the selector's glass
-  are the same in every pack: they belong to the application, not to the keyboard.
+- **A sound pack is a character, not a copy.** Every keyboard is built from one
+  set of recipes bent by a handful of numbers — depth, length, brightness,
+  hardness, dampening, and whether it rings — so another keyboard is one small
+  object and none can drift out of proportion. Hover Mode's notes and the
+  selector's glass are the same in every pack: they belong to the application,
+  not to the keyboard.
+- **Sounds that are not keyboards are designed, from the same few parts.** The
+  Neon, Soft and Arcade styles cannot be bent from a knock, so each writes its
+  four keyboard voices outright, and the synthesiser gained only what they need:
+  square and saw waves, a noise band that sweeps (a rush of air), a slower
+  attack, a second note that starts late, a filter that closes, and a note taken
+  from a scale per play, chosen by the play's own random wobble so tests can fix
+  it. Proportions are tested for every style — space no smaller than a key,
+  backspace lighter, a mistake lower and duller — and loudness was balanced by
+  rendering every voice offline and measuring it A-weighted, because a
+  3 kHz sweep and a 150 Hz knock with the same gain are not the same loudness.
 - **One unfolding, three trees, one open.** The glass node that opens into
   branches is `components/Unfold`: Hover Mode's difficulties, the paces and the
   sound packs are the same interaction with different choices. Which tree is out

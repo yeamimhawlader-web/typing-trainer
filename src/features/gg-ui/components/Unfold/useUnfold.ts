@@ -217,9 +217,15 @@ export interface UnfoldOptions {
   /** The branch trees this selector is one of, and its name among them. */
   readonly trees?: BranchTrees | undefined
   readonly tree?: BranchTreeId | undefined
+  /** Which set of branches is showing, where it can change while open: the stems are drawn to it again. */
+  readonly layoutKey?: string | undefined
 }
 
-export const useUnfold = (open: boolean, refs: UnfoldRefs, { memory: given, trees, tree }: UnfoldOptions = {}) => {
+export const useUnfold = (
+  open: boolean,
+  refs: UnfoldRefs,
+  { memory: given, trees, tree, layoutKey = '' }: UnfoldOptions = {},
+) => {
   const sound = useSound()
   const shared = useContext(UnfoldMemoryContext)
   const [ownMemory] = useState(createUnfoldMemory)
@@ -298,6 +304,15 @@ export const useUnfold = (open: boolean, refs: UnfoldRefs, { memory: given, tree
       for (const animation of running) animation.cancel()
     }
   }, [memory, motion, refs])
+
+  // A different set of branches, the same tree: the stems go to where they are now.
+  const drawnFor = useRef(layoutKey)
+  useLayoutEffect(() => {
+    if (drawnFor.current === layoutKey) return
+    drawnFor.current = layoutKey
+    const measured = measure(refs)
+    if (measured !== null) drawStems(refs, measured.geometry)
+  }, [layoutKey, refs])
 
   // Stems follow the branches when the page is resized with the selector open.
   useEffect(() => {

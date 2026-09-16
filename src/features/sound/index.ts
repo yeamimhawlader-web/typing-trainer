@@ -11,10 +11,12 @@ export { playHoverSounds, playTypingSounds, voiceForKeystroke, voiceForSignal, l
 export { SoundContext, useSound } from './context.ts'
 export { createSoundEngine } from './sound-engine.ts'
 export type { SoundEngine, SoundEngineOptions } from './sound-engine.ts'
-export { playVoice } from './synth.ts'
+export { playVoice, scaleRatio } from './synth.ts'
 export type { PlayOptions } from './synth.ts'
 export {
+  buildDesignedPack,
   buildPack,
+  categoryOf,
   DEFAULT_SOUND_PACK,
   FULL_VOLUME,
   gainForVolume,
@@ -23,7 +25,10 @@ export {
   LADDER,
   longestVoiceMs,
   MASTER_GAIN,
+  noteGainOf,
   packById,
+  packsIn,
+  SOUND_CATEGORIES,
   SOUND_PACK_LIST,
   SOUND_PACKS,
   soundChoiceFromStored,

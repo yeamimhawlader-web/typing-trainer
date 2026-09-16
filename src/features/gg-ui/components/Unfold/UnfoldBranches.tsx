@@ -13,7 +13,7 @@
  * and hidden from assistive technology, because they are no longer a choice.
  */
 
-import type { ReactNode, RefObject } from 'react'
+import { useState, type ReactNode, type RefObject } from 'react'
 
 import type { BranchTreeId } from './branch-trees.ts'
 
@@ -62,6 +62,11 @@ export interface UnfoldBranchesProps {
   readonly className?: string | undefined
   /** Anything that belongs in the unfolded row beside the branches. */
   readonly beside?: ReactNode
+  /**
+   * Which set of choices the branches are, where a tree offers more than one —
+   * the sound styles. A new set is new branches, which settle into place.
+   */
+  readonly itemsKey?: string
 }
 
 /** The drawn stems: a trunk, used when the branches stack, and one per branch. */
@@ -85,7 +90,10 @@ export const UnfoldBranches = ({
   compact = false,
   className,
   beside,
+  itemsKey = '',
 }: UnfoldBranchesProps) => {
+  // The set the row opened on. Branches of any other set arrive, rather than unfold.
+  const [openedOn] = useState(itemsKey)
   if (phase === 'closed') return null
   const choosing = onChange !== undefined
 
@@ -107,10 +115,17 @@ export const UnfoldBranches = ({
           </g>
         </svg>
 
-        <div ref={list} role="radiogroup" aria-label={label} className={styles.list} data-compact={compact}>
+        <div
+          ref={list}
+          role="radiogroup"
+          aria-label={label}
+          className={styles.list}
+          data-compact={compact}
+          data-swapped={itemsKey !== openedOn}
+        >
           {items.map((item) => (
             <label
-              key={item.value}
+              key={`${itemsKey}:${item.value}`}
               className={styles.branch}
               data-branch={item.value}
               data-tone={item.tone}

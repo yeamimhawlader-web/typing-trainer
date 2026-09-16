@@ -25,7 +25,7 @@ import { createSessionServiceOver, type SessionService } from '@core/sessions'
 import { createTelemetryServiceOver, type TelemetryService } from '@core/telemetry'
 import type { TextProvider, TextRequest } from '@core/text'
 import { createSettingsStore, settingsStore } from '@features/settings/state/settings.store.ts'
-import { SOUND_PACK_LIST } from '@features/sound'
+import { packsIn, SOUND_CATEGORIES, SOUND_PACK_LIST } from '@features/sound'
 
 import { GGLayout } from './layout/GGLayout.tsx'
 import { GGDrillPage } from './pages/GGDrillPage.tsx'
@@ -833,7 +833,7 @@ describe('GG.Typing on the real typing session', () => {
       expect(built.contexts).toBe(0)
     })
 
-    it('unfolds into the keyboards to type on, off among them', async () => {
+    it('unfolds into the keyboards to type on, off among them, with the other styles beside them', async () => {
       fakeAudio()
       const user = userEvent.setup()
       await firstTest(wordsProvider().provider)
@@ -843,8 +843,13 @@ describe('GG.Typing on the real typing session', () => {
       const packs = screen.getByRole('radiogroup', { name: 'Sound' })
       expect(within(packs).getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual([
         'off',
-        ...SOUND_PACK_LIST.map((pack) => pack.id),
+        ...packsIn('mechanical').map((pack) => pack.id),
       ])
+      const styles = screen.getByRole('radiogroup', { name: 'Sound style' })
+      expect(within(styles).getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual(
+        SOUND_CATEGORIES.map((style) => style.id),
+      )
+      expect(within(styles).getByRole('radio', { name: /^Mechanical/ })).toBeChecked()
       expect(within(packs).getByRole('radio', { name: /^Off/ })).toBeChecked()
       expect(soundNode()).toHaveAttribute('aria-expanded', 'true')
       // Each one says what it is, for anyone who cannot hear it.
@@ -873,6 +878,42 @@ describe('GG.Typing on the real typing session', () => {
       const reloaded = createSettingsStore(storage)
       await reloaded.getState().hydrate()
       expect(reloaded.getState().preferences.sound).toBe('cream')
+    })
+
+    it('shows the sounds of another style when it is chosen, and plays the one picked from them', async () => {
+      const built = fakeAudio()
+      const user = userEvent.setup()
+      await firstTest(wordsProvider().provider)
+
+      await user.click(soundNode())
+      await user.click(screen.getByRole('radio', { name: /^Neon/ }))
+
+      const packs = screen.getByRole('radiogroup', { name: 'Sound' })
+      expect(within(packs).getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual([
+        'off',
+        ...packsIn('neon').map((pack) => pack.id),
+      ])
+      // Choosing a style is not choosing a sound: the tree stays out.
+      expect(soundNode()).toHaveAttribute('aria-expanded', 'true')
+      expect(settingsStore.getState().preferences.sound).toBe('off')
+
+      await user.click(within(packs).getByRole('radio', { name: /^Woosh/ }))
+
+      expect(settingsStore.getState().preferences.sound).toBe('woosh')
+      expect(soundNode()).toHaveAccessibleName('Sound: Woosh')
+      expect(built.contexts).toBe(1)
+    })
+
+    it('opens on the style of the sound in use', async () => {
+      fakeAudio()
+      const user = userEvent.setup()
+      settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15, sound: 'chiptune' } })
+      await firstTest(wordsProvider().provider)
+
+      await user.click(soundNode())
+
+      expect(within(screen.getByRole('radiogroup', { name: 'Sound style' })).getByRole('radio', { name: /^Arcade/ })).toBeChecked()
+      expect(within(screen.getByRole('radiogroup', { name: 'Sound' })).getByRole('radio', { name: /^Chiptune/ })).toBeChecked()
     })
 
     it('goes quiet again when Off is chosen, keeping the audio it already opened', async () => {

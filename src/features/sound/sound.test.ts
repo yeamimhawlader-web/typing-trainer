@@ -19,14 +19,19 @@ import type { Keystroke } from '@core/types'
 
 import { ladderStep, playHoverSounds, playTypingSounds, voiceForKeystroke, voiceForSignal } from './connect.ts'
 import { createSoundEngine, type SoundEngine } from './sound-engine.ts'
+import { scaleRatio } from './synth.ts'
 import {
   buildPack,
+  categoryOf,
   DEFAULT_SOUND_PACK,
   KEYBOARD_VOICES,
   LADDER,
   longestVoiceMs,
   MASTER_GAIN,
+  noteGainOf,
   packById,
+  packsIn,
+  SOUND_CATEGORIES,
   SOUND_PACK_LIST,
   SOUND_PACKS,
   soundChoiceFromStored,
@@ -224,13 +229,13 @@ describe('the packs', () => {
     const notes = (id: SoundPackId) =>
       Object.entries(SOUND_PACKS[id]).filter(([name]) => !(KEYBOARD_VOICES as readonly string[]).includes(name))
 
-    for (const { id, character } of SOUND_PACK_LIST) {
-      for (const [name, recipe] of notes(id)) {
+    for (const pack of SOUND_PACK_LIST) {
+      for (const [name, recipe] of notes(pack.id)) {
         const base = THOCK_PACK[name as SoundVoice]
-        expect(recipe.body.from, `${id}/${name}`).toBe(base.body.from)
-        expect(recipe.body.decayMs, `${id}/${name}`).toBe(base.body.decayMs)
+        expect(recipe.body.from, `${pack.id}/${name}`).toBe(base.body.from)
+        expect(recipe.body.decayMs, `${pack.id}/${name}`).toBe(base.body.decayMs)
         // Only how loud a note is follows the pack.
-        expect(recipe.body.gain, `${id}/${name}`).toBeCloseTo(base.body.gain * character.noteGain, 3)
+        expect(recipe.body.gain, `${pack.id}/${name}`).toBeCloseTo(base.body.gain * noteGainOf(pack), 3)
       }
     }
   })
@@ -271,6 +276,11 @@ describe('the packs', () => {
     expect(packById('cream')).toBe(SOUND_PACKS.cream)
   })
 
+  it('reads a stored choice of any style', () => {
+    expect(soundChoiceFromStored('woosh')).toBe('woosh')
+    expect(soundChoiceFromStored('chiptune')).toBe('chiptune')
+  })
+
   it('reads a stored choice, including the switch the first version of sound stored', () => {
     expect(soundChoiceFromStored('off')).toBe('off')
     expect(soundChoiceFromStored('typewriter')).toBe('typewriter')
@@ -278,6 +288,87 @@ describe('the packs', () => {
     expect(soundChoiceFromStored(false)).toBe('off')
     expect(soundChoiceFromStored('bongos')).toBeNull()
     expect(soundChoiceFromStored(undefined)).toBeNull()
+  })
+})
+
+describe('the styles', () => {
+  it('sorts every pack into a style, and gives every style a few to choose from', () => {
+    const styles = SOUND_CATEGORIES.map((category) => category.id)
+
+    for (const pack of SOUND_PACK_LIST) expect(styles).toContain(pack.category)
+    for (const style of styles) expect(packsIn(style).length).toBeGreaterThanOrEqual(3)
+    // Every pack in exactly one style, in the order the list gives them.
+    expect(styles.flatMap((style) => packsIn(style).map((pack) => pack.id))).toEqual(
+      SOUND_PACK_LIST.map((pack) => pack.id),
+    )
+  })
+
+  it('keeps the keyboards together, and puts the air, bubbles and blips in styles of their own', () => {
+    expect(packsIn('mechanical').map((pack) => pack.id)).toEqual(['thock', 'cream', 'click', 'hush', 'typewriter'])
+    expect(categoryOf('woosh')).toBe('neon')
+    expect(categoryOf('bubble')).toBe('soft')
+    expect(categoryOf('coin')).toBe('arcade')
+    expect(categoryOf('off')).toBe('mechanical')
+  })
+
+  it('keeps the proportions in every style: space bigger than a key, backspace lighter, a mistake lower', () => {
+    for (const { id } of SOUND_PACK_LIST) {
+      const pack = SOUND_PACKS[id]
+      const loudness = (recipe: VoiceRecipe) => recipe.body.gain + (recipe.partial?.gain ?? 0) + (recipe.click?.gain ?? 0)
+      const longest = (recipe: VoiceRecipe) =>
+        Math.max(recipe.body.decayMs, (recipe.partial?.delayMs ?? 0) + (recipe.partial?.decayMs ?? 0), recipe.click?.decayMs ?? 0)
+
+      expect(longest(pack.space), `${id}: space lasts longer`).toBeGreaterThan(longest(pack.key) - 1)
+      expect(loudness(pack.backspace), `${id}: backspace is lighter`).toBeLessThan(loudness(pack.key) + 0.001)
+      expect(pack.mistake.body.from, `${id}: a mistake is lower`).toBeLessThan(pack.key.body.from)
+      expect(pack.mistake.lowpassHz, `${id}: a mistake is duller`).toBeLessThan(pack.key.lowpassHz)
+    }
+  })
+
+  it('makes Woosh air rather than a knock: a band of noise sweeping as it fades, louder than any tone under it', () => {
+    const { key, space } = SOUND_PACKS.woosh
+
+    expect(key.click?.sweepTo).toBeGreaterThan(key.click?.frequency as number)
+    expect(space.click?.sweepTo).toBeLessThan(space.click?.frequency as number)
+    expect(key.click?.gain).toBeGreaterThan(key.body.gain)
+    expect(key.click?.attackMs).toBeGreaterThan(1.5)
+  })
+
+  it('gives the styles that play notes a scale, and the keyboards none', () => {
+    for (const id of ['synthwave', 'hologram', 'chime', 'chiptune'] as const) {
+      expect(SOUND_PACKS[id].key.scale?.length, id).toBeGreaterThanOrEqual(5)
+    }
+    for (const { id } of packsIn('mechanical')) expect(SOUND_PACKS[id as SoundPackId].key.scale).toBeUndefined()
+  })
+
+  it('never lets a synth wave be as loud as a knock: squares and saws are quieter by recipe', () => {
+    for (const { id } of SOUND_PACK_LIST) {
+      for (const [name, recipe] of Object.entries(SOUND_PACKS[id]) as [string, VoiceRecipe][]) {
+        for (const tone of [recipe.body, recipe.partial]) {
+          if (tone !== undefined && (tone.type === 'square' || tone.type === 'sawtooth')) {
+            expect(tone.gain, `${id}/${name}`).toBeLessThanOrEqual(0.12)
+          }
+        }
+      }
+    }
+  })
+})
+
+describe('a scale', () => {
+  it('lands every play on one of its notes, the lowest at one end of the draw and the highest at the other', () => {
+    const scale = [0, 3, 7, 12]
+
+    expect(scaleRatio(scale, -1)).toBe(1)
+    expect(scaleRatio(scale, 1)).toBe(2)
+    expect(scaleRatio(scale, 0)).toBeCloseTo(2 ** (7 / 12), 10)
+    for (let draw = -1; draw <= 1; draw += 0.05) {
+      expect(scale.map((step) => 2 ** (step / 12))).toContainEqual(scaleRatio(scale, draw))
+    }
+  })
+
+  it('changes nothing without one', () => {
+    expect(scaleRatio(undefined, 0.7)).toBe(1)
+    expect(scaleRatio([], 0.7)).toBe(1)
   })
 })
 
@@ -348,6 +439,62 @@ describe('the sound engine', () => {
       expect(source.started).not.toBeNull()
       expect(source.stopped).toBeGreaterThan(source.started as number)
     }
+  })
+
+  it('sweeps a noise band, swells an attack, delays a second note and closes a filter, where a recipe asks', () => {
+    const { sound, latest } = withContext()
+    sound.choose('woosh')
+
+    sound.play('key')
+    const woosh = SOUND_PACKS.woosh.key
+    const at = latest().currentTime + 0.002
+    const [band] = sources(latest(), 'filter').filter((filter) => filter.frequency.calls[0]?.value === woosh.click?.frequency)
+    expect(band?.frequency.calls[1]).toEqual({
+      method: 'exponential',
+      value: woosh.click?.sweepTo,
+      at: at + (woosh.click?.decayMs as number) / 1000,
+    })
+    const swell = latest()
+      .nodes.filter((node): node is FakeGain => node instanceof FakeGain)
+      .find((gain) => gain.gain.calls[1]?.value === woosh.click?.gain)
+    expect(swell?.gain.calls[1]?.at).toBeCloseTo(at + (woosh.click?.attackMs as number) / 1000, 6)
+
+    sound.choose('coin')
+    sound.play('key')
+    const coin = SOUND_PACKS.coin.key
+    const later = sources(latest(), 'oscillator').find((node) => node.frequency.calls[0]?.value === coin.partial?.from)
+    expect(later?.started).toBeCloseTo(latest().currentTime + 0.002 + (coin.partial?.delayMs as number) / 1000, 6)
+
+    sound.choose('laser')
+    sound.play('key')
+    const laser = SOUND_PACKS.laser.key
+    const [pluck] = sources(latest(), 'filter').filter((filter) => filter.type === 'lowpass' && filter.frequency.calls[0]?.value === laser.lowpassHz)
+    expect(pluck?.frequency.calls[1]).toMatchObject({ method: 'exponential', value: laser.lowpassTo })
+  })
+
+  it("plays a scale's note, chosen by the play's own draw", () => {
+    const contexts: FakeContext[] = []
+    const draws = [-1, 1]
+    const sound = createSoundEngine({
+      createContext: () => {
+        const context = new FakeContext()
+        contexts.push(context)
+        return context as unknown as AudioContext
+      },
+      wobble: () => ({ pitch: draws.shift() ?? 0, gain: 0 }),
+    })
+    sound.choose('chiptune')
+
+    sound.play('key')
+    sound.play('key')
+
+    const recipe = SOUND_PACKS.chiptune.key
+    const bodies = sources(contexts[0] as FakeContext, 'oscillator').filter((node) => node.type === recipe.body.type)
+    const [low, high] = bodies.map((node) => node.frequency.calls[0]?.value as number)
+    const scale = recipe.scale as readonly number[]
+    const variation = recipe.variation.pitch
+    expect(low).toBeCloseTo(recipe.body.from * (1 - variation), 3)
+    expect(high).toBeCloseTo(recipe.body.from * (1 + variation) * 2 ** ((scale.at(-1) as number) / 12), 3)
   })
 
   it('pitches a repetition by its rung on the ladder', () => {

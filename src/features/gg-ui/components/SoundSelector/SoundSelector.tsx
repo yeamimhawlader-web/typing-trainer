@@ -1,8 +1,12 @@
 /**
- * Sound: a glass node that unfolds into the keyboards you can type on.
+ * Sound: a glass node that unfolds into the sounds you can type to.
  *
  * The same object as Hover Mode's selector, holding a different kind of choice
- * — Off, and one branch per sound pack, with the master volume beside them.
+ * — Off, and one branch per sound of a style, with the style and the master
+ * volume beside them. Sounds come in styles — Mechanical keyboards, Neon air
+ * and synths, Soft bubbles and glass, Arcade blips — and the branches are the
+ * sounds of the style showing: choosing another style brings its sounds into
+ * the same branches, and the tree opens on the style of the sound in use.
  * Pressing the speaker opens it; choosing a pack plays that pack and folds it
  * again, so the branches are never left taking up the page. Nothing is applied
  * later or on a confirmation: the choice is the preview.
@@ -13,10 +17,19 @@
  * by the shell with the trees, so a page change mid-fold carries on folding.
  */
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 
-import { SOUND_PACK_LIST, useSound, type SoundPreference } from '@features/sound'
+import {
+  categoryOf,
+  packsIn,
+  SOUND_CATEGORIES,
+  SOUND_PACK_LIST,
+  useSound,
+  type SoundPackDetails,
+  type SoundPreference,
+} from '@features/sound'
 
+import { PillGroup, type PillOption } from '../controls/controls.tsx'
 import { SoundOffIcon, SoundOnIcon } from '../icons.tsx'
 import { useBranchTrees, useTreeOpen } from '../Unfold/branch-trees.ts'
 import unfold from '../Unfold/Unfold.module.css'
@@ -34,18 +47,38 @@ const TONES: Readonly<Record<string, Pick<UnfoldItem, 'marks' | 'tone'>>> = {
   thock: { marks: 2, tone: 'committed' },
   click: { marks: 3, tone: 'committed' },
   typewriter: { marks: 3, tone: 'persistent' },
+  woosh: { marks: 2, tone: 'calm' },
+  laser: { marks: 2, tone: 'committed' },
+  synthwave: { marks: 3, tone: 'committed' },
+  hologram: { marks: 2, tone: 'calm' },
+  bubble: { marks: 1, tone: 'calm' },
+  droplet: { marks: 1, tone: 'calm' },
+  chime: { marks: 2, tone: 'calm' },
+  blip: { marks: 2, tone: 'committed' },
+  coin: { marks: 3, tone: 'committed' },
+  chiptune: { marks: 3, tone: 'persistent' },
 }
 
 const toneOf = (id: string): Pick<UnfoldItem, 'marks' | 'tone'> =>
   TONES[id] ?? { marks: 2 as const, tone: 'calm' as BranchTone }
 
-const ITEMS: readonly UnfoldItem[] = [
-  { value: 'off', label: 'Off', description: 'No sound at all', marks: 1, tone: 'calm' },
-  ...SOUND_PACK_LIST.map((pack) => {
-    const tone = toneOf(pack.id)
-    return { value: pack.id, label: pack.name, description: pack.description, marks: tone.marks, tone: tone.tone }
-  }),
-]
+const OFF: UnfoldItem = { value: 'off', label: 'Off', description: 'No sound at all', marks: 1, tone: 'calm' }
+
+const itemOf = (pack: SoundPackDetails): UnfoldItem => {
+  const tone = toneOf(pack.id)
+  return { value: pack.id, label: pack.name, description: pack.description, marks: tone.marks, tone: tone.tone }
+}
+
+type StyleId = (typeof SOUND_CATEGORIES)[number]['id']
+
+/** Off, and the sounds of one style. */
+const itemsIn = (style: StyleId): readonly UnfoldItem[] => [OFF, ...packsIn(style).map(itemOf)]
+
+const STYLE_OPTIONS: readonly PillOption<StyleId>[] = SOUND_CATEGORIES.map((style) => ({
+  value: style.id,
+  label: style.name,
+  accessibleLabel: `${style.name}: ${style.description}`,
+}))
 
 export interface SoundSelectorProps {
   /** Sound off, or the pack it is on. */
@@ -61,6 +94,16 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
   const open = useTreeOpen(trees, 'sound')
   const sound = useSound()
 
+  // The style showing: the one of the sound in use each time the tree opens,
+  // and whichever is chosen while it is out.
+  const [shown, setShown] = useState(() => ({ open, style: categoryOf(value) }))
+  if (shown.open !== open) setShown({ open, style: open ? categoryOf(value) : shown.style })
+  const style = shown.style
+  const items = useMemo(() => itemsIn(style), [style])
+  const chooseStyle = useCallback((next: StyleId) => {
+    setShown((was) => ({ ...was, style: next }))
+  }, [])
+
   const node = useRef<HTMLButtonElement>(null)
   const nodeGlass = useRef<HTMLSpanElement>(null)
   const nodeLight = useRef<HTMLSpanElement>(null)
@@ -69,7 +112,12 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
   const stems = useRef<SVGGElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const [refs] = useState(() => ({ node, nodeGlass, nodeLight, row, inner, stems, list }))
-  const { phase, press } = useUnfold(open, refs, { memory: trees.memoryOf('sound'), trees, tree: 'sound' })
+  const { phase, press } = useUnfold(open, refs, {
+    memory: trees.memoryOf('sound'),
+    trees,
+    tree: 'sound',
+    layoutKey: style,
+  })
 
   const toggle = useCallback(() => {
     press('node')
@@ -88,8 +136,8 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
   )
 
   const on = value !== 'off'
-  const chosen = ITEMS.find((item) => item.value === value) ?? ITEMS[0]
-  const label = on ? `Sound: ${chosen?.label ?? ''}` : 'Sound: off'
+  const chosen = SOUND_PACK_LIST.find((pack) => pack.id === value)
+  const label = on && chosen !== undefined ? `Sound: ${chosen.name}` : 'Sound: off'
 
   return (
     <>
@@ -125,7 +173,8 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
         tree="sound"
         name="gg-sound"
         label="Sound"
-        items={ITEMS}
+        items={items}
+        itemsKey={style}
         value={on ? value : 'off'}
         onChange={open ? choose : undefined}
         onReselect={(again) => {
@@ -135,7 +184,19 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
         }}
         compact
         className={styles.branches}
-        beside={<VolumeSlider value={volume} onChange={onVolumeChange} />}
+        beside={
+          <div className={styles.beside}>
+            <PillGroup
+              name="gg-sound-style"
+              label="Sound style"
+              caption="Style"
+              options={STYLE_OPTIONS}
+              value={style}
+              onChange={chooseStyle}
+            />
+            <VolumeSlider value={volume} onChange={onVolumeChange} />
+          </div>
+        }
       />
     </>
   )

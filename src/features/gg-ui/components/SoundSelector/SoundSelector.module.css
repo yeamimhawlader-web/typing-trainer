@@ -22,3 +22,12 @@
     grid-area: sound;
   }
 }
+
+/* Beneath the sounds: which style they are, and how loud. */
+.beside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 22px;
+  margin-top: 10px;
+}

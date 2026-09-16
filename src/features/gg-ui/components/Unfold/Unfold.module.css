@@ -197,6 +197,42 @@
   gap: 10px;
 }
 
+/* Another set of choices in the same tree — a sound style — arrives in place:
+   each branch rises into its spot a beat after the one before. Only ever after
+   the tree has opened, so it never plays against the unfolding. */
+.list[data-swapped='true'] .branch {
+  animation: gg-branch-arrive 300ms var(--gg-ease-touch) both;
+}
+
+.list[data-swapped='true'] .branch:nth-child(2) {
+  animation-delay: 25ms;
+}
+
+.list[data-swapped='true'] .branch:nth-child(3) {
+  animation-delay: 50ms;
+}
+
+.list[data-swapped='true'] .branch:nth-child(4) {
+  animation-delay: 75ms;
+}
+
+.list[data-swapped='true'] .branch:nth-child(n + 5) {
+  animation-delay: 100ms;
+}
+
+@keyframes gg-branch-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list[data-swapped='true'] .branch {
+    animation: none;
+  }
+}
+
 /* --- A branch --------------------------------------------------------- */
 
 .branch {
