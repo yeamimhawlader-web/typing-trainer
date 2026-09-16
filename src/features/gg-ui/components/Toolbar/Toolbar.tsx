@@ -7,27 +7,27 @@
  * part of the mode control: its glass node unfolds into the three difficulties
  * in a row of their own beneath the toolbar (see HoverSelector).
  *
- * Text size and length are real settings with nowhere else to live. Text size is a preference,
- * kept by the settings store with the rest. Test length is the typing session's
- * own word count, which remembers itself through the same preference practice
- * already used — so a length chosen here is the length the classic screen opens
- * on too, and the other way round.
+ * Text size and the test's shape are real settings with nowhere else to live.
+ * Text size is a preference, kept by the settings store with the rest. The
+ * shape — a number of words, or a length of time — is kept there too, both
+ * lengths at once, so switching between them remembers each.
  *
  * A drill has no length to choose: it is the material it was generated as, and
  * different text would make its before-and-after comparison meaningless. So the
- * length group is not offered for one.
+ * shape is not offered for one.
  *
  * Sound is the same shape of control as the mode: a glass node that unfolds into
  * the keyboards to type on, in a row of its own under Hover Mode's.
  */
 
-import { TEXT_SIZES, type HoverDifficulty, type TextSize } from '@core/types'
+import { TEXT_SIZES, type HoverDifficulty, type PracticeMode, type PracticeWordCount, type TextSize } from '@core/types'
 import type { SoundPreference } from '@features/sound'
-import { WORD_COUNT_OPTIONS, type WordCount } from '@features/typing'
+import type { WordCount } from '@features/typing'
 
 import { PillGroup, Separator, type PillOption } from '../controls/controls.tsx'
 import { HoverSelector, type GGMode } from '../HoverSelector/HoverSelector.tsx'
 import { SoundSelector } from '../SoundSelector/SoundSelector.tsx'
+import { TestShape } from './TestShape.tsx'
 
 import styles from './Toolbar.module.css'
 
@@ -45,12 +45,6 @@ const SIZE_OPTIONS: readonly PillOption<TextSize>[] = TEXT_SIZES.map((size) => (
   accessibleLabel: SIZE_NAMES[size],
 }))
 
-const LENGTH_OPTIONS: readonly PillOption<WordCount>[] = WORD_COUNT_OPTIONS.map((count) => ({
-  value: count,
-  label: String(count),
-  accessibleLabel: `${count} words`,
-}))
-
 export type { GGMode }
 
 export interface ToolbarProps {
@@ -62,12 +56,23 @@ export interface ToolbarProps {
   readonly onHoverDifficultyChange?: ((difficulty: HoverDifficulty) => void) | undefined
   readonly size: TextSize
   readonly onSizeChange: (size: TextSize) => void
-  /** Null for a drill, which has no length to choose. */
-  readonly wordCount: WordCount | null
-  readonly onWordCountChange: (count: WordCount) => void
+  /**
+   * What ends a test — a word count or a time — and the two lengths it
+   * remembers. Null for a drill, which is the material it was built as.
+   */
+  readonly shape: {
+    readonly mode: PracticeMode
+    readonly words: WordCount
+    readonly seconds: number
+    readonly onWords: (count: WordCount) => void
+    readonly onTime: (seconds: number) => void
+  } | null
   /** Sound off, or the pack it is on, and how to change it. */
   readonly sound: SoundPreference
   readonly onSoundChange: (sound: SoundPreference) => void
+  /** The master volume, 0–100. */
+  readonly soundVolume: number
+  readonly onSoundVolumeChange: (volume: number) => void
 }
 
 export const Toolbar = ({
@@ -76,10 +81,11 @@ export const Toolbar = ({
   onHoverDifficultyChange,
   size,
   onSizeChange,
-  wordCount,
-  onWordCountChange,
+  shape,
   sound,
   onSoundChange,
+  soundVolume,
+  onSoundVolumeChange,
 }: ToolbarProps) => (
   <div className={styles.toolbar}>
     {mode !== null && (
@@ -91,20 +97,25 @@ export const Toolbar = ({
 
       <PillGroup name="gg-size" label="Text size" options={SIZE_OPTIONS} value={size} onChange={onSizeChange} />
 
-      {wordCount !== null && (
+      {shape !== null && (
         <>
           <Separator />
-          <PillGroup
-            name="gg-length"
-            label="Test length"
-            options={LENGTH_OPTIONS}
-            value={wordCount}
-            onChange={onWordCountChange}
+          <TestShape
+            mode={shape.mode}
+            words={shape.words as PracticeWordCount}
+            seconds={shape.seconds}
+            onWords={shape.onWords}
+            onTime={shape.onTime}
           />
         </>
       )}
     </div>
 
-    <SoundSelector value={sound} onChange={onSoundChange} />
+    <SoundSelector
+      value={sound}
+      onChange={onSoundChange}
+      volume={soundVolume}
+      onVolumeChange={onSoundVolumeChange}
+    />
   </div>
 )

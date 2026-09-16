@@ -30,8 +30,11 @@ export interface PillGroupProps<T extends string | number> {
   readonly name: string
   readonly label: string
   readonly options: readonly PillOption<T>[]
-  readonly value: T
+  /** Null where the group holds no choice: another group has it. */
+  readonly value: T | null
   readonly onChange: (value: T) => void
+  /** Shown before the pills, where the group's name is worth reading. */
+  readonly caption?: string
 }
 
 export const PillGroup = <T extends string | number>({
@@ -40,8 +43,10 @@ export const PillGroup = <T extends string | number>({
   options,
   value,
   onChange,
+  caption,
 }: PillGroupProps<T>) => (
   <div role="radiogroup" aria-label={label} className={styles.group}>
+    {caption !== undefined && <span className={styles.caption}>{caption}</span>}
     {options.map((option) => (
       <label key={String(option.value)} className={styles.pill}>
         <input

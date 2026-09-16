@@ -13,7 +13,7 @@
  * and hidden from assistive technology, because they are no longer a choice.
  */
 
-import type { RefObject } from 'react'
+import type { ReactNode, RefObject } from 'react'
 
 import styles from './Unfold.module.css'
 import type { UnfoldPhase } from './useUnfold.ts'
@@ -48,6 +48,8 @@ export interface UnfoldBranchesProps {
   readonly compact?: boolean
   /** The class that puts the row where it belongs in its own layout. */
   readonly className?: string | undefined
+  /** Anything that belongs in the unfolded row beside the branches. */
+  readonly beside?: ReactNode
 }
 
 /** The drawn stems: a trunk, used when the branches stack, and one per branch. */
@@ -68,6 +70,7 @@ export const UnfoldBranches = ({
   onChange,
   compact = false,
   className,
+  beside,
 }: UnfoldBranchesProps) => {
   if (phase === 'closed') return null
   const choosing = onChange !== undefined
@@ -116,6 +119,8 @@ export const UnfoldBranches = ({
             </label>
           ))}
         </div>
+
+        {beside}
       </div>
     </div>
   )

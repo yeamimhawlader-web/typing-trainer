@@ -869,6 +869,25 @@ shell rather than rebuilt in it. Its token plan is in
   clock, idle cap, saved session, telemetry, drill measurement — whichever screen
   it was typed on, and neither screen computes a figure: the live values are
   shared selectors over the engine snapshot, and the result is the stored record.
+- **Time is the same engine, not a second one.** A timed test is the engine's
+  own completion seam — `elapsedMs >= the time` — with the idle gap cap turned
+  off, because a timed test charges every second whether or not anyone is
+  typing. Completion is checked before a keystroke is applied as well as after,
+  so a key that arrives after the time is up ends the test rather than being
+  counted in it, and the tick that already drives the clock ends a test nobody
+  is typing into. The shape of the test (words or time, and how much of either)
+  is a preference; changing it builds a new engine, because how the clock runs
+  is fixed when an engine is made, and lays out new material to match.
+- **Tab is the way back into typing.** On a finished test it starts the next one
+  immediately; while one is under way it restarts it. Both are read on the
+  typing field alone, so Tab anywhere else on the page still moves focus — the
+  result's own controls stay reachable — and Tab on an idle test moves focus
+  rather than restarting nothing.
+- **Live accuracy is three states, not a number.** The same accuracy the engine
+  reports, read as a ratio rather than a rounded percentage, so 95.99% is below
+  the line while the figure beside it still says 96. A component subscribed to
+  the state re-renders when the state changes and at no other time, which is
+  what keeps one warning from arriving sixty times a second.
 - **Keys reach a test through commands, from one adapter per screen.**
   `useTypingSession` exposes `inputKey`, `deleteWord` and `restart` and listens
   to nothing. The classic screen's adapter is a window `keydown` listener
@@ -920,6 +939,11 @@ shell rather than rebuilt in it. Its token plan is in
   — neither knows sound exists — so a keystroke does no extra work for it, and a
   browser without Web Audio, or a graph that throws, is silent rather than
   broken.
+- **Master volume is one gain.** Everything GG.Typing plays goes through the
+  engine's single master gain, so the packs keep their proportions exactly at
+  any volume. The slider is squared rather than straight, because hearing is
+  not linear: half the slider is about 12 dB down, which is roughly half as
+  loud, and zero is silence rather than a whisper.
 - **A sound pack is a character, not a copy.** Every pack is built from one set
   of recipes bent by a handful of numbers — depth, length, brightness, hardness,
   dampening, and whether it rings — so another keyboard is one small object and
@@ -929,7 +953,15 @@ shell rather than rebuilt in it. Its token plan is in
   `components/Unfold`: Hover Mode's difficulties and the sound packs are the same
   interaction with different choices. Hover Mode's motion is the shell's, carried
   across the two mode pages; the sound selector opens and closes on one page and
-  keeps its own.
+  keeps its own. Both are temporary: the branches unfold when the node is
+  pressed and fold again the moment a choice is made, so they never sit there
+  taking up the page, and the node itself says what is chosen.
+- **A word that keeps costing mistakes is kept.** Five wrong keystrokes on the
+  same word in one test make it a Golden Nugget, counted in memory from the
+  engine's own account of which word a keystroke acted on. Storage is touched
+  once, at the moment a word crosses the line, and never again for that word;
+  a test in which nothing crosses writes nothing. Hover Mode does not count
+  twice: there, every mistake on a focused word is already part of the focus.
 - **Physical motion is a spring solved exactly.** Hover Mode's selector unfolds
   and folds on one spring whose position and speed are known at any moment, so
   it turns around mid-flight from where it is. The shell keeps that state across

@@ -25,7 +25,6 @@ import { createUnfoldMemory, UnfoldMemoryContext, type UnfoldMemory } from './un
 import {
   branchPose,
   buildPress,
-  corePose,
   labelPose,
   lightPose,
   rowPose,
@@ -51,8 +50,6 @@ export interface UnfoldRefs {
   readonly nodeGlass: RefObject<HTMLSpanElement | null>
   /** The light that flexes across the node's glass under a press. */
   readonly nodeLight: RefObject<HTMLSpanElement | null>
-  /** The node's core, lit while the selector is open. */
-  readonly nodeCore: RefObject<HTMLSpanElement | null>
   /** The row that makes room for the branches. */
   readonly row: RefObject<HTMLDivElement | null>
   /** The row's content, whose height is the room needed. */
@@ -206,7 +203,6 @@ export const useUnfold = (open: boolean, refs: UnfoldRefs, { shared: useShared =
 
     play(refs.row.current, (x) => rowPose(x, geometry))
     play(refs.stems.current, (x) => stemsPose(x))
-    play(refs.nodeCore.current, (x) => corePose(x))
     branchesIn(refs.list.current).forEach((branch, index) => {
       play(branch, (x) => branchPose(x, index, geometry))
       play(partOf(branch, BRANCH_PART.text), (x) => labelPose(x, index, geometry))
@@ -255,8 +251,8 @@ export const useUnfold = (open: boolean, refs: UnfoldRefs, { shared: useShared =
       memory.pressed(at, control)
       // On the press, not on the animation: the sound belongs to the gesture,
       // and it is the same with reduced motion, where nothing unfolds at all.
-      if (control === 'node' && !open) sound?.play('selectorOpen')
-      if (control === 'other' && open) sound?.play('selectorClose')
+      if (control === 'node') sound?.play(open ? 'selectorClose' : 'selectorOpen')
+      else if (open) sound?.play('selectorClose')
       if (control === 'node') playPress(refs, pressAnimations.current, at)
     },
     [memory, open, refs, sound],

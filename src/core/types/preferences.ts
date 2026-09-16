@@ -25,6 +25,15 @@ export const PRACTICE_WORD_COUNTS = [15, 30, 60] as const
 export type PracticeWordCount = (typeof PRACTICE_WORD_COUNTS)[number]
 
 /**
+ * What decides a test is over: a number of words, or a length of time.
+ *
+ * Both are the same test typed the same way — the same engine, the same
+ * measurements — differing only in which of the two runs out first.
+ */
+export const PRACTICE_MODES = ['words', 'time'] as const
+export type PracticeMode = (typeof PRACTICE_MODES)[number]
+
+/**
  * How persistently Hover Mode repeats a word it has focused.
  *
  * - `standard`: one cycle of three repetitions, then the word is released.
@@ -51,6 +60,13 @@ export interface UserPreferences {
   readonly practiceWordCount: PracticeWordCount
   /** The size of the typing text on the GG.Typing screen. */
   readonly textSize: TextSize
+  /** Whether practice ends on a word count or on the clock. */
+  readonly practiceMode: PracticeMode
+  /**
+   * How long a timed test runs, in seconds. Kept beside the word count rather
+   * than replacing it, so switching between the two remembers both.
+   */
+  readonly practiceSeconds: number
   /** The Hover Mode difficulty last chosen. */
   readonly hoverDifficulty: HoverDifficulty
   /**
@@ -63,4 +79,6 @@ export interface UserPreferences {
    * are read.
    */
   readonly sound: SoundPreference
+  /** How loud sound is, 0–100. Full by default: the level the packs were made at. */
+  readonly soundVolume: number
 }

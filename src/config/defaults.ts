@@ -12,9 +12,14 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   // preference that was never saved takes it; a chosen theme is kept.
   theme: 'classic-milk',
   practiceWordCount: 30,
+  // Words by default, as the application has always opened; thirty seconds is
+  // the timed test it offers first.
+  practiceMode: 'words',
+  practiceSeconds: 30,
   textSize: 'sm',
   // The least persistent: a word is repeated for one cycle and let go.
   hoverDifficulty: 'standard',
-  // Silence until it is asked for.
+  // Silence until it is asked for, and at the level the packs were made at.
   sound: 'off',
+  soundVolume: 100,
 }

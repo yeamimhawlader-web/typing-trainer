@@ -20,6 +20,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ROUTES } from '@app/routes.ts'
 import { DEFAULT_PREFERENCES } from '@config'
 import { createMemoryAdapter, storage, type StorageAdapter } from '@core/persistence'
+import { createGoldenNuggetService, type GoldenNuggetService } from '@core/nuggets'
 import { createSessionServiceOver, type SessionService } from '@core/sessions'
 import { createTelemetryServiceOver, type TelemetryService } from '@core/telemetry'
 import type { TextProvider, TextRequest } from '@core/text'
@@ -51,12 +52,14 @@ const wordsProvider = () => {
 let adapter: StorageAdapter
 let sessions: SessionService
 let telemetry: TelemetryService
+let nuggets: GoldenNuggetService
 let now = 10_000
 
 beforeEach(() => {
   adapter = createMemoryAdapter()
   sessions = createSessionServiceOver(adapter)
   telemetry = createTelemetryServiceOver(adapter)
+  nuggets = createGoldenNuggetService(createMemoryAdapter())
   settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15 }, status: 'ready' })
   // The session clock and every input event read this, so a test decides how
   // fast the typist is.
@@ -81,6 +84,7 @@ const renderGG = (path: string = ROUTES.gg, provider?: TextProvider) =>
                 {...(provider === undefined ? {} : { provider })}
                 service={sessions}
                 telemetry={telemetry}
+                goldenNuggets={nuggets}
               />
             }
           />
@@ -292,7 +296,7 @@ describe('GG.Typing on the real typing session', () => {
       expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
       expect(screen.getByText(/^Test complete: \d+ words per minute, 100% accuracy\.$/)).toBeInTheDocument()
       expect(field().value).toBe('')
-      expect(field()).toHaveAttribute('placeholder', 'Press Enter for the next test')
+      expect(field()).toHaveAttribute('placeholder', 'Press Tab for the next test')
     })
 
     it('stores the session, the same one the panel shows', async () => {
@@ -411,7 +415,7 @@ describe('GG.Typing on the real typing session', () => {
     it('offers the supported lengths, loads a test of the one chosen, and remembers it', async () => {
       const { provider, requests } = wordsProvider()
       await firstTest(provider)
-      const group = screen.getByRole('radiogroup', { name: 'Test length' })
+      const group = screen.getByRole('radiogroup', { name: 'Test length in words' })
 
       expect(within(group).getAllByRole('radio').map((radio) => radio.getAttribute('aria-label'))).toEqual([
         '15 words',
@@ -450,6 +454,312 @@ describe('GG.Typing on the real typing session', () => {
         await reloaded.getState().hydrate()
         expect(reloaded.getState().preferences.textSize).toBe('lg')
       })
+    })
+  })
+
+  describe('a test on the clock', () => {
+    const timeGroup = () => screen.getByRole('radiogroup', { name: 'Test length in time' })
+
+    const chooseTime = async (name: string | RegExp) => {
+      await userEvent.setup().click(within(timeGroup()).getByRole('radio', { name }))
+    }
+
+    it('offers times beside the word counts, and only one of them is chosen', async () => {
+      await firstTest(wordsProvider().provider)
+
+      expect(within(timeGroup()).getAllByRole('radio').map((radio) => radio.getAttribute('aria-label'))).toEqual([
+        '15 seconds',
+        '30 seconds',
+        '60 seconds',
+        'A custom time',
+      ])
+      // Words to begin with: the time group holds no choice at all.
+      expect(within(timeGroup()).queryAllByRole('radio', { checked: true })).toHaveLength(0)
+      expect(
+        within(screen.getByRole('radiogroup', { name: 'Test length in words' })).getByRole('radio', { name: '15 words' }),
+      ).toBeChecked()
+    })
+
+    it('lays out enough material for the time, counts down, and remembers the choice', async () => {
+      const { provider, requests } = wordsProvider()
+      await firstTest(provider)
+
+      await chooseTime('30 seconds')
+
+      expect(within(timeGroup()).getByRole('radio', { name: '30 seconds' })).toBeChecked()
+      expect(
+        within(screen.getByRole('radiogroup', { name: 'Test length in words' })).queryAllByRole('radio', { checked: true }),
+      ).toHaveLength(0)
+      // Far more words than a typist could reach in half a minute.
+      expect(requests.at(-1)?.wordCount).toBeGreaterThan(150)
+      expect(streamText().split(' ').length).toBeGreaterThan(150)
+      // The clock counts what is left, not what has gone.
+      expect(figure('left')).toBe('30s')
+      expect(settingsStore.getState().preferences.practiceMode).toBe('time')
+      expect(settingsStore.getState().preferences.practiceSeconds).toBe(30)
+
+      await waitFor(async () => {
+        const reloaded = createSettingsStore(storage)
+        await reloaded.getState().hydrate()
+        expect(reloaded.getState().preferences.practiceMode).toBe('time')
+      })
+    })
+
+    it('ends when the time is up, with nothing typed after it, and saves the test as a timed one', async () => {
+      await firstTest(wordsProvider().provider)
+      await chooseTime('15 seconds')
+
+      typeText('about ', 100)
+      // Past the fifteen seconds, mid-word: the test is over on that key.
+      typeText('th', 8_000)
+
+      await waitFor(async () => {
+        expect(await sessions.getAll()).toHaveLength(1)
+      })
+      const [stored] = await sessions.getAll()
+      expect(stored?.context.mode).toBe('time')
+      expect(stored?.context.durationSeconds).toBe(15)
+      expect(stored?.status).toBe('completed')
+      // "about " and the one key that still fell inside the time.
+      expect(stored?.metrics.typedCharacters).toBe(7)
+      expect(figure('left')).toBe('0s')
+    })
+
+    it('ends on the clock even when the typist has stopped typing', async () => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+      try {
+        await firstTest(wordsProvider().provider)
+        await chooseTime('15 seconds')
+        typeText('about ')
+
+        // Nothing more typed; the clock runs on and the session ends itself.
+        act(() => {
+          now += 16_000
+          vi.advanceTimersByTime(200)
+        })
+
+        expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument()
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('takes a custom time in range, and refuses one outside it', async () => {
+      const user = userEvent.setup()
+      await firstTest(wordsProvider().provider)
+
+      await chooseTime('A custom time')
+      const custom = screen.getByRole('spinbutton', { name: 'Custom time in seconds' })
+      await user.clear(custom)
+      await user.type(custom, '45')
+
+      expect(settingsStore.getState().preferences.practiceSeconds).toBe(45)
+      expect(figure('left')).toBe('45s')
+
+      // Out of range, in one go as a paste or a spinner would: refused, and the
+      // test keeps the time it had.
+      act(() => {
+        fireEvent.change(custom, { target: { value: '900' } })
+      })
+      expect(custom).toHaveAttribute('aria-invalid', 'true')
+      expect(settingsStore.getState().preferences.practiceSeconds).toBe(45)
+
+      // Under the floor, the same.
+      act(() => {
+        fireEvent.change(custom, { target: { value: '2' } })
+      })
+      expect(custom).toHaveAttribute('aria-invalid', 'true')
+      expect(settingsStore.getState().preferences.practiceSeconds).toBe(45)
+    })
+
+    it('puts no ceiling on speed in a timed test', async () => {
+      await firstTest(wordsProvider().provider)
+      await chooseTime('15 seconds')
+
+      // Sixty characters in a second and a half: about 480 words a minute.
+      typeText(streamText().slice(0, 60), 25)
+
+      expect(Number(figure('wpm'))).toBeGreaterThan(400)
+    })
+  })
+
+  describe('live accuracy', () => {
+    const notice = () => screen.getByRole('status', { name: 'Accuracy' })
+
+    it('says nothing at all while accuracy is fine', async () => {
+      await firstTest(wordsProvider().provider)
+
+      typeText('alpha bravo')
+
+      expect(figure('acc')).toBe('100%')
+      expect(notice()).toHaveTextContent('')
+      expect(notice()).toHaveAttribute('data-state', 'normal')
+    })
+
+    it('asks the typist to keep an eye on it below 96%', async () => {
+      await firstTest(wordsProvider().provider)
+
+      // One wrong key in twenty-two: 95.5%, where the figure still reads 95.
+      typeText('alpha bravo charlie d')
+      typeText('X')
+
+      expect(notice()).toHaveAttribute('data-state', 'caution')
+      expect(notice()).toHaveTextContent('Keep an eye on accuracy.')
+    })
+
+    it('says what it is costing below 94%, without shouting about it', async () => {
+      await firstTest(wordsProvider().provider)
+
+      typeText('alpha bra')
+      typeText('XX')
+
+      expect(notice()).toHaveAttribute('data-state', 'critical')
+      expect(notice()).toHaveTextContent('Accuracy is costing you speed.')
+      // The figure says so too, for anyone who cannot see the colour.
+      expect(figures().querySelector('[data-state="critical"]')).not.toBeNull()
+    })
+
+    it('never covers the typing text: it has a line of its own, always there', async () => {
+      await firstTest(wordsProvider().provider)
+      const before = notice().getBoundingClientRect().height
+
+      typeText('alpha bra')
+      typeText('XX')
+
+      // The same line, holding words now: nothing was pushed anywhere.
+      expect(notice().getBoundingClientRect().height).toBe(before)
+      expect(notice().compareDocumentPosition(stream()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+  })
+
+  describe('words that keep costing mistakes', () => {
+    /** A text of one word over and over, so every mistake lands on the same word. */
+    const repeated = (word: string, count: number): TextProvider => ({
+      id: 'fixed',
+      label: 'Fixed words',
+      provide: () => ({ text: Array.from({ length: count }, () => word).join(' '), sourceId: 'fixed' }),
+    })
+
+    it('keeps a word as a Golden Nugget on its fifth mistake, in one record', async () => {
+      await firstTest(repeated('alpha', 8))
+
+      // Five mistakes on the same word, one per attempt at it.
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        typeText('X')
+        backspace()
+        typeText('alpha ')
+      }
+
+      await waitFor(async () => {
+        expect(await nuggets.getAll()).toHaveLength(1)
+      })
+      const [kept] = await nuggets.getAll()
+      expect(kept?.word).toBe('alpha')
+      expect(kept?.mistakes).toBe(5)
+      // Nothing about Hover Mode is claimed: the word was never focused.
+      expect(kept?.timesUnresolved).toBe(0)
+      expect(kept?.hoverSessions).toBe(0)
+      expect(kept?.lastDifficulty).toBeNull()
+
+      // More mistakes on it add no second record.
+      typeText('X')
+      backspace()
+      await waitFor(async () => {
+        expect(await nuggets.getAll()).toHaveLength(1)
+      })
+    })
+
+    it('keeps nothing for a word that only costs a mistake or two', async () => {
+      await firstTest(repeated('alpha', 8))
+
+      typeText('X')
+      backspace()
+      typeText('alpha ')
+      typeText('X')
+
+      expect(await nuggets.getAll()).toEqual([])
+    })
+  })
+
+  describe('the keyboard, in every state', () => {
+    /** Tab as the browser delivers it, answering whether the field took it. */
+    const pressTab = (element: HTMLElement = field()) => {
+      const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
+      act(() => {
+        element.dispatchEvent(event)
+      })
+      return event.defaultPrevented
+    }
+
+    /** Types the whole test, which finishes it. */
+    const complete = () => typeText(streamText())
+
+    it('leaves Tab alone while a test is idle, so the page stays navigable', async () => {
+      await firstTest(wordsProvider().provider)
+
+      expect(pressTab()).toBe(false)
+      // Nothing was restarted, because nothing had started.
+      expect(figure('words')).toBe('0/15')
+      typeText('about')
+      expect(stateAt(0)).toBe('correct')
+    })
+
+    it('restarts on Tab while a test is under way', async () => {
+      await firstTest(wordsProvider().provider)
+      typeText('about ')
+      expect(figure('words')).toBe('1/15')
+
+      expect(pressTab()).toBe(true)
+
+      expect(figure('words')).toBe('0/15')
+      expect(stateAt(0)).toBe('pending')
+    })
+
+    it('starts the next test on Tab the moment one is finished', async () => {
+      await firstTest(wordsProvider().provider)
+      complete()
+      expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument()
+
+      expect(pressTab()).toBe(true)
+
+      expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+      expect(field()).toHaveAttribute('placeholder', 'Start typing the words above')
+      expect(figure('words')).toBe('0/15')
+      // And it is typed straight away, with no click in between.
+      typeText('about')
+      expect(stateAt(0)).toBe('correct')
+    })
+
+    it('still takes Enter on a finished test, for anyone who reaches for it', async () => {
+      await firstTest(wordsProvider().provider)
+      complete()
+      await screen.findByRole('button', { name: 'Try again' })
+
+      act(() => {
+        const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+        field().dispatchEvent(event)
+      })
+
+      expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    })
+
+    it('never takes Tab from another control, so the result can be reached by keyboard', async () => {
+      await firstTest(wordsProvider().provider)
+      complete()
+      await screen.findByRole('button', { name: 'Try again' })
+
+      const restart = screen.getByRole('button', { name: 'Restart test' })
+      expect(pressTab(restart)).toBe(false)
+      // The finished test is still there: nothing restarted behind the typist's back.
+      expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    })
+
+    it('says which key carries on, once a test is over', async () => {
+      await firstTest(wordsProvider().provider)
+      complete()
+      await screen.findByRole('button', { name: 'Try again' })
+
+      expect(screen.getByText(/for the next test/)).toBeInTheDocument()
     })
   })
 
@@ -741,8 +1051,12 @@ describe('a GG.Typing drill', () => {
     const words = drillText().split(' ')
     expect(words.filter((word) => word.includes('in')).length).toBeGreaterThan(words.length / 3)
     expect(screen.getByText('Drill: in', { selector: 'p' })).toBeInTheDocument()
-    expect(screen.queryByRole('radiogroup', { name: 'Test length' })).not.toBeInTheDocument()
-    expect(document.title).toBe('Drill: in · GG.Typing')
+    expect(screen.queryByRole('radiogroup', { name: 'Test length in words' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup', { name: 'Test length in time' })).not.toBeInTheDocument()
+    // The title follows the drill once its material is ready, not before.
+    await waitFor(() => {
+      expect(document.title).toBe('Drill: in · GG.Typing')
+    })
   })
 
   it('records a drill for the sequence, with telemetry, and shows its comparison', async () => {

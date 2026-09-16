@@ -2,9 +2,9 @@
  * Sound: a glass node that unfolds into the keyboards you can type on.
  *
  * The same object as Hover Mode's selector, holding a different kind of choice
- * — Off, and one branch per sound pack. Pressing the speaker opens it; pressing
- * it again folds it. Choosing a pack plays a key from that pack as you choose
- * it, because what a pack is cannot be read, only heard. Nothing is applied
+ * — Off, and one branch per sound pack, with the master volume beside them.
+ * Pressing the speaker opens it; choosing a pack plays that pack and folds it
+ * again, so the branches are never left taking up the page. Nothing is applied
  * later or on a confirmation: the choice is the preview.
  *
  * Unlike Hover Mode's, this selector is opened and closed on this page rather
@@ -23,6 +23,7 @@ import { UnfoldBranches, type BranchTone, type UnfoldItem } from '../Unfold/Unfo
 import { useUnfold } from '../Unfold/useUnfold.ts'
 
 import styles from './SoundSelector.module.css'
+import { VolumeSlider } from './VolumeSlider.tsx'
 
 /** How much each pack is heard: its beads, and how much accent it carries. */
 const TONES: Readonly<Record<string, Pick<UnfoldItem, 'marks' | 'tone'>>> = {
@@ -49,21 +50,23 @@ export interface SoundSelectorProps {
   /** Sound off, or the pack it is on. */
   readonly value: SoundPreference
   readonly onChange: (value: SoundPreference) => void
+  /** The master volume, 0–100. */
+  readonly volume: number
+  readonly onVolumeChange: (volume: number) => void
 }
 
-export const SoundSelector = ({ value, onChange }: SoundSelectorProps) => {
+export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: SoundSelectorProps) => {
   const [open, setOpen] = useState(false)
   const sound = useSound()
 
   const node = useRef<HTMLButtonElement>(null)
   const nodeGlass = useRef<HTMLSpanElement>(null)
   const nodeLight = useRef<HTMLSpanElement>(null)
-  const nodeCore = useRef<HTMLSpanElement>(null)
   const row = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
   const stems = useRef<SVGGElement>(null)
   const list = useRef<HTMLDivElement>(null)
-  const [refs] = useState(() => ({ node, nodeGlass, nodeLight, nodeCore, row, inner, stems, list }))
+  const [refs] = useState(() => ({ node, nodeGlass, nodeLight, row, inner, stems, list }))
   // Its own motion, not the shell's: this selector belongs to one page.
   const { phase, press } = useUnfold(open, refs, { shared: false })
 
@@ -77,6 +80,8 @@ export const SoundSelector = ({ value, onChange }: SoundSelectorProps) => {
       onChange(next)
       // Heard as it is chosen, in the pack chosen — the description no words give.
       if (next !== 'off') sound?.preview(next as Parameters<NonNullable<typeof sound>['preview']>[0])
+      // And folded away again: the choice is made.
+      setOpen(false)
     },
     [onChange, sound],
   )
@@ -104,10 +109,6 @@ export const SoundSelector = ({ value, onChange }: SoundSelectorProps) => {
             <span className={unfold.nodeIcon} aria-hidden="true">
               {on ? <SoundOnIcon width="16" height="16" /> : <SoundOffIcon width="16" height="16" />}
             </span>
-            {/* The core is the unfolding's to light; the icon says whether sound is on. */}
-            <span className={unfold.nodeSeat} aria-hidden="true" hidden>
-              <span ref={nodeCore} className={unfold.nodeCore} />
-            </span>
             <span className={unfold.nodeLabel}>Sound</span>
           </span>
         </button>
@@ -126,6 +127,7 @@ export const SoundSelector = ({ value, onChange }: SoundSelectorProps) => {
         onChange={open ? choose : undefined}
         compact
         className={styles.branches}
+        beside={<VolumeSlider value={volume} onChange={onVolumeChange} />}
       />
     </>
   )

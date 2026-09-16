@@ -1,6 +1,7 @@
 /**
  * The control row: what is being typed on the left; the live figures, restart
- * and settings on the right; a hairline underneath.
+ * and settings on the right; a word about accuracy when there is one to say,
+ * and a hairline underneath.
  *
  * Everything here is the application's own. The source is the text provider's
  * name. The figures are the engine's, chosen for display by the same selectors
@@ -12,8 +13,15 @@
 import { ROUTES } from '@app/routes.ts'
 import type { TypingEngine } from '@core/engine'
 import { formatDuration } from '@features/results'
-import { selectAccuracyPercent, selectElapsedSeconds, selectLiveWpm, useEngineValue } from '@features/typing'
+import {
+  selectAccuracyPercent,
+  selectAccuracyState,
+  selectElapsedSeconds,
+  selectLiveWpm,
+  useEngineValue,
+} from '@features/typing'
 
+import { AccuracyNotice } from './AccuracyNotice.tsx'
 import { IconCircle, IconLink } from '../controls/controls.tsx'
 import { RestartIcon, SettingsIcon } from '../icons.tsx'
 
@@ -23,10 +31,12 @@ interface FigureProps {
   readonly value: string
   readonly unit: string
   readonly primary?: boolean
+  /** How the figure is doing, where that is a thing it can say. */
+  readonly state?: string
 }
 
-const Figure = ({ value, unit, primary = false }: FigureProps) => (
-  <span className={styles.figure} data-primary={primary}>
+const Figure = ({ value, unit, primary = false, state }: FigureProps) => (
+  <span className={styles.figure} data-primary={primary} data-state={state}>
     <span className={styles.value}>{value}</span>
     <span className={styles.unit}>{unit}</span>
   </span>
@@ -39,12 +49,21 @@ const Speed = ({ engine }: { engine: TypingEngine }) => {
 
 const Accuracy = ({ engine }: { engine: TypingEngine }) => {
   const percent = useEngineValue(engine, selectAccuracyPercent)
-  return <Figure value={`${percent}%`} unit="acc" />
+  // The state is the ratio's, not the rounded figure's: at 95.99% the number
+  // reads 96 and the typist is still below the line.
+  const state = useEngineValue(engine, selectAccuracyState)
+  return <Figure value={`${percent}%`} unit="acc" state={state} />
 }
 
-const Time = ({ engine }: { engine: TypingEngine }) => {
+/**
+ * The clock: counting up through a word test, and down through a timed one,
+ * where what is left is the thing worth knowing. It never reads below zero:
+ * the session ends on the same clock.
+ */
+const Time = ({ engine, limitSeconds }: { engine: TypingEngine; limitSeconds: number | null }) => {
   const seconds = useEngineValue(engine, selectElapsedSeconds)
-  return <Figure value={formatDuration(seconds * 1000)} unit="time" />
+  const shown = limitSeconds === null ? seconds : Math.max(0, limitSeconds - seconds)
+  return <Figure value={formatDuration(shown * 1000)} unit={limitSeconds === null ? 'time' : 'left'} />
 }
 
 /**
@@ -52,11 +71,16 @@ const Time = ({ engine }: { engine: TypingEngine }) => {
  * on the first keystroke, so until then its snapshot still describes the
  * previous test, and nothing is finished.
  */
-const Progress = ({ engine, total }: { engine: TypingEngine; total: number }) => {
+const Progress = ({ engine, total }: { engine: TypingEngine; total: number | null }) => {
   const done = useEngineValue(engine, (snapshot) =>
-    snapshot.status === 'idle' ? 0 : snapshot.status === 'completed' ? total : Math.max(0, snapshot.currentWordIndex),
+    snapshot.status === 'idle'
+      ? 0
+      : snapshot.status === 'completed' && total !== null
+        ? total
+        : Math.max(0, snapshot.currentWordIndex),
   )
-  return <Figure value={`${done}/${total}`} unit="words" />
+  // A timed test has no total to count towards: the words are simply how many.
+  return <Figure value={total === null ? String(done) : `${done}/${total}`} unit="words" />
 }
 
 export interface ControlRowProps {
@@ -65,12 +89,21 @@ export interface ControlRowProps {
   readonly source: string
   /** A few words on what the source is, shown beside it. */
   readonly description?: string | undefined
-  /** How many words the loaded test has, by the engine's own word rule. */
-  readonly words: number
+  /** How many words the loaded test has, by the engine's own word rule. Null when the clock ends it. */
+  readonly words: number | null
+  /** The seconds a timed test runs for, or null for a word test. */
+  readonly limitSeconds?: number | null
   readonly onRestart: () => void
 }
 
-export const ControlRow = ({ engine, source, description, words, onRestart }: ControlRowProps) => (
+export const ControlRow = ({
+  engine,
+  source,
+  description,
+  words,
+  limitSeconds = null,
+  onRestart,
+}: ControlRowProps) => (
   <div className={styles.wrap}>
     <div className={styles.row}>
       <p className={styles.source}>
@@ -84,7 +117,7 @@ export const ControlRow = ({ engine, source, description, words, onRestart }: Co
         <div className={styles.figures} role="status" aria-live="off" aria-label="Live statistics">
           <Speed engine={engine} />
           <Accuracy engine={engine} />
-          <Time engine={engine} />
+          <Time engine={engine} limitSeconds={limitSeconds} />
           <Progress engine={engine} total={words} />
         </div>
         <span className={styles.gap} aria-hidden="true" />
@@ -99,6 +132,8 @@ export const ControlRow = ({ engine, source, description, words, onRestart }: Co
         </span>
       </div>
     </div>
+
+    <AccuracyNotice engine={engine} />
 
     <hr className={styles.divider} />
   </div>

@@ -36,3 +36,32 @@ export const selectAccuracyPercent = (snapshot: EngineSnapshot): number =>
 /** Whole seconds elapsed, so a timer re-renders once a second rather than ten times. */
 export const selectElapsedSeconds = (snapshot: EngineSnapshot): number =>
   Math.floor(snapshot.elapsedMs / 1000)
+
+/**
+ * How accuracy is doing, as three states rather than a number.
+ *
+ * The same accuracy the engine reports and the result records — nothing is
+ * recomputed here — read as the ratio it is, never as a rounded percentage: at
+ * 95.99% the figure on screen says 96, and the typist is nonetheless below the
+ * line. The boundaries are inclusive from above, so exactly 96% is still
+ * normal and exactly 94% is still caution.
+ *
+ * Returning a state rather than a number is what keeps the message still: a
+ * component subscribed to this re-renders when the state changes and at no
+ * other time, however often the figure moves underneath it.
+ */
+export type AccuracyState = 'normal' | 'caution' | 'critical'
+
+export const ACCURACY_STATES = {
+  /** At or above this, nothing is said. */
+  caution: 0.96,
+  /** Below this, the stronger of the two. */
+  critical: 0.94,
+} as const
+
+export const selectAccuracyState = (snapshot: EngineSnapshot): AccuracyState => {
+  // Nothing typed yet is not an accuracy problem.
+  if (snapshot.typedCount === 0) return 'normal'
+  if (snapshot.accuracy >= ACCURACY_STATES.caution) return 'normal'
+  return snapshot.accuracy >= ACCURACY_STATES.critical ? 'caution' : 'critical'
+}

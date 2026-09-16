@@ -1,11 +1,12 @@
 /**
  * Golden Nuggets: words worth coming back to.
  *
- * A word becomes a Golden Nugget when Hover Mode releases it without it having
- * cleared — the typist had the repetitions their difficulty gives, and the word
- * was still costing mistakes at the end. After that, every Hover Mode focus on
- * the same word updates the same record, cleared or not, so the record says
- * both how often the word has got away and how it went last time.
+ * A word becomes a Golden Nugget two ways: it costs five mistakes in one test,
+ * anywhere in GG.Typing, or Hover Mode releases it without it having cleared —
+ * the typist had the repetitions their difficulty gives, and the word was still
+ * costing mistakes at the end. After that, every Hover Mode focus on the same
+ * word updates the same record, cleared or not, so the record says both how
+ * often the word has got away and how it went last time.
  *
  * Deliberately a log, not a score: counts and dates, nothing ranked against
  * anyone, and nothing inferred.
@@ -39,24 +40,37 @@ export interface GoldenNugget {
   readonly timesUnresolved: number
   /** Distinct Hover Mode tests the word has been focused in since it became a nugget. */
   readonly hoverSessions: number
+  /**
+   * Distinct tests the word has cost something in, of any kind. Absent on
+   * records written before ordinary tests could keep a word, which is why it is
+   * read as the Hover Mode count when it is missing.
+   */
+  readonly tests?: number
   /** Wrong keystrokes on the word across those focuses, in the text and in repetitions. */
   readonly mistakes: number
   /** Epoch milliseconds. */
   readonly firstSeenAt: number
   /** Epoch milliseconds. */
   readonly lastSeenAt: number
-  readonly lastDifficulty: HoverDifficulty
+  /** The Hover Mode difficulty it was last focused at; null for a word never focused. */
+  readonly lastDifficulty: HoverDifficulty | null
   /** How the most recent focus on the word ended. */
   readonly lastOutcome: 'cleared' | 'unresolved'
   /** The test the most recent focus happened in, so a test is counted once. */
   readonly lastTestId: string
 }
 
-/** How one Hover Mode focus on a word ended. */
+/** Why a word is being recorded: a focus that ended, or mistakes that added up. */
+export type NuggetReason = 'released' | 'mistakes'
+
+/** How one Hover Mode focus on a word ended, or what a word has cost without one. */
 export interface HoverFocusOutcome {
+  /** `released` — a Hover Mode focus ended — by default. */
+  readonly reason?: NuggetReason
   readonly word: string
   readonly language: LanguageCode
-  readonly difficulty: HoverDifficulty
+  /** Absent where the word was never focused: mistakes alone made it a nugget. */
+  readonly difficulty?: HoverDifficulty | null
   /** Whether the word cleared by its difficulty's rule. */
   readonly cleared: boolean
   readonly mistakes: number

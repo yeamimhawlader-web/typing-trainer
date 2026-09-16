@@ -13,7 +13,6 @@ import { isAtRest, restMs, retarget, springAt, startTrajectory, trajectoryAt } f
 import {
   branchPose,
   branchProgress,
-  corePose,
   isStacked,
   labelPose,
   lightPose,
@@ -161,7 +160,6 @@ describe('the poses', () => {
       expect(labelPose(0, index, ROW).opacity).toBe('0')
     })
     expect(lightPose(0).opacity).toBe('0')
-    expect(corePose(0).opacity).toBe('0')
   })
 
   it('open, everything is exactly at rest, which is where CSS takes over', () => {
@@ -172,7 +170,6 @@ describe('the poses', () => {
       expect(labelPose(1, index, ROW)).toEqual({ transform: 'translateX(0px)', opacity: '1' })
     })
     expect(lightPose(1).opacity).toBe('1')
-    expect(corePose(1)).toEqual({ opacity: '1', transform: 'scale(1)' })
   })
 
   it('brings the branches out one just after another, and folds them back in the reverse order', () => {

@@ -89,3 +89,12 @@
     width: 0.25rem;
   }
 }
+
+/* Accuracy, once it is worth watching: the figure takes the state with it. */
+.figure[data-state='caution'] .value {
+  color: var(--gg-fg);
+}
+
+.figure[data-state='critical'] .value {
+  color: var(--gg-status-text);
+}

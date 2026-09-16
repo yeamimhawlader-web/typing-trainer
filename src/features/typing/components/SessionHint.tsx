@@ -16,9 +16,15 @@ export const SessionHint = ({ engine }: { engine: TypingEngine }) => {
   const status = useEngineValue(engine, (snapshot) => snapshot.status)
   const idle = useEngineValue(engine, (snapshot) => snapshot.idle)
 
-  // Once a test is finished the results panel carries the instructions, so this
-  // line gets out of the way rather than repeating them.
-  if (status === 'completed') return null
+  // Once a test is finished, the one thing worth saying is the fast way back
+  // into typing; the results panel carries everything else.
+  if (status === 'completed' || status === 'abandoned') {
+    return (
+      <p className={styles.hint}>
+        <kbd className={styles.key}>Tab</kbd> for the next test.
+      </p>
+    )
+  }
 
   if (status === 'running') {
     return idle ? (

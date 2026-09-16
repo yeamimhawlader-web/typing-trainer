@@ -10,7 +10,7 @@
  * turn-around starts from the current state, and that nothing waits on motion.
  */
 
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -103,7 +103,6 @@ const recordingSound = () => {
   const voices: string[] = []
   const sound = {
     isEnabled: () => true,
-    setEnabled: () => undefined,
     play: (voice: string) => voices.push(voice),
     close: () => undefined,
   } as unknown as SoundEngine
@@ -152,35 +151,33 @@ const pressStandard = () => {
 
 describe("Hover Mode's selector", () => {
   describe('at rest', () => {
-    it('is open in Hover Mode: three glass branches hanging from a lit node, the difficulty chosen', () => {
+    it('is folded in Hover Mode until it is asked for: the node is lit and says which difficulty is on', () => {
       renderModes(ROUTES.ggHover, createUnfoldMemory(), 'all-in')
 
-      const group = screen.getByRole('radiogroup', { name: 'Hover difficulty' })
-      expect(within(group).getAllByRole('radio').map((radio) => radio.getAttribute('aria-label'))).toEqual([
-        'Standard: One 3-repetition cycle',
-        'All In: Two 3-repetition cycles',
-        'Tired: Repeat until cleared, up to the safety limit',
-      ])
-      expect(within(group).getByRole('radio', { name: /^All In/ })).toBeChecked()
-      expect(row()).toHaveAttribute('data-phase', 'open')
-      expect(node()).toHaveAttribute('aria-current', 'page')
+      expect(screen.queryByRole('radiogroup', { name: 'Hover difficulty' })).not.toBeInTheDocument()
+      expect(row()).toBeNull()
       expect(node()).toHaveAttribute('data-open', 'true')
+      expect(node()).toHaveAttribute('aria-current', 'page')
+      expect(node()).toHaveAttribute('aria-expanded', 'false')
+      expect(node()).toHaveTextContent('All In')
       // Reached without pressing anything: nothing plays.
       expect(played).toEqual([])
     })
 
-    it('is folded shut in ordinary practice: no branches at all, the node unlit', () => {
+    it('is folded shut in ordinary practice, and says nothing about difficulties there', () => {
       renderModes(ROUTES.gg)
 
       expect(screen.queryByRole('radiogroup', { name: 'Hover difficulty' })).not.toBeInTheDocument()
       expect(row()).toBeNull()
       expect(node()).toHaveAttribute('data-open', 'false')
       expect(node()).not.toHaveAttribute('aria-current')
+      expect(node()).not.toHaveTextContent('All In')
       expect(standard()).toHaveAttribute('aria-current', 'page')
     })
 
     it('says only what each difficulty is: its name, its description and its beads, nothing invented', () => {
       renderModes(ROUTES.ggHover)
+      pressNode()
 
       const group = screen.getByRole('radiogroup', { name: 'Hover difficulty' })
       expect(group.textContent).toBe(HOVER_DIFFICULTY_OPTIONS.map((option) => `${option.label}${option.description}`).join(''))
@@ -192,7 +189,7 @@ describe("Hover Mode's selector", () => {
   })
 
   describe('opening', () => {
-    it('unfolds out of the node when Hover Mode is pressed, from folded to open, on the press\'s own clock', () => {
+    it("unfolds out of the node when Hover Mode is entered, from folded to open, on the press's own clock", () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
       renderModes(ROUTES.gg)
 
@@ -219,7 +216,6 @@ describe("Hover Mode's selector", () => {
       })
 
       expect(row()).toHaveAttribute('data-phase', 'open')
-      // At rest the unfolding hands over to CSS: none of its animations is left holding.
       // (The press on the node is a few hand-set keyframes that simply finish; the unfolding is sampled per frame.)
       const unfolding = played.filter((record) => record.keyframes.length > 5)
       expect(unfolding.length).toBeGreaterThan(0)
@@ -238,12 +234,61 @@ describe("Hover Mode's selector", () => {
 
       expect(onDifficultyChange).toHaveBeenCalledWith('tired')
     })
+
+    it('is opened and folded again by the node itself, in Hover Mode', () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      renderModes(ROUTES.ggHover)
+
+      pressNode()
+      expect(row()).toHaveAttribute('data-phase', 'opening')
+      expect(node()).toHaveAttribute('aria-expanded', 'true')
+
+      act(() => {
+        now += 1000
+        vi.advanceTimersByTime(1000)
+      })
+      pressNode()
+
+      expect(row()).toHaveAttribute('data-phase', 'closing')
+      expect(node()).toHaveAttribute('aria-expanded', 'false')
+    })
   })
 
   describe('closing', () => {
+    it('folds away as soon as a difficulty is chosen, so the branches never sit there', () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      const { onDifficultyChange } = renderModes(ROUTES.ggHover)
+      pressNode()
+      act(() => {
+        now += 1000
+        vi.advanceTimersByTime(1000)
+      })
+
+      act(() => {
+        fireEvent.click(screen.getByRole('radio', { name: /^Tired/ }))
+      })
+
+      expect(onDifficultyChange).toHaveBeenCalledWith('tired')
+      expect(row()).toHaveAttribute('data-phase', 'closing')
+      const [frames] = rowFrames()
+      expect(heightOf(frames?.keyframes[0])).toBe(ROW_HEIGHT)
+      expect(heightOf(frames?.keyframes.at(-1))).toBe(0)
+
+      act(() => {
+        now += 1000
+        vi.advanceTimersByTime(1000)
+      })
+      expect(row()).toBeNull()
+    })
+
     it('folds back into the node when ordinary practice is chosen, hidden from use as it goes', () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
       renderModes(ROUTES.ggHover)
+      pressNode()
+      act(() => {
+        now += 1000
+        vi.advanceTimersByTime(1000)
+      })
 
       pressStandard()
 
@@ -252,9 +297,6 @@ describe("Hover Mode's selector", () => {
       expect(folding).toHaveAttribute('inert')
       expect(folding).toHaveAttribute('aria-hidden', 'true')
       expect(screen.queryByRole('radiogroup', { name: 'Hover difficulty' })).not.toBeInTheDocument()
-      const [frames] = rowFrames()
-      expect(heightOf(frames?.keyframes[0])).toBe(ROW_HEIGHT)
-      expect(heightOf(frames?.keyframes.at(-1))).toBe(0)
       // The page under it is already ordinary practice.
       expect(standard()).toHaveAttribute('aria-current', 'page')
 
@@ -303,12 +345,20 @@ describe("Hover Mode's selector", () => {
       expect(voices).toEqual(['selectorOpen', 'selectorClose'])
     })
 
-    it('says nothing when the press changes nothing: the node pressed in Hover Mode', () => {
+    it('plays open and closed as the node is pressed in Hover Mode', () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
       const { voices } = renderModes(ROUTES.ggHover)
 
       pressNode()
+      expect(voices).toEqual(['selectorOpen'])
 
-      expect(voices).toEqual([])
+      act(() => {
+        now += 1000
+        vi.advanceTimersByTime(1000)
+      })
+      pressNode()
+
+      expect(voices).toEqual(['selectorOpen', 'selectorClose'])
     })
 
     it('still sounds with reduced motion, where there is no animation to go with it', () => {
@@ -326,7 +376,7 @@ describe("Hover Mode's selector", () => {
     memory.pressed(now - UNFOLD_MOTION.continuityMs - 1, 'other')
     renderModes(ROUTES.ggHover, memory)
 
-    expect(row()).toHaveAttribute('data-phase', 'open')
+    expect(row()).toBeNull()
     expect(played).toEqual([])
   })
 
@@ -344,7 +394,7 @@ describe("Hover Mode's selector", () => {
   })
 
   describe('from the keyboard', () => {
-    it('is reached in order — Standard, the node, then the chosen branch — and arrow keys choose', async () => {
+    it('is reached in order — Standard, then the node — and arrow keys choose once it is open', async () => {
       const user = userEvent.setup()
       const { onDifficultyChange } = renderModes(ROUTES.ggHover, createUnfoldMemory(), 'standard')
 
@@ -352,6 +402,8 @@ describe("Hover Mode's selector", () => {
       expect(standard()).toHaveFocus()
       await user.tab()
       expect(node()).toHaveFocus()
+
+      await user.keyboard('{Enter}')
       await user.tab()
       expect(screen.getByRole('radio', { name: /^Standard:/ })).toHaveFocus()
 

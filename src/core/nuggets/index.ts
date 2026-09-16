@@ -9,8 +9,10 @@ import { storage } from '@core/persistence'
 
 import { createGoldenNuggetService } from './service.ts'
 
-export type { GoldenNugget, HoverFocusOutcome } from './types.ts'
-export { applyFocusOutcome, byLastSeen, normaliseWord, nuggetIdOf } from './merge.ts'
+export type { GoldenNugget, HoverFocusOutcome, NuggetReason } from './types.ts'
+export { applyFocusOutcome, byLastSeen, normaliseWord, nuggetIdOf, testsOf } from './merge.ts'
+export { createMistakeTally, NUGGET_MISTAKE_THRESHOLD } from './mistakes.ts'
+export type { MistakeTally } from './mistakes.ts'
 export type { NuggetChange } from './merge.ts'
 export { createGoldenNuggetService, parseGoldenNugget } from './service.ts'
 export type { GoldenNuggetService } from './service.ts'

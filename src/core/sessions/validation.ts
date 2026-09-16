@@ -142,6 +142,10 @@ const parseContext = (value: unknown): SessionContext | null => {
   const target = value['targetSequence']
   if (target !== undefined && !isNonEmptyString(target)) return null
 
+  // The same for the time a timed test was set to run for.
+  const seconds = value['durationSeconds']
+  if (seconds !== undefined && (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds <= 0)) return null
+
   if (value['hover'] === undefined) return value as unknown as SessionContext
 
   const hover = parseHoverRecord(value['hover'])

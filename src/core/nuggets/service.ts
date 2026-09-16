@@ -45,7 +45,9 @@ export const parseGoldenNugget = (value: unknown): GoldenNugget | null => {
   const counts = ['timesUnresolved', 'hoverSessions', 'mistakes', 'firstSeenAt', 'lastSeenAt'] as const
   if (!texts.every((field) => isText(value[field]))) return null
   if (!counts.every((field) => isCount(value[field]))) return null
-  if (!(HOVER_DIFFICULTIES as readonly unknown[]).includes(value['lastDifficulty'])) return null
+  const difficulty = value['lastDifficulty']
+  // Null where the word has never been focused: mistakes alone made it a nugget.
+  if (difficulty !== null && !(HOVER_DIFFICULTIES as readonly unknown[]).includes(difficulty)) return null
   if (value['lastOutcome'] !== 'cleared' && value['lastOutcome'] !== 'unresolved') return null
   return value as unknown as GoldenNugget
 }

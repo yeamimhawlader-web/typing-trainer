@@ -106,8 +106,24 @@ export const stepRatio = (step: number): number => {
   return 2 ** ((LADDER[index] as number) / 12)
 }
 
-/** The master level everything is played at: present, never loud. */
+/** The master level everything is played at, at full volume: present, never loud. */
 export const MASTER_GAIN = 0.34
+
+/** Volume is a percentage; full is the master level above. */
+export const FULL_VOLUME = 100
+
+/**
+ * The gain a volume percentage asks for.
+ *
+ * Squared rather than straight, because hearing is not linear: half the slider
+ * on a straight line is only a few decibels down and sounds nearly as loud,
+ * where a squared taper puts it about 12 dB down — which is roughly half as
+ * loud to a listener. Zero is silence, not a whisper.
+ */
+export const gainForVolume = (volume: number, full: number = MASTER_GAIN): number => {
+  const share = Math.min(Math.max(volume, 0), FULL_VOLUME) / FULL_VOLUME
+  return full * share * share
+}
 
 // --- The recipes every pack is bent from -------------------------------
 

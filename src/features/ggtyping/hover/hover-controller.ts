@@ -141,13 +141,14 @@ export interface HoverController {
 /** Source id of the text a repetition is typed against. Never saved. */
 export const HOVER_ATTEMPT_SOURCE = 'hover-repetition'
 
-const randomTestId = (): string =>
+/** An id for one test, for anything that keeps a record of what happened in it. */
+export const newTestId = (): string =>
   (globalThis as { crypto?: { randomUUID?: () => string } }).crypto?.randomUUID?.() ??
   `test-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
 export const createHoverController = ({
   difficulty: initialDifficulty = 'standard',
-  createTestId = randomTestId,
+  createTestId = newTestId,
 }: HoverControllerOptions = {}): HoverController => {
   const attempt = createTypingEngine()
   const listeners = new Set<() => void>()

@@ -57,10 +57,14 @@ export const GGLayout = () => {
   // One sound engine for the shell. It opens no audio context until sound is
   // switched on, and gives the device back when the shell goes away.
   const soundChoice = useSettingsStore((state) => state.preferences.sound)
+  const soundVolume = useSettingsStore((state) => state.preferences.soundVolume)
   const [sound] = useState(createSoundEngine)
   useEffect(() => {
     sound.choose(soundChoiceFromStored(soundChoice) ?? 'off')
   }, [sound, soundChoice])
+  useEffect(() => {
+    sound.setVolume(soundVolume)
+  }, [sound, soundVolume])
   useEffect(() => () => sound.close(), [sound])
   const themesButton = useRef<HTMLButtonElement>(null)
 

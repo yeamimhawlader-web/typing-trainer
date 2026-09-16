@@ -3,17 +3,22 @@
  *
  * | Outcome | No record for the word | A record for the word |
  * | --- | --- | --- |
- * | Released without clearing | created, unresolved once | unresolved +1 |
- * | Cleared | nothing: the word did its job | updated: last outcome cleared |
+ * | A focus released without clearing | created, unresolved once | unresolved +1 |
+ * | A focus that cleared | nothing: the word did its job | updated: last outcome cleared |
+ * | Five mistakes in a test | created | mistakes added |
  *
- * In both updating cases the mistakes are added, the last seen date, difficulty
- * and outcome replaced, and the test counted once however many focuses on the
- * word it contained.
+ * In every updating case the mistakes are added, the last seen date replaced and
+ * the test counted once however many times the word cost something in it. Only
+ * a focus moves the Hover Mode counts or the last outcome: mistakes adding up
+ * says nothing about how a focus went, because there was not one.
  */
 
 import type { LanguageCode } from '@core/sessions'
 
 import type { GoldenNugget, HoverFocusOutcome } from './types.ts'
+
+/** Distinct tests a record has counted, reading an older record's Hover Mode count. */
+export const testsOf = (nugget: GoldenNugget): number => nugget.tests ?? nugget.hoverSessions
 
 export const normaliseWord = (word: string, language: LanguageCode): string => word.toLocaleLowerCase(language)
 
@@ -29,6 +34,7 @@ export interface NuggetChange {
 export const applyFocusOutcome = (nuggets: readonly GoldenNugget[], outcome: HoverFocusOutcome): NuggetChange => {
   const id = nuggetIdOf(outcome.word, outcome.language)
   const existing = nuggets.find((nugget) => nugget.id === id)
+  const released = (outcome.reason ?? 'released') === 'released'
   const lastOutcome = outcome.cleared ? 'cleared' : 'unresolved'
 
   if (existing === undefined) {
@@ -37,26 +43,32 @@ export const applyFocusOutcome = (nuggets: readonly GoldenNugget[], outcome: Hov
       id,
       word: normaliseWord(outcome.word, outcome.language),
       language: outcome.language,
-      timesUnresolved: 1,
-      hoverSessions: 1,
+      timesUnresolved: released ? 1 : 0,
+      hoverSessions: outcome.difficulty === undefined || outcome.difficulty === null ? 0 : 1,
+      tests: 1,
       mistakes: outcome.mistakes,
       firstSeenAt: outcome.at,
       lastSeenAt: outcome.at,
-      lastDifficulty: outcome.difficulty,
+      lastDifficulty: outcome.difficulty ?? null,
       lastOutcome,
       lastTestId: outcome.testId,
     }
     return { nuggets: [...nuggets, created], changed: created }
   }
 
+  const sameTest = existing.lastTestId === outcome.testId
   const updated: GoldenNugget = {
     ...existing,
-    timesUnresolved: existing.timesUnresolved + (outcome.cleared ? 0 : 1),
-    hoverSessions: existing.hoverSessions + (existing.lastTestId === outcome.testId ? 0 : 1),
+    timesUnresolved: existing.timesUnresolved + (released && !outcome.cleared ? 1 : 0),
+    tests: testsOf(existing) + (sameTest ? 0 : 1),
+    hoverSessions:
+      existing.hoverSessions +
+      // A test counts once, and only a Hover Mode focus counts at all.
+      (outcome.difficulty === undefined || outcome.difficulty === null || sameTest ? 0 : 1),
     mistakes: existing.mistakes + outcome.mistakes,
     lastSeenAt: Math.max(existing.lastSeenAt, outcome.at),
-    lastDifficulty: outcome.difficulty,
-    lastOutcome,
+    lastDifficulty: outcome.difficulty ?? existing.lastDifficulty,
+    lastOutcome: released ? lastOutcome : existing.lastOutcome,
     lastTestId: outcome.testId,
   }
   return { nuggets: nuggets.map((nugget) => (nugget.id === id ? updated : nugget)), changed: updated }

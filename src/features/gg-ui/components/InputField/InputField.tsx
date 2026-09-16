@@ -27,10 +27,16 @@
  *
  * - Ctrl+Backspace or Alt+Backspace arrives as `deleteWordBackward`: the
  *   session's word delete.
- * - Enter, on a finished test, starts the next.
- * - Tab, while a test is under way, restarts it. Otherwise Tab moves focus, so
- *   the page stays navigable from here. "Under way" includes paused: Hover Mode
- *   pauses the text while a word is repeated, and the typist is still typing.
+ * - Tab starts the next test the moment one is finished, and restarts one that
+ *   is under way. It is the fast way back to typing: finish, Tab, type.
+ * - Enter, on a finished test, does the same, for anyone who reaches for it.
+ * - While a test is idle — nothing typed yet — Tab does nothing here and moves
+ *   focus as usual, so the page stays navigable from the field. Both keys are
+ *   read on this element alone, so Tab from anywhere else on the page still
+ *   moves focus, including to the result's own controls.
+ *
+ * "Under way" includes paused: Hover Mode pauses the text while a word is
+ * repeated, and the typist is still typing.
  *
  * ## Focus
  *
@@ -52,8 +58,8 @@ const PLACEHOLDERS: Readonly<Record<SessionStatus, string>> = {
   idle: 'Start typing the words above',
   running: '',
   paused: '',
-  completed: 'Press Enter for the next test',
-  abandoned: 'Press Enter for the next test',
+  completed: 'Press Tab for the next test',
+  abandoned: 'Press Tab for the next test',
 }
 
 export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps>(
@@ -140,7 +146,7 @@ export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps
         if (event.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
 
         const restartOn =
-          (event.key === 'Tab' && isUnderWay()) ||
+          (event.key === 'Tab' && (isUnderWay() || isFinished())) ||
           (event.key === 'Enter' && isFinished())
         if (!restartOn) return
 

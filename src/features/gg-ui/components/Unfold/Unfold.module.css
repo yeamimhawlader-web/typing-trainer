@@ -91,7 +91,7 @@
   pointer-events: none;
 }
 
-/* The core: a hollow ring folded shut, a lit bead when open. */
+/* The core: a hollow ring when the mode is off, a lit bead when it is on. */
 .nodeSeat {
   position: relative;
   flex: none;
@@ -109,6 +109,9 @@
   box-shadow: 0 0 0 3px var(--gg-accent-glow);
   opacity: 0;
   transform: scale(0.4);
+  transition:
+    opacity var(--gg-duration-touch) var(--gg-ease-touch),
+    transform var(--gg-duration-touch) var(--gg-ease-touch);
 }
 
 .nodeLabel {

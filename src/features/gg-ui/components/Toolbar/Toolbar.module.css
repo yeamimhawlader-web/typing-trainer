@@ -9,7 +9,9 @@
  */
 .toolbar {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  /* The settings track may shrink below what its pills would like, so they wrap
+     rather than pushing the row past the page. */
+  grid-template-columns: auto minmax(0, auto) auto;
   grid-template-areas:
     'modes settings sound-node'
     'branches branches branches'

@@ -1242,3 +1242,60 @@ describe('deleting a word', () => {
     expect(harness.engine.getSnapshot().elapsedMs).toBe(1400)
   })
 })
+
+describe('a session that ends on the clock', () => {
+  const timed = (seconds: number) =>
+    createTypingEngine({ isComplete: (snapshot) => snapshot.elapsedMs >= seconds * 1000 })
+
+  it('ends the moment the time is up, without anything else being typed', () => {
+    const engine = timed(10)
+    engine.start({ text: 'the quick brown fox', sourceId: 'test' }, timestamp(0))
+    engine.input('t', timestamp(100))
+
+    engine.tick(timestamp(10_000))
+
+    expect(engine.getSnapshot().status).toBe('completed')
+    expect(engine.toResult()?.metrics.typedCharacters).toBe(1)
+  })
+
+  it('refuses the key that arrives after the time, so no phantom character is counted', () => {
+    const engine = timed(10)
+    engine.start({ text: 'the quick brown fox', sourceId: 'test' }, timestamp(0))
+    engine.input('t', timestamp(100))
+
+    // A keystroke that lands after the time is up: it ends the test and is not
+    // part of it, whichever reaches the engine first.
+    engine.input('h', timestamp(10_050))
+
+    const snapshot = engine.getSnapshot()
+    expect(snapshot.status).toBe('completed')
+    expect(snapshot.typedCount).toBe(1)
+    expect(engine.toResult()?.metrics.typedCharacters).toBe(1)
+    expect(engine.toResult()?.keystrokes).toHaveLength(1)
+  })
+
+  it('counts the time away from the keyboard, unlike word practice', () => {
+    const engine = timed(10)
+    engine.start({ text: 'the quick brown fox', sourceId: 'test' }, timestamp(0))
+    engine.input('t', timestamp(100))
+
+    // Nothing typed for nine seconds: still nine seconds of a timed test.
+    engine.tick(timestamp(9_000))
+    expect(engine.getSnapshot().elapsedMs).toBe(9_000)
+    expect(engine.getSnapshot().status).toBe('running')
+  })
+
+  it('puts no ceiling on speed, however fast the characters arrive', () => {
+    const engine = timed(60)
+    const text = Array.from({ length: 200 }, () => 'about').join(' ')
+    engine.start({ text, sourceId: 'test' }, timestamp(0))
+
+    // 1000 characters in 15 seconds: 800 words a minute, and it is reported.
+    Array.from(text.slice(0, 999)).forEach((character, index) => {
+      engine.input(character, timestamp(15 + index * 15))
+    })
+
+    expect(engine.getSnapshot().rawWpm).toBeGreaterThan(700)
+    expect(engine.getSnapshot().netWpm).toBeGreaterThan(700)
+  })
+})

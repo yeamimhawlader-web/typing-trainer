@@ -87,6 +87,12 @@ const renderAt = (path: string, text = TEXT) =>
     </MemoryRouter>,
   )
 
+/** Presses the Hover Mode node, which unfolds its difficulties. */
+const openDifficulties = async () => {
+  await userEvent.setup().click(screen.getByRole('link', { name: /^Hover Mode/ }))
+  return screen.getByRole('radiogroup', { name: 'Hover difficulty' })
+}
+
 const openHover = async (difficulty: HoverDifficulty = 'standard', text = TEXT) => {
   preferDifficulty(difficulty)
   const rendered = renderAt(ROUTES.ggHover, text)
@@ -171,7 +177,11 @@ describe('Hover Mode on the GG.Typing screen', () => {
 
     it('offers its three difficulties, opening on the one last chosen', async () => {
       await openHover('all-in')
-      const difficulties = screen.getByRole('radiogroup', { name: 'Hover difficulty' })
+      // Folded away until it is asked for: the node says which is on.
+      expect(screen.queryByRole('radiogroup', { name: 'Hover difficulty' })).not.toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^Hover Mode/ })).toHaveTextContent('All In')
+
+      const difficulties = await openDifficulties()
 
       expect(within(difficulties).getAllByRole('radio').map((radio) => radio.getAttribute('aria-label'))).toEqual([
         'Standard: One 3-repetition cycle',
@@ -181,12 +191,16 @@ describe('Hover Mode on the GG.Typing screen', () => {
       expect(within(difficulties).getByRole('radio', { name: /^All In/ })).toBeChecked()
     })
 
-    it('starts a new test at a newly chosen difficulty, and remembers it', async () => {
+    it('starts a new test at a newly chosen difficulty, and remembers it, then folds away', async () => {
       await openHover('standard')
       typeText('alpxa ')
       expect(nodes()).toHaveLength(3)
 
+      await openDifficulties()
       await userEvent.setup().click(screen.getByRole('radio', { name: /^Tired/ }))
+
+      // Chosen, and the branches are gone again.
+      expect(screen.queryByRole('radiogroup', { name: 'Hover difficulty' })).not.toBeInTheDocument()
 
       expect(layers()).toEqual([])
       expect(settingsStore.getState().preferences.hoverDifficulty).toBe('tired')
@@ -501,10 +515,11 @@ describe('Hover Mode on the GG.Typing screen', () => {
 
       const item = await screen.findByRole('listitem')
       expect(within(item).getByRole('heading', { name: 'one' })).toBeInTheDocument()
-      expect(item).toHaveTextContent('Failed 1 time')
-      expect(item).toHaveTextContent('Seen in 1 Hover session')
+      expect(item).toHaveTextContent('Let go 1 time')
+      expect(item).toHaveTextContent('1 Hover session')
+      expect(item).toHaveTextContent('Met in 1 test')
       expect(item).toHaveTextContent('Last difficulty: Standard')
-      expect(item).toHaveTextContent('Still unresolved last time')
+      expect(item).toHaveTextContent('Still unresolved')
       expect(document.title).toBe('Golden Nuggets · GG.Typing')
     })
 

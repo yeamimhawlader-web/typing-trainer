@@ -9,9 +9,12 @@ import { createSettingsStore } from './settings.store.ts'
 const DEFAULTS: UserPreferences = {
   theme: 'classic-milk',
   practiceWordCount: 30,
+  practiceMode: 'words',
+  practiceSeconds: 30,
   textSize: 'sm',
   hoverDifficulty: 'standard',
   sound: 'off',
+  soundVolume: 100,
 }
 
 describe('settings store', () => {
@@ -53,9 +56,12 @@ describe('settings store', () => {
     await adapter.write<UserPreferences>(STORAGE_KEYS.preferences, {
       theme: 'lemondrop',
       practiceWordCount: 60,
+      practiceMode: 'time',
+      practiceSeconds: 45,
       textSize: 'lg',
       hoverDifficulty: 'tired',
       sound: 'click',
+      soundVolume: 40,
     })
     const store = createSettingsStore(adapter)
 
@@ -64,9 +70,12 @@ describe('settings store', () => {
     expect(store.getState().preferences).toEqual({
       theme: 'lemondrop',
       practiceWordCount: 60,
+      practiceMode: 'time',
+      practiceSeconds: 45,
       textSize: 'lg',
       hoverDifficulty: 'tired',
       sound: 'click',
+      soundVolume: 40,
     })
     expect(store.getState().status).toBe('ready')
   })
@@ -171,13 +180,19 @@ describe('settings store', () => {
     await store.getState().setTextSize('xs')
     await store.getState().setHoverDifficulty('tired')
     await store.getState().setSound('cream')
+    await store.getState().setSoundVolume(55)
+    await store.getState().setPracticeMode('time')
+    await store.getState().setPracticeSeconds(45)
 
     await expect(adapter.read(STORAGE_KEYS.preferences)).resolves.toEqual({
       theme: 'classic',
       practiceWordCount: 15,
+      practiceMode: 'time',
+      practiceSeconds: 45,
       textSize: 'xs',
       hoverDifficulty: 'tired',
       sound: 'cream',
+      soundVolume: 55,
     })
   })
 
@@ -185,9 +200,12 @@ describe('settings store', () => {
     await adapter.write(STORAGE_KEYS.preferences, {
       theme: 'neon-purple',
       practiceWordCount: 9999,
+      practiceMode: 'vibes',
+      practiceSeconds: 9000,
       textSize: 'huge',
       hoverDifficulty: 'exhausted',
       sound: 'bongos',
+      soundVolume: 999,
     })
     const store = createSettingsStore(adapter)
 

@@ -16,9 +16,11 @@ import { DEFAULT_PREFERENCES } from '@config'
 import { STORAGE_KEYS, storage, type StorageAdapter } from '@core/persistence'
 import {
   HOVER_DIFFICULTIES,
+  PRACTICE_MODES,
   PRACTICE_WORD_COUNTS,
   TEXT_SIZES,
   type HoverDifficulty,
+  type PracticeMode,
   type PracticeWordCount,
   type SoundPreference,
   type TextSize,
@@ -28,6 +30,8 @@ import {
 // The theme registry itself, not the GG.Typing feature's entry point: a leaf
 // module with no imports, so settings and the shell cannot form a cycle.
 import { themeIdFromStored } from '@features/gg-ui/themes/themes.ts'
+// The timed mode's own rules about what a time may be, for the same reason.
+import { clampTime, isValidTime } from '@features/typing/modes/timed.ts'
 // The sound packs themselves, for the same reason: one list of packs.
 import { soundChoiceFromStored } from '@features/sound/voices.ts'
 
@@ -39,9 +43,12 @@ export interface SettingsState {
   readonly hydrate: () => Promise<void>
   readonly setTheme: (theme: ThemePreference) => Promise<void>
   readonly setPracticeWordCount: (count: PracticeWordCount) => Promise<void>
+  readonly setPracticeMode: (mode: PracticeMode) => Promise<void>
+  readonly setPracticeSeconds: (seconds: number) => Promise<void>
   readonly setTextSize: (size: TextSize) => Promise<void>
   readonly setHoverDifficulty: (difficulty: HoverDifficulty) => Promise<void>
   readonly setSound: (sound: SoundPreference) => Promise<void>
+  readonly setSoundVolume: (volume: number) => Promise<void>
 }
 
 /**
@@ -59,9 +66,12 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
   const result: {
     theme?: ThemePreference
     practiceWordCount?: PracticeWordCount
+    practiceMode?: PracticeMode
+    practiceSeconds?: number
     textSize?: TextSize
     hoverDifficulty?: HoverDifficulty
     sound?: SoundPreference
+    soundVolume?: number
   } = {}
 
   // A theme the registry knows, or one of the two themes earlier versions
@@ -73,6 +83,12 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
   const known = PRACTICE_WORD_COUNTS.find((option) => option === count)
   if (known !== undefined) result.practiceWordCount = known
 
+  const practiceMode = PRACTICE_MODES.find((option) => option === record['practiceMode'])
+  if (practiceMode !== undefined) result.practiceMode = practiceMode
+
+  // The times this build will run; see features/typing's timed mode.
+  if (isValidTime(record['practiceSeconds'])) result.practiceSeconds = record['practiceSeconds']
+
   const size = TEXT_SIZES.find((option) => option === record['textSize'])
   if (size !== undefined) result.textSize = size
 
@@ -82,6 +98,11 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
   // A pack this build knows, or what the first version of sound stored: a switch.
   const sound = soundChoiceFromStored(record['sound'] ?? record['soundEnabled'])
   if (sound !== null) result.sound = sound
+
+  const volume = record['soundVolume']
+  if (typeof volume === 'number' && Number.isFinite(volume) && volume >= 0 && volume <= 100) {
+    result.soundVolume = Math.round(volume)
+  }
 
   return result
 }
@@ -124,11 +145,18 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
       setPracticeWordCount: (practiceWordCount) =>
         persist({ ...get().preferences, practiceWordCount }),
 
+      setPracticeMode: (practiceMode) => persist({ ...get().preferences, practiceMode }),
+
+      setPracticeSeconds: (practiceSeconds) =>
+        persist({ ...get().preferences, practiceSeconds: clampTime(practiceSeconds) }),
+
       setTextSize: (textSize) => persist({ ...get().preferences, textSize }),
 
       setHoverDifficulty: (hoverDifficulty) => persist({ ...get().preferences, hoverDifficulty }),
 
       setSound: (sound) => persist({ ...get().preferences, sound }),
+
+      setSoundVolume: (soundVolume) => persist({ ...get().preferences, soundVolume }),
     }
   })
 

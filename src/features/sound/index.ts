@@ -16,6 +16,8 @@ export type { PlayOptions } from './synth.ts'
 export {
   buildPack,
   DEFAULT_SOUND_PACK,
+  FULL_VOLUME,
+  gainForVolume,
   isSoundPackId,
   KEYBOARD_VOICES,
   LADDER,

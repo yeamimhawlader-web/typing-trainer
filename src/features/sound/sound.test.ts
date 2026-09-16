@@ -458,6 +458,8 @@ const recorder = () => {
     isEnabled: () => true,
     pack: () => DEFAULT_SOUND_PACK,
     choose: () => undefined,
+    volume: () => 100,
+    setVolume: () => undefined,
     play: (voice: SoundVoice, options?: { step?: number }) => {
       played.push({ voice, step: options?.step })
     },

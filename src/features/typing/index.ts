@@ -19,10 +19,24 @@ export { resolveEventTime } from './hooks/useKeyboardInput.ts'
 
 export {
   MIN_ELAPSED_FOR_WPM_MS,
+  ACCURACY_STATES,
   selectAccuracyPercent,
+  selectAccuracyState,
   selectElapsedSeconds,
   selectLiveWpm,
 } from './live-values.ts'
+export type { AccuracyState } from './live-values.ts'
+
+export {
+  clampTime,
+  createTimedMode,
+  CUSTOM_TIME,
+  DEFAULT_SECONDS,
+  isValidTime,
+  TIME_OPTIONS,
+  wordsForTime,
+} from './modes/timed.ts'
+export type { TimeOption } from './modes/timed.ts'
 
 export { ResultAnnouncement } from './components/ResultAnnouncement.tsx'
 export { SessionHint } from './components/SessionHint.tsx'

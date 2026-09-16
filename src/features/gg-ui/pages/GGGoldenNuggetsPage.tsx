@@ -13,7 +13,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 
 import { ROUTES } from '@app/routes.ts'
-import { goldenNuggetService, type GoldenNugget, type GoldenNuggetService } from '@core/nuggets'
+import { goldenNuggetService, testsOf, type GoldenNugget, type GoldenNuggetService } from '@core/nuggets'
 import { HOVER_DIFFICULTY_DETAILS } from '@features/ggtyping'
 
 import { useGGDocumentTitle } from '../layout/useGGDocumentTitle.ts'
@@ -62,11 +62,11 @@ export const GGGoldenNuggetsPage = ({ service = goldenNuggetService }: GGGoldenN
       </h1>
       {/* Reached from Hover Mode, not the top bar, so the way back is here. */}
       <p className={styles.intro}>
-        Words{' '}
+        Words that keep costing mistakes, and the ones{' '}
         <Link to={ROUTES.ggHover} className={styles.link}>
           Hover Mode
         </Link>{' '}
-        let go of before they cleared. Worth coming back to: these are the words costing you speed.
+        let go of before they cleared. Most recent first: these are the words costing you speed.
       </p>
 
       {loaded.status === 'loading' && <p className={styles.empty}>Loading…</p>}
@@ -88,16 +88,24 @@ export const GGGoldenNuggetsPage = ({ service = goldenNuggetService }: GGGoldenN
             <li key={nugget.id} className={styles.item}>
               <h2 className={styles.word}>{nugget.word}</h2>
               <p className={styles.facts}>
-                <span>Failed {times(nugget.timesUnresolved, 'time', 'times')}</span>
-                <span>Seen in {times(nugget.hoverSessions, 'Hover session', 'Hover sessions')}</span>
+                {/* What the word has cost, then how often, then where it got away. */}
                 <span>{times(nugget.mistakes, 'mistake', 'mistakes')}</span>
+                <span>Met in {times(testsOf(nugget), 'test', 'tests')}</span>
+                {nugget.timesUnresolved > 0 && (
+                  <span>Let go {times(nugget.timesUnresolved, 'time', 'times')}</span>
+                )}
+                {nugget.hoverSessions > 0 && (
+                  <span>{times(nugget.hoverSessions, 'Hover session', 'Hover sessions')}</span>
+                )}
               </p>
               <p className={styles.last}>
                 <span>
                   Last struggled <time dateTime={new Date(nugget.lastSeenAt).toISOString()}>{formatDay(nugget.lastSeenAt)}</time>
                 </span>
-                <span>Last difficulty: {HOVER_DIFFICULTY_DETAILS[nugget.lastDifficulty].label}</span>
-                <span>{nugget.lastOutcome === 'cleared' ? 'Cleared last time' : 'Still unresolved last time'}</span>
+                {nugget.lastDifficulty !== null && (
+                  <span>Last difficulty: {HOVER_DIFFICULTY_DETAILS[nugget.lastDifficulty].label}</span>
+                )}
+                <span>{nugget.lastOutcome === 'cleared' ? 'Cleared last time' : 'Still unresolved'}</span>
               </p>
             </li>
           ))}

@@ -169,6 +169,14 @@
   min-inline-size: 0;
 }
 
+/* A group's own name, where two groups sit side by side and which is which matters. */
+.caption {
+  margin-right: 0.25rem;
+  font-size: var(--gg-text-pill);
+  color: var(--gg-muted);
+  user-select: none;
+}
+
 .separator {
   flex: none;
   width: 1px;

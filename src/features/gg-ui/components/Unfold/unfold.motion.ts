@@ -86,8 +86,6 @@ export const UNFOLD_MOTION = {
   label: { start: 0.45, end: 0.92, stagger: 0.04, slidePx: 6 },
   /** The chosen branch's inner light, last of all. */
   light: { start: 0.7, end: 1 },
-  /** The node's core lights as the branches leave it. */
-  core: { start: 0, end: 0.4 },
 
   /** The press on the node: a give, a flex past rest, a settle. */
   press: {
@@ -273,11 +271,6 @@ export const labelPose = (
 export const lightPose = (x: number, motion: UnfoldMotion = UNFOLD_MOTION): Frame => ({
   opacity: String(round(clamp(across(x, motion.light.start, motion.light.end), 0, 1))),
 })
-
-export const corePose = (x: number, motion: UnfoldMotion = UNFOLD_MOTION): Frame => {
-  const lit = clamp(across(x, motion.core.start, motion.core.end), 0, 1)
-  return { opacity: String(round(lit)), transform: `scale(${round(0.4 + 0.6 * lit)})` }
-}
 
 // --- Sampling ------------------------------------------------------------
 

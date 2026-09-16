@@ -83,10 +83,24 @@ export interface WordCountPreference {
  * default rule and the context it was given, exactly as before.
  */
 export interface SessionModeHooks {
-  /** When the test is over. Read once, when the engine is created. */
+  /** When the test is over. */
   readonly isComplete: CompletionPolicy
   /** The context the finished test is saved with, built from the one it ran with. */
   readonly finalContext: (context: SessionContext) => SessionContext
+  /**
+   * The idle gap cap, for modes whose clock is not word practice's. Null runs
+   * the clock whether or not anyone is typing, which is what a timed test
+   * means. Absent leaves the cap where ordinary practice has it.
+   */
+  readonly maxGapMs?: number | null
+  /** How many words of material the mode needs, when it is not the chosen length. */
+  readonly textWords?: number
+  /**
+   * What makes this shape of test itself. When it changes, the test is a
+   * different shape — a different time, or time rather than words — and gets a
+   * new engine, because the clock's rules are fixed when an engine is made.
+   */
+  readonly key?: string
 }
 
 /** Whether the finished test made it to storage. */
@@ -135,16 +149,29 @@ export const useTypingSession = (
   preference?: WordCountPreference,
   mode?: SessionModeHooks,
 ): TypingSessionController => {
-  // The idle cap is a rule of word-count practice: see IDLE_GAP_CAP_MS. State
-  // rather than a memo, because React may discard a memo and an engine
-  // replaced mid-test would lose the test.
-  const [engine] = useState(() =>
-    createTypingEngine(
-      mode === undefined
-        ? { maxGapMs: IDLE_GAP_CAP_MS }
-        : { maxGapMs: IDLE_GAP_CAP_MS, isComplete: (snapshot) => mode.isComplete(snapshot) },
-    ),
-  )
+  /*
+   * The idle cap is a rule of word-count practice: see IDLE_GAP_CAP_MS. State
+   * rather than a memo, because React may discard a memo and an engine replaced
+   * mid-test would lose the test.
+   *
+   * A mode's shape — how the clock runs, and when the test is over — is fixed
+   * when the engine is made, so changing the shape makes a new one. That only
+   * happens when the typist chooses a different kind of test, which starts a new
+   * test anyway; it never happens while typing.
+   */
+  const build = (hooks: SessionModeHooks | undefined) => {
+    // No cap at all where a mode asks for none: the engine's own way of saying
+    // that every moment counts, which is what a timed test means.
+    const cap = hooks?.maxGapMs === undefined ? IDLE_GAP_CAP_MS : hooks.maxGapMs
+    return createTypingEngine({
+      ...(cap === null ? {} : { maxGapMs: cap }),
+      ...(hooks === undefined ? {} : { isComplete: (snapshot) => hooks.isComplete(snapshot) }),
+    })
+  }
+
+  const shape = mode?.key ?? 'default'
+  const [engineState, setEngineState] = useState(() => ({ shape, engine: build(mode) }))
+  const { engine } = engineState
 
   /**
    * Held in a ref rather than in the effect below's dependencies.
@@ -170,8 +197,23 @@ export const useTypingSession = (
   const initialWordCount = preference?.initial ?? DEFAULT_WORD_COUNT
   const [wordCount, setWordCountState] = useState<WordCount>(initialWordCount)
   const [target, setTarget] = useState<SessionTarget>(() =>
-    provider.provide({ wordCount: initialWordCount }),
+    provider.provide({ wordCount: mode?.textWords ?? initialWordCount }),
   )
+
+  /*
+   * A new shape of test: a new engine, because how its clock runs and when it
+   * is over are fixed when an engine is made, and new material to match. Done
+   * while rendering, as React's own way of following a prop, so the screen
+   * never shows one shape's text under another's rules.
+   */
+  if (engineState.shape !== shape) {
+    setEngineState({ shape, engine: build(mode) })
+    setTarget(provider.provide({ wordCount: mode?.textWords ?? wordCount }))
+    setLastSession(null)
+    setSaveState('idle')
+    setSequences(null)
+    setDrillOutcome(null)
+  }
 
   // A ref for the same reason as the context above: the callback may be rebuilt
   // by the caller on any render, and nothing here should re-subscribe for it.
@@ -180,10 +222,16 @@ export const useTypingSession = (
     rememberRef.current = preference?.remember
   }, [preference?.remember])
 
+  // How much material to lay out: the chosen length, or what the mode asks for.
+  const textWordsRef = useRef(mode?.textWords)
+  useEffect(() => {
+    textWordsRef.current = mode?.textWords
+  }, [mode?.textWords])
+
   const loadTest = useCallback(
     (count: WordCount) => {
       engine.reset()
-      setTarget(provider.provide({ wordCount: count }))
+      setTarget(provider.provide({ wordCount: textWordsRef.current ?? count }))
       setLastSession(null)
       setSaveState('idle')
       setSequences(null)

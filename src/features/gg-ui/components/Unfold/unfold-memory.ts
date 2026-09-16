@@ -50,3 +50,9 @@ export const createUnfoldMemory = (): UnfoldMemory => {
 }
 
 export const UnfoldMemoryContext = createContext<UnfoldMemory | null>(null)
+
+/** Whether a mode control was pressed just now: the press this selector is the result of. */
+export const justSwitched = (memory: UnfoldMemory | null, at: number, withinMs: number): boolean => {
+  const switchedAt = memory?.switchedAt() ?? null
+  return switchedAt !== null && at - switchedAt <= withinMs
+}

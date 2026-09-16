@@ -1,0 +1,106 @@
+/* The volume, in the same glass language: a hairline track filled with the
+   accent up to where it is set, and a bead for the handle. */
+.volume {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.name {
+  font-size: var(--gg-text-pill);
+  color: var(--gg-muted);
+}
+
+.value {
+  min-width: 2.75rem;
+  font-size: var(--gg-text-pill);
+  font-variant-numeric: tabular-nums;
+  color: var(--gg-fg);
+}
+
+.slider {
+  width: 7.5rem;
+  height: 18px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: var(--gg-radius-full);
+  background-image: linear-gradient(
+    to right,
+    var(--gg-accent) var(--gg-volume-fill, 100%),
+    var(--gg-control-border) var(--gg-volume-fill, 100%)
+  );
+}
+
+.slider::-moz-range-track {
+  height: 4px;
+  border-radius: var(--gg-radius-full);
+  background-image: linear-gradient(
+    to right,
+    var(--gg-accent) var(--gg-volume-fill, 100%),
+    var(--gg-control-border) var(--gg-volume-fill, 100%)
+  );
+}
+
+.slider::-webkit-slider-thumb {
+  width: 13px;
+  height: 13px;
+  margin-top: -4.5px;
+  border: 0;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-accent);
+  box-shadow: 0 0 0 3px var(--gg-accent-glow);
+  appearance: none;
+  transition: transform var(--gg-duration-touch) var(--gg-ease-touch);
+}
+
+.slider::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border: 0;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-accent);
+  box-shadow: 0 0 0 3px var(--gg-accent-glow);
+  transition: transform var(--gg-duration-touch) var(--gg-ease-touch);
+}
+
+@media (hover: hover) {
+  .slider:hover::-webkit-slider-thumb {
+    transform: scale(1.12);
+  }
+
+  .slider:hover::-moz-range-thumb {
+    transform: scale(1.12);
+  }
+}
+
+.slider:active::-webkit-slider-thumb {
+  transform: scale(0.94);
+}
+
+.slider:active::-moz-range-thumb {
+  transform: scale(0.94);
+}
+
+.slider:focus-visible {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 3px;
+  border-radius: var(--gg-radius-full);
+}
+
+@media (max-width: 720px) {
+  .volume {
+    padding: 0.5rem 0 0 1.5rem;
+  }
+
+  .slider {
+    width: 9rem;
+  }
+}

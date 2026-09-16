@@ -29,10 +29,11 @@ export type {
 
 export type {
   HoverDifficulty,
+  PracticeMode,
   PracticeWordCount,
   TextSize,
   SoundPreference,
   ThemePreference,
   UserPreferences,
 } from './preferences.ts'
-export { HOVER_DIFFICULTIES, PRACTICE_WORD_COUNTS, TEXT_SIZES } from './preferences.ts'
+export { HOVER_DIFFICULTIES, PRACTICE_MODES, PRACTICE_WORD_COUNTS, TEXT_SIZES } from './preferences.ts'

@@ -538,6 +538,12 @@ export const createTypingEngine = (options: TypingEngineOptions = {}): TypingEng
       if (!backspace && !isTypeableCharacter(key)) return
 
       advanceClock(at)
+      // Before the key is applied, not after: a mode that ends on the clock
+      // rather than on the text is over the moment its time is up, and a key
+      // that arrives late belongs to no test.
+      checkCompletion(at)
+      if (state.status !== 'running') return
+
       registerInput()
 
       if (backspace) handleBackspace(at)

@@ -7,9 +7,10 @@ import { describe, expect, it } from 'vitest'
 
 import { createMemoryAdapter, STORAGE_KEYS } from '@core/persistence'
 
-import { applyFocusOutcome, nuggetIdOf } from './merge.ts'
+import { createMistakeTally } from './mistakes.ts'
+import { applyFocusOutcome, nuggetIdOf, testsOf } from './merge.ts'
 import { createGoldenNuggetService } from './service.ts'
-import type { HoverFocusOutcome } from './types.ts'
+import type { GoldenNugget, HoverFocusOutcome } from './types.ts'
 
 const outcome = (overrides: Partial<HoverFocusOutcome> = {}): HoverFocusOutcome => ({
   word: 'because',
@@ -33,6 +34,7 @@ describe('Golden Nugget rules', () => {
       language: 'en',
       timesUnresolved: 1,
       hoverSessions: 1,
+      tests: 1,
       mistakes: 2,
       firstSeenAt: 1_000,
       lastSeenAt: 1_000,
@@ -151,5 +153,112 @@ describe('Golden Nugget storage', () => {
     await storage.write(STORAGE_KEYS.goldenNuggets, { because: 1 })
 
     await expect(createGoldenNuggetService(storage).getAll()).resolves.toEqual([])
+  })
+})
+
+describe('a word that keeps costing mistakes', () => {
+  const trouble = (fields: Partial<HoverFocusOutcome> = {}): HoverFocusOutcome => ({
+    reason: 'mistakes',
+    word: 'because',
+    language: 'en',
+    cleared: false,
+    mistakes: 5,
+    at: 2_000,
+    testId: 'test-9',
+    ...fields,
+  })
+
+  it('becomes a nugget with no Hover Mode history behind it', () => {
+    const { changed } = applyFocusOutcome([], trouble())
+
+    expect(changed).toEqual({
+      id: 'en:because',
+      word: 'because',
+      language: 'en',
+      // It was never focused, so nothing about focuses is claimed.
+      timesUnresolved: 0,
+      hoverSessions: 0,
+      tests: 1,
+      mistakes: 5,
+      firstSeenAt: 2_000,
+      lastSeenAt: 2_000,
+      lastDifficulty: null,
+      lastOutcome: 'unresolved',
+      lastTestId: 'test-9',
+    })
+  })
+
+  it('adds to the record a word already has, without claiming a focus', () => {
+    const { nuggets } = applyFocusOutcome([], outcome({ mistakes: 3 }))
+
+    const { changed } = applyFocusOutcome(nuggets, trouble())
+
+    expect(changed).toMatchObject({
+      timesUnresolved: 1,
+      hoverSessions: 1,
+      tests: 2,
+      mistakes: 8,
+      // The last focus is still the last thing that happened to it in Hover Mode.
+      lastDifficulty: 'standard',
+      lastOutcome: 'unresolved',
+      lastSeenAt: 2_000,
+    })
+  })
+
+  it('counts one test once, however many words cross in it', () => {
+    const first = applyFocusOutcome([], trouble({ testId: 'test-9' })).nuggets
+    const again = applyFocusOutcome(first, trouble({ testId: 'test-9', at: 2_500 })).nuggets
+
+    expect(again[0]).toMatchObject({ tests: 1, mistakes: 10, lastSeenAt: 2_500 })
+  })
+
+  it('reads a record written before ordinary tests could keep a word', () => {
+    const old = { ...(applyFocusOutcome([], outcome()).changed as GoldenNugget) }
+    delete (old as { tests?: number }).tests
+
+    expect(testsOf(old)).toBe(old.hoverSessions)
+  })
+})
+
+describe('counting mistakes towards a nugget', () => {
+  it('keeps a word on the fifth mistake, and only then', () => {
+    const tally = createMistakeTally()
+
+    expect([1, 2, 3, 4].map(() => tally.note('because'))).toEqual([null, null, null, null])
+    expect(tally.note('because')).toBe('because')
+    // Every mistake after it is still counted, and says nothing more.
+    expect(tally.note('because')).toBeNull()
+    expect(tally.countOf('because')).toBe(6)
+  })
+
+  it('counts each word on its own', () => {
+    const tally = createMistakeTally()
+
+    for (const word of ['because', 'through', 'because']) tally.note(word)
+
+    expect(tally.countOf('because')).toBe(2)
+    expect(tally.countOf('through')).toBe(1)
+    expect(tally.crossed()).toEqual([])
+  })
+
+  it('starts again with a new test', () => {
+    const tally = createMistakeTally()
+    for (let i = 0; i < 4; i += 1) tally.note('because')
+
+    tally.reset()
+
+    expect(tally.countOf('because')).toBe(0)
+    expect(tally.note('because')).toBeNull()
+  })
+
+  it('takes a threshold of its own, for anything that wants one', () => {
+    const tally = createMistakeTally(2)
+
+    expect(tally.note('because')).toBeNull()
+    expect(tally.note('because')).toBe('because')
+  })
+
+  it('says nothing about a mistake that belongs to no word', () => {
+    expect(createMistakeTally(1).note('')).toBeNull()
   })
 })

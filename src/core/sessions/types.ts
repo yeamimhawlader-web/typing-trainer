@@ -61,6 +61,14 @@ export interface SessionContext {
    */
   readonly targetSequence?: string
   /**
+   * How long a timed test ran for, in seconds — present only when `mode` is
+   * `'time'`. What the typist asked for, not what the clock measured: the
+   * measurement is the session's own elapsed time.
+   *
+   * Optional, like `targetSequence`, so every earlier session still parses.
+   */
+  readonly durationSeconds?: number
+  /**
    * What Hover Mode focused on — present only when `mode` is `'hover'`.
    *
    * Optional, like `targetSequence`, so every earlier session still parses.

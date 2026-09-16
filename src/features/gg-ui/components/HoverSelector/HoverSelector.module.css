@@ -12,3 +12,13 @@
   grid-area: branches;
   z-index: 1;
 }
+
+/* The difficulty on the node, where the branches are folded away. */
+.chosen {
+  position: relative;
+  padding-left: 0.5rem;
+  margin-left: 0.1rem;
+  border-left: 1px solid var(--gg-glass-border);
+  color: var(--gg-accent);
+  font-weight: var(--font-weight-semibold);
+}

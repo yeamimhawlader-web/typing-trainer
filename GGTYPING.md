@@ -120,6 +120,26 @@ Tired — each with its description and one to three beads for how persistent it
 is. Changing it starts a new test, so a test is typed, repeated and saved at one
 difficulty.
 
+**Tests are words or time.** Fifteen, thirty or sixty words, or fifteen
+seconds, thirty seconds, a minute, or a custom time between five seconds and two
+minutes. Both are the same test typed the same way — one engine, one set of
+measurements — differing only in which runs out first. A timed test counts every
+second, including the ones spent staring at the screen; a word test still does
+not charge long idle gaps to the typist's speed. The clock counts down where
+there is a time to run out, and the last keystroke before it is the last one
+counted. Speed has no ceiling in either.
+
+**Tab is the way on.** When a test ends, Tab starts the next one; while one is
+under way, Tab restarts it. Tab from anywhere else on the page still moves
+focus, and on an untouched test it does nothing at all.
+
+**Live accuracy.** The figure carries a state: at or above 96% nothing is said;
+below it, a quiet line asks the typist to keep an eye on accuracy; below 94% it
+says what it is costing. The line is always there, empty when there is nothing
+to say, so words arriving move nothing on the page, and the state is carried by
+a mark as well as by colour. It changes once when the state changes, not with
+every keystroke.
+
 **Sound.** Off until a keyboard is chosen, and then remembered. The speaker in
 the toolbar is a glass node that unfolds into the keyboards to type on, the same
 way Hover Mode's node unfolds into its difficulties; choosing one plays it as you
@@ -133,7 +153,8 @@ choose it, because a keyboard cannot be read, only heard.
 | Hush | Barely there, for a shared room or a late night |
 | Typewriter | A hard strike with a little ring left behind it |
 
-Every sound is built in the browser rather than played from a file:
+The master volume sits beside the keyboards, from silent to the level the packs
+were made at. Every sound is built in the browser rather than played from a file:
 a short burst of filtered noise over a low body that falls as it decays, under a
 low-pass — a key click over a dampened knock — and each pack bends those same
 recipes by a handful of numbers. A space is deeper and longer,
@@ -148,7 +169,9 @@ longer than half a second, and no information is carried by sound alone.
 **The selector unfolding.** Pressing Hover Mode gives the node a little and
 flexes its light; the branches grow out of it on thin stems, one just after
 another, their labels arriving last, and the chosen one lights from within.
-Choosing ordinary practice folds it back into the node in reverse. One spring
+Choosing a difficulty folds them away again — the branches are never left
+sitting there, and the node says which difficulty is on — and so does pressing
+the node again or leaving for ordinary practice. One spring
 drives it: opening is fast (90% in about 160ms), settles 1.5% past and is at rest
 by 500ms; folding does not bounce and is at rest by 400ms. Closing while it opens,
 or reopening while it folds, turns it around from where it is, even though the
@@ -176,8 +199,10 @@ way — a reload, the back button — shows it already open.
 | The last word focused | The test stays open until it is released |
 | Restart, new text, word count or difficulty change | Everything cleared; nothing goes to Golden Nuggets |
 
-**Golden Nuggets.** A word released without clearing — still costing mistakes
-when its difficulty's repetitions ran out — is kept at `/gg/nuggets`, reached
+**Golden Nuggets.** A word is kept two ways: it costs five mistakes in one test,
+anywhere in GG.Typing, or Hover Mode releases it without it having cleared —
+still costing mistakes when its difficulty's repetitions ran out. Either is kept
+at `/gg/nuggets`, reached
 from Hover Mode's own screen (a line under the hint, and the result) rather than
 the top bar, which has no room for a fourth link on a phone. One record per word per language, whose counts rise each time:
 how often the word was released unresolved, the Hover Mode tests it came up in,

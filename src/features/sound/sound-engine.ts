@@ -16,7 +16,8 @@
 import { playVoice, type PlayOptions } from './synth.ts'
 import {
   DEFAULT_SOUND_PACK,
-  MASTER_GAIN,
+  FULL_VOLUME,
+  gainForVolume,
   packById,
   type SoundChoice,
   type SoundPackId,
@@ -32,6 +33,10 @@ export interface SoundEngine {
    * choosing `off` silences and keeps it.
    */
   readonly choose: (choice: SoundChoice) => void
+  /** The master volume, 0–100. */
+  readonly volume: () => number
+  /** Sets it. 0 is silence; 100 is the level the packs were made at. */
+  readonly setVolume: (volume: number) => void
   readonly play: (voice: SoundVoice, options?: PlayOptions) => void
   /** One key from `id`, whether or not that is the pack in use: what a pack sounds like. */
   readonly preview: (id: SoundPackId) => void
@@ -42,6 +47,8 @@ export interface SoundEngine {
 export interface SoundEngineOptions {
   /** Where to start. Off, as a fresh installation is. */
   readonly choice?: SoundChoice
+  /** Where the master volume starts, 0–100. Full by default. */
+  readonly volume?: number
   /** Injectable for tests; defaults to the browser's own. */
   readonly createContext?: (() => AudioContext | null) | undefined
   /** Injectable for tests; defaults to a small random wobble per play. */
@@ -65,11 +72,13 @@ const randomWobble = () => ({ pitch: Math.random() * 2 - 1, gain: Math.random() 
 
 export const createSoundEngine = ({
   choice = 'off',
+  volume: startingVolume = FULL_VOLUME,
   createContext = browserContext,
   wobble = randomWobble,
 }: SoundEngineOptions = {}): SoundEngine => {
   let enabled = choice !== 'off'
   let packId: SoundPackId = choice === 'off' ? DEFAULT_SOUND_PACK : choice
+  let volume = startingVolume
   let context: AudioContext | null = null
   let master: GainNode | null = null
 
@@ -78,7 +87,7 @@ export const createSoundEngine = ({
     context = createContext()
     if (context === null) return null
     master = context.createGain()
-    master.gain.value = MASTER_GAIN
+    master.gain.value = gainForVolume(volume)
     master.connect(context.destination)
     return context
   }
@@ -106,6 +115,14 @@ export const createSoundEngine = ({
 
     pack: () => packId,
 
+    volume: () => volume,
+
+    setVolume: (next) => {
+      volume = Math.min(Math.max(next, 0), FULL_VOLUME)
+      // One gain for everything, so the packs keep their proportions exactly.
+      if (master !== null) master.gain.value = gainForVolume(volume)
+    },
+
     choose: (next) => {
       enabled = next !== 'off'
       if (next !== 'off') packId = next
@@ -115,13 +132,16 @@ export const createSoundEngine = ({
     },
 
     play: (voice, options = {}) => {
-      if (!enabled) return
+      if (!enabled || volume <= 0) return
       sound(voice, packId, options)
     },
 
     // A preview is asked for by pressing the pack itself, so it plays even
     // before the choice it demonstrates has been saved.
-    preview: (id) => sound('key', id),
+    preview: (id) => {
+      if (volume <= 0) return
+      sound('key', id)
+    },
 
     close: () => {
       const audio = context

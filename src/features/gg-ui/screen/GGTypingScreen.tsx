@@ -42,7 +42,8 @@ import { computeWordRanges, toCharacters } from '@core/engine'
 import { goldenNuggetService, type GoldenNuggetService } from '@core/nuggets'
 import { DEFAULT_SESSION_CONTEXT } from '@core/sessions'
 import type { HoverDifficulty, Timestamp } from '@core/types'
-import { createHoverController, recordGoldenNuggets } from '@features/ggtyping'
+import { createHoverController, keepTroublesomeWords, newTestId, recordGoldenNuggets } from '@features/ggtyping'
+import { createTimedMode } from '@features/typing'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { playHoverSounds, playTypingSounds, useSound } from '@features/sound'
 import {
@@ -84,7 +85,26 @@ export const GGTypingScreen = ({
   ...options
 }: GGTypingScreenProps) => {
   const [hover] = useState(() => (mode === 'hover' ? createHoverController({ difficulty: hoverDifficulty }) : null))
-  const training = useMemo(() => (hover === null ? undefined : { mode: 'hover' as const, hooks: hover }), [hover])
+
+  /*
+   * What ends an ordinary test: its word count, or the clock. Hover Mode and
+   * drills bring their own rule, so the choice is only offered — and only
+   * applied — where neither does.
+   */
+  const practiceMode = useSettingsStore((state) => state.preferences.practiceMode)
+  const practiceSeconds = useSettingsStore((state) => state.preferences.practiceSeconds)
+  const timed = hover === null && (options.drill ?? null) === null && practiceMode === 'time'
+  const timedMode = useMemo(() => (timed ? createTimedMode(practiceSeconds) : null), [timed, practiceSeconds])
+
+  const training = useMemo(
+    () =>
+      hover !== null
+        ? { mode: 'hover' as const, hooks: hover }
+        : timedMode !== null
+          ? { mode: 'time' as const, hooks: timedMode }
+          : undefined,
+    [hover, timedMode],
+  )
   const screen = useTypingScreen({ ...options, training })
   const {
     engine,
@@ -126,6 +146,36 @@ export const GGTypingScreen = ({
     [goldenNuggets, hover],
   )
 
+  /*
+   * A word that keeps costing mistakes is kept: five of them in one test make it
+   * a Golden Nugget. One write, at the moment a word crosses the line, and never
+   * while typing otherwise.
+   *
+   * Not in Hover Mode: there, every mistake on a focused word is already counted
+   * by the focus itself, and counting it twice would say the word cost twice
+   * what it did.
+   */
+  // One id per test, so a word kept twice in the same test is one record.
+  const testId = useRef(newTestId())
+  useEffect(
+    () =>
+      engine.on((event) => {
+        if (event.type === 'started') testId.current = newTestId()
+      }),
+    [engine],
+  )
+  const currentTestId = useCallback(() => testId.current, [])
+  useEffect(
+    () =>
+      hover !== null
+        ? undefined
+        : keepTroublesomeWords(engine, goldenNuggets, {
+            language: DEFAULT_SESSION_CONTEXT.language,
+            testId: currentTestId,
+          }),
+    [currentTestId, engine, goldenNuggets, hover],
+  )
+
   // Keys reach the session through Hover Mode when it is on, and directly when not.
   const typeKey = useCallback(
     (key: string, at: Timestamp) => (hover === null ? inputKey(key, at) : hover.inputKey(key, at, inputKey)),
@@ -138,6 +188,8 @@ export const GGTypingScreen = ({
 
   const size = useSettingsStore((state) => state.preferences.textSize)
   const setSize = useSettingsStore((state) => state.setTextSize)
+  const setPracticeMode = useSettingsStore((state) => state.setPracticeMode)
+  const setPracticeSeconds = useSettingsStore((state) => state.setPracticeSeconds)
 
   const input = useRef<HTMLTextAreaElement>(null)
   const focusInput = useCallback(() => {
@@ -161,7 +213,23 @@ export const GGTypingScreen = ({
     [setSize],
   )
 
-  const changeWordCount = useCallback((count: WordCount) => setWordCount(count), [setWordCount])
+  const changeWordCount = useCallback(
+    (count: WordCount) => {
+      void setPracticeMode('words')
+      setWordCount(count)
+    },
+    [setPracticeMode, setWordCount],
+  )
+
+  // A time is a different shape of test: the engine's clock rule changes with
+  // it, so the test starts again rather than carrying on under new rules.
+  const changeTime = useCallback(
+    (seconds: number) => {
+      void setPracticeMode('time')
+      void setPracticeSeconds(seconds)
+    },
+    [setPracticeMode, setPracticeSeconds],
+  )
 
   // A new difficulty starts a new test, typed at it from the first key.
   const changeHoverDifficulty = useCallback(
@@ -184,12 +252,27 @@ export const GGTypingScreen = ({
     },
     [setSound],
   )
+  const soundVolume = useSettingsStore((state) => state.preferences.soundVolume)
+  const setSoundVolume = useSettingsStore((state) => state.setSoundVolume)
+  const changeSoundVolume = useCallback(
+    (next: number) => {
+      void setSoundVolume(next)
+    },
+    [setSoundVolume],
+  )
 
-  // A pointer click on a control means the typist is about to type again. A
-  // click the keyboard produced (detail 0) leaves focus where it is, so arrow
-  // keys keep moving through the group.
+  /*
+   * A pointer click on a control means the typist is about to type again, so
+   * focus goes back to the field. Two exceptions: a click the keyboard produced
+   * (detail 0), which leaves focus where it is so arrow keys keep moving through
+   * a group, and a control that is itself typed into or dragged — the custom
+   * time, the volume — which keeps the focus it was just given.
+   */
+  const KEEPS_FOCUS = 'input:not([type="radio"]), textarea, [contenteditable="true"]'
   const returnFocusAfterClick = (event: MouseEvent) => {
-    if (event.detail > 0) focusInput()
+    if (event.detail === 0) return
+    if ((event.target as HTMLElement | null)?.closest(KEEPS_FOCUS) !== null) return
+    focusInput()
   }
 
   return (
@@ -200,7 +283,8 @@ export const GGTypingScreen = ({
         engine={engine}
         source={hover === null ? provider.label : 'Hover Mode'}
         description={hover === null ? undefined : 'Target mistakes and repeat them'}
-        words={wordTotal}
+        words={timed ? null : wordTotal}
+        limitSeconds={timed ? practiceSeconds : null}
         onRestart={restartTest}
       />
 
@@ -211,10 +295,21 @@ export const GGTypingScreen = ({
           onHoverDifficultyChange={hover === null ? undefined : changeHoverDifficulty}
           size={size}
           onSizeChange={changeSize}
-          wordCount={drillSequence === null ? wordCount : null}
-          onWordCountChange={changeWordCount}
+          shape={
+            drillSequence === null && hover === null
+              ? {
+                  mode: practiceMode,
+                  words: wordCount,
+                  seconds: practiceSeconds,
+                  onWords: changeWordCount,
+                  onTime: changeTime,
+                }
+              : null
+          }
           sound={soundChoice}
           onSoundChange={changeSound}
+          soundVolume={soundVolume}
+          onSoundVolumeChange={changeSoundVolume}
         />
       </div>
 

@@ -7,6 +7,7 @@
  * waits for them.
  */
 
+import type { GoldenNuggetService } from '@core/nuggets'
 import type { SessionService } from '@core/sessions'
 import type { TelemetryService } from '@core/telemetry'
 import type { TextProvider } from '@core/text'
@@ -20,9 +21,11 @@ export interface GGPracticePageProps {
   readonly provider?: TextProvider
   readonly service?: SessionService
   readonly telemetry?: TelemetryService
+  /** Injectable for tests; defaults to the application's Golden Nuggets. */
+  readonly goldenNuggets?: GoldenNuggetService
 }
 
-export const GGPracticePage = ({ provider, service, telemetry }: GGPracticePageProps = {}) => {
+export const GGPracticePage = ({ provider, service, telemetry, goldenNuggets }: GGPracticePageProps = {}) => {
   useGGDocumentTitle('Typing Test')
   const initial = useSettingsStore((state) => state.preferences.practiceWordCount)
   const remember = useSettingsStore((state) => state.setPracticeWordCount)
@@ -33,6 +36,7 @@ export const GGPracticePage = ({ provider, service, telemetry }: GGPracticePageP
       provider={provider}
       service={service}
       telemetry={telemetry}
+      {...(goldenNuggets === undefined ? {} : { goldenNuggets })}
       wordCountPreference={{
         initial,
         remember: (count) => {
