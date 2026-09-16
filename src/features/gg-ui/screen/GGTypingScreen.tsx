@@ -176,16 +176,13 @@ export const GGTypingScreen = ({
   // difficulty last chosen.
   const rememberedDifficulty = useSettingsStore((state) => state.preferences.hoverDifficulty)
 
-  const soundEnabled = useSettingsStore((state) => state.preferences.soundEnabled)
-  const setSoundEnabled = useSettingsStore((state) => state.setSoundEnabled)
-  const soundControl = useMemo(
-    () => ({
-      enabled: soundEnabled,
-      onToggle: () => {
-        void setSoundEnabled(!soundEnabled)
-      },
-    }),
-    [setSoundEnabled, soundEnabled],
+  const soundChoice = useSettingsStore((state) => state.preferences.sound)
+  const setSound = useSettingsStore((state) => state.setSound)
+  const changeSound = useCallback(
+    (next: string) => {
+      void setSound(next)
+    },
+    [setSound],
   )
 
   // A pointer click on a control means the typist is about to type again. A
@@ -205,7 +202,6 @@ export const GGTypingScreen = ({
         description={hover === null ? undefined : 'Target mistakes and repeat them'}
         words={wordTotal}
         onRestart={restartTest}
-        sound={soundControl}
       />
 
       <div onClick={returnFocusAfterClick}>
@@ -217,6 +213,8 @@ export const GGTypingScreen = ({
           onSizeChange={changeSize}
           wordCount={drillSequence === null ? wordCount : null}
           onWordCountChange={changeWordCount}
+          sound={soundChoice}
+          onSoundChange={changeSound}
         />
       </div>
 

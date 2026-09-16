@@ -914,12 +914,22 @@ shell rather than rebuilt in it. Its token plan is in
 - **Sound is made, not recorded.** `@features/sound` builds every sound from a
   couple of oscillators and a burst of filtered noise, so there are no audio
   files to ship or license and every keystroke can differ slightly. It is off
-  until switched on, and until then no audio context exists at all; the context
-  is opened by the click that switches it on, which is the gesture browsers
+  until a pack is chosen, and until then no audio context exists at all; the
+  context is opened by the click that chooses one, which is the gesture browsers
   require. It listens to the events the session and Hover Mode already announce
   — neither knows sound exists — so a keystroke does no extra work for it, and a
   browser without Web Audio, or a graph that throws, is silent rather than
   broken.
+- **A sound pack is a character, not a copy.** Every pack is built from one set
+  of recipes bent by a handful of numbers — depth, length, brightness, hardness,
+  dampening, and whether it rings — so another keyboard is one small object and
+  none can drift out of proportion. Hover Mode's notes and the selector's glass
+  are the same in every pack: they belong to the application, not to the keyboard.
+- **One unfolding, two selectors.** The glass node that opens into branches is
+  `components/Unfold`: Hover Mode's difficulties and the sound packs are the same
+  interaction with different choices. Hover Mode's motion is the shell's, carried
+  across the two mode pages; the sound selector opens and closes on one page and
+  keeps its own.
 - **Physical motion is a spring solved exactly.** Hover Mode's selector unfolds
   and folds on one spring whose position and speed are known at any moment, so
   it turns around mid-flight from where it is. The shell keeps that state across

@@ -120,17 +120,30 @@ Tired — each with its description and one to three beads for how persistent it
 is. Changing it starts a new test, so a test is typed, repeated and saved at one
 difficulty.
 
-**Sound.** Off until the speaker in the control row is switched on, and then
-remembered. Every sound is built in the browser rather than played from a file:
+**Sound.** Off until a keyboard is chosen, and then remembered. The speaker in
+the toolbar is a glass node that unfolds into the keyboards to type on, the same
+way Hover Mode's node unfolds into its difficulties; choosing one plays it as you
+choose it, because a keyboard cannot be read, only heard.
+
+| Pack | What it sounds like |
+| --- | --- |
+| Thock | Deep and dampened, like a heavy board on a desk mat |
+| Cream | Smooth and rounded, a long buttery bottom-out |
+| Click | Crisp and tactile, with a bright top to every press |
+| Hush | Barely there, for a shared room or a late night |
+| Typewriter | A hard strike with a little ring left behind it |
+
+Every sound is built in the browser rather than played from a file:
 a short burst of filtered noise over a low body that falls as it decays, under a
-low-pass — a key click over a dampened knock. A space is deeper and longer,
+low-pass — a key click over a dampened knock — and each pack bends those same
+recipes by a handful of numbers. A space is deeper and longer,
 backspace lighter, a mistake duller and lower with no click at all. Hover Mode's
-moments are notes instead: a word caught, lifted, and then each clean repetition
-a step up a pentatonic ladder, so clearing a word rises; a repetition with a
-mistake is a dull tick, and a word let go unresolved is a soft low note rather
-than a buzzer. The selector's glass sounds as it opens and folds. Nothing is
-loud, nothing lasts longer than a third of a second, and no information is
-carried by sound alone.
+moments are notes instead, the same in every pack: a word caught, lifted, and
+then each clean repetition a step up a pentatonic ladder, so clearing a word
+rises; a repetition with a mistake is a dull tick, and a word let go unresolved is
+a soft low note rather than a buzzer. The keys of a repetition sound like keys.
+The selectors' glass sounds as they open and fold. Nothing is loud, nothing lasts
+longer than half a second, and no information is carried by sound alone.
 
 **The selector unfolding.** Pressing Hover Mode gives the node a little and
 flexes its light; the branches grow out of it on thin stems, one just after

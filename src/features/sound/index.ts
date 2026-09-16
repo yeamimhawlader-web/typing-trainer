@@ -13,5 +13,30 @@ export { createSoundEngine } from './sound-engine.ts'
 export type { SoundEngine, SoundEngineOptions } from './sound-engine.ts'
 export { playVoice } from './synth.ts'
 export type { PlayOptions } from './synth.ts'
-export { LADDER, longestVoiceMs, MASTER_GAIN, stepRatio, THOCK_PACK } from './voices.ts'
-export type { Noise, SoundPack, SoundVoice, Tone, ToneType, VoiceRecipe } from './voices.ts'
+export {
+  buildPack,
+  DEFAULT_SOUND_PACK,
+  isSoundPackId,
+  KEYBOARD_VOICES,
+  LADDER,
+  longestVoiceMs,
+  MASTER_GAIN,
+  packById,
+  SOUND_PACK_LIST,
+  SOUND_PACKS,
+  soundChoiceFromStored,
+  stepRatio,
+} from './voices.ts'
+export type {
+  Noise,
+  PackCharacter,
+  SoundChoice,
+  SoundPack,
+  SoundPackDetails,
+  SoundPackId,
+  SoundVoice,
+  Tone,
+  ToneType,
+  VoiceRecipe,
+} from './voices.ts'
+export type { SoundPreference } from '@core/types'

@@ -14,19 +14,34 @@
  */
 
 import { playVoice, type PlayOptions } from './synth.ts'
-import { MASTER_GAIN, THOCK_PACK, type SoundPack, type SoundVoice } from './voices.ts'
+import {
+  DEFAULT_SOUND_PACK,
+  MASTER_GAIN,
+  packById,
+  type SoundChoice,
+  type SoundPackId,
+  type SoundVoice,
+} from './voices.ts'
 
 export interface SoundEngine {
   readonly isEnabled: () => boolean
-  /** Switching on creates the audio context; switching off silences and keeps it. */
-  readonly setEnabled: (enabled: boolean) => void
+  /** The pack in use, whether or not sound is on. */
+  readonly pack: () => SoundPackId
+  /**
+   * Sound off, or on with a pack. Choosing a pack creates the audio context;
+   * choosing `off` silences and keeps it.
+   */
+  readonly choose: (choice: SoundChoice) => void
   readonly play: (voice: SoundVoice, options?: PlayOptions) => void
+  /** One key from `id`, whether or not that is the pack in use: what a pack sounds like. */
+  readonly preview: (id: SoundPackId) => void
   /** Gives the audio device back. The engine can be used again afterwards. */
   readonly close: () => void
 }
 
 export interface SoundEngineOptions {
-  readonly pack?: SoundPack
+  /** Where to start. Off, as a fresh installation is. */
+  readonly choice?: SoundChoice
   /** Injectable for tests; defaults to the browser's own. */
   readonly createContext?: (() => AudioContext | null) | undefined
   /** Injectable for tests; defaults to a small random wobble per play. */
@@ -49,11 +64,12 @@ const browserContext = (): AudioContext | null => {
 const randomWobble = () => ({ pitch: Math.random() * 2 - 1, gain: Math.random() * 2 - 1 })
 
 export const createSoundEngine = ({
-  pack = THOCK_PACK,
+  choice = 'off',
   createContext = browserContext,
   wobble = randomWobble,
 }: SoundEngineOptions = {}): SoundEngine => {
-  let enabled = false
+  let enabled = choice !== 'off'
+  let packId: SoundPackId = choice === 'off' ? DEFAULT_SOUND_PACK : choice
   let context: AudioContext | null = null
   let master: GainNode | null = null
 
@@ -73,27 +89,39 @@ export const createSoundEngine = ({
     if (audio.state === 'suspended') void audio.resume().catch(() => undefined)
   }
 
+  /** Plays `voice` from `from`, whatever is chosen. Silent without a context. */
+  const sound = (voice: SoundVoice, from: SoundPackId, options: PlayOptions = {}): void => {
+    const audio = open()
+    if (audio === null || master === null) return
+    wake(audio)
+    try {
+      playVoice(audio, master, packById(from)[voice], { wobble: wobble(), ...options })
+    } catch {
+      // A sound that cannot be played is not worth a broken test.
+    }
+  }
+
   return {
     isEnabled: () => enabled,
 
-    setEnabled: (next) => {
-      enabled = next
-      if (!next) return
+    pack: () => packId,
+
+    choose: (next) => {
+      enabled = next !== 'off'
+      if (next !== 'off') packId = next
+      if (!enabled) return
       const audio = open()
       if (audio !== null) wake(audio)
     },
 
     play: (voice, options = {}) => {
       if (!enabled) return
-      const audio = open()
-      if (audio === null || master === null) return
-      wake(audio)
-      try {
-        playVoice(audio, master, pack[voice], { wobble: wobble(), ...options })
-      } catch {
-        // A sound that cannot be played is not worth a broken test.
-      }
+      sound(voice, packId, options)
     },
+
+    // A preview is asked for by pressing the pack itself, so it plays even
+    // before the choice it demonstrates has been saved.
+    preview: (id) => sound('key', id),
 
     close: () => {
       const audio = context

@@ -17,6 +17,9 @@
  */
 export type ThemePreference = string
 
+/** Sound off, or a pack id. */
+export type SoundPreference = string
+
 /** The practice lengths on offer, in words. */
 export const PRACTICE_WORD_COUNTS = [15, 30, 60] as const
 export type PracticeWordCount = (typeof PRACTICE_WORD_COUNTS)[number]
@@ -51,8 +54,13 @@ export interface UserPreferences {
   /** The Hover Mode difficulty last chosen. */
   readonly hoverDifficulty: HoverDifficulty
   /**
-   * Whether GG.Typing makes sounds as you type. Off until asked for: a typing
-   * tool that starts making noise on a shared or quiet machine is a bad guest.
+   * Sound off, or the pack it is on, by its id in the sound packs
+   * (`features/sound/voices.ts`). Off until asked for: a typing tool that
+   * starts making noise on a shared or quiet machine is a bad guest.
+   *
+   * A string rather than a union of ids, for the reason the theme is: the packs
+   * are the one list, and a stored value is checked against it when preferences
+   * are read.
    */
-  readonly soundEnabled: boolean
+  readonly sound: SoundPreference
 }

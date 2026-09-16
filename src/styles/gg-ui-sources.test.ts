@@ -13,8 +13,8 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
-import { restMs, springAt } from '../features/gg-ui/components/HoverSelector/spring.ts'
-import { TOUCH_SPRING } from '../features/gg-ui/components/HoverSelector/unfold.motion.ts'
+import { restMs, springAt } from '../features/gg-ui/components/Unfold/spring.ts'
+import { TOUCH_SPRING } from '../features/gg-ui/components/Unfold/unfold.motion.ts'
 import { GG_THEMES } from '../features/gg-ui/themes/themes.ts'
 
 const root = fileURLToPath(new URL('../features/gg-ui', import.meta.url))
@@ -139,7 +139,7 @@ describe('GG.Typing UI sources', () => {
   })
 
   describe("Hover Mode's selector on a narrow screen", () => {
-    const selector = sources.find(({ file }) => /HoverSelector\.module\.css$/.test(file))
+    const selector = sources.find(({ file }) => /Unfold\.module\.css$/.test(file))
 
     it('holds no fixed width a phone could not fit', () => {
       const widths = [...(selector?.contents ?? '').matchAll(/(?:^|[\s;{])(min-width|width):\s*(\d+(?:\.\d+)?)(px|rem)/gm)].map(

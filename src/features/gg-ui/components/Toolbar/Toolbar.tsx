@@ -16,13 +16,18 @@
  * A drill has no length to choose: it is the material it was generated as, and
  * different text would make its before-and-after comparison meaningless. So the
  * length group is not offered for one.
+ *
+ * Sound is the same shape of control as the mode: a glass node that unfolds into
+ * the keyboards to type on, in a row of its own under Hover Mode's.
  */
 
 import { TEXT_SIZES, type HoverDifficulty, type TextSize } from '@core/types'
+import type { SoundPreference } from '@features/sound'
 import { WORD_COUNT_OPTIONS, type WordCount } from '@features/typing'
 
 import { PillGroup, Separator, type PillOption } from '../controls/controls.tsx'
 import { HoverSelector, type GGMode } from '../HoverSelector/HoverSelector.tsx'
+import { SoundSelector } from '../SoundSelector/SoundSelector.tsx'
 
 import styles from './Toolbar.module.css'
 
@@ -60,6 +65,9 @@ export interface ToolbarProps {
   /** Null for a drill, which has no length to choose. */
   readonly wordCount: WordCount | null
   readonly onWordCountChange: (count: WordCount) => void
+  /** Sound off, or the pack it is on, and how to change it. */
+  readonly sound: SoundPreference
+  readonly onSoundChange: (sound: SoundPreference) => void
 }
 
 export const Toolbar = ({
@@ -70,6 +78,8 @@ export const Toolbar = ({
   onSizeChange,
   wordCount,
   onWordCountChange,
+  sound,
+  onSoundChange,
 }: ToolbarProps) => (
   <div className={styles.toolbar}>
     {mode !== null && (
@@ -94,5 +104,7 @@ export const Toolbar = ({
         </>
       )}
     </div>
+
+    <SoundSelector value={sound} onChange={onSoundChange} />
   </div>
 )

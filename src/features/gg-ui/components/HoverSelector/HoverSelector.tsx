@@ -3,21 +3,14 @@
  * that unfolds into its three difficulties.
  *
  * In Hover Mode the node is open: three glass branches — Standard, All In,
- * Tired — hang from it on thin stems, and choosing one is choosing the
- * difficulty. In ordinary practice it is folded shut. Going from one to the
- * other plays the unfolding or the fold (see unfold.motion.ts) from wherever it
- * is, even though the page itself is replaced in between.
- *
- * The branches are native radios in one group, as every GG.Typing choice is:
- * arrow keys move between them and a screen reader announces "2 of 3". They can
- * be used the moment they appear; nothing waits for an animation. While they
- * fold away on the ordinary practice page they are inert and hidden from
- * assistive technology, because they are no longer a choice there.
+ * Tired — hang from it on stems, and choosing one is choosing the difficulty.
+ * In ordinary practice it is folded shut. Going from one to the other plays the
+ * unfolding or the fold (see Unfold/unfold.motion.ts) from wherever it is, even
+ * though the page itself is replaced in between.
  *
  * Each branch shows the difficulty's own name and description, the same words
  * the result and Golden Nuggets use, and one to three beads for how persistent
- * it is. A chosen branch fills its beads and lights from within, so the choice
- * is shown by shape and weight as well as by colour.
+ * it is.
  */
 
 import { useRef, useState, type MouseEvent } from 'react'
@@ -28,24 +21,31 @@ import type { HoverDifficulty } from '@core/types'
 import { HOVER_DIFFICULTY_OPTIONS } from '@features/ggtyping'
 
 import { PillLink } from '../controls/controls.tsx'
+import unfold from '../Unfold/Unfold.module.css'
+import { UnfoldBranches, type UnfoldItem } from '../Unfold/UnfoldBranches.tsx'
+import { useUnfold } from '../Unfold/useUnfold.ts'
 
 import styles from './HoverSelector.module.css'
-import { BRANCH_PART, useUnfold } from './useUnfold.ts'
 
 export type GGMode = 'standard' | 'hover'
 
 const STANDARD_DESCRIPTION = 'Words, typed straight through'
 const HOVER_DESCRIPTION = 'Target mistakes and repeat them'
 
-/** How persistent each difficulty is, drawn as beads. */
-const BEADS: Readonly<Record<HoverDifficulty, readonly string[]>> = {
-  standard: ['one'],
-  'all-in': ['one', 'two'],
-  tired: ['one', 'two', 'three'],
+/** How persistent each difficulty is: its beads, and how much accent it carries. */
+const TONES: Readonly<Record<HoverDifficulty, Pick<UnfoldItem, 'marks' | 'tone'>>> = {
+  standard: { marks: 1, tone: 'calm' },
+  'all-in': { marks: 2, tone: 'committed' },
+  tired: { marks: 3, tone: 'persistent' },
 }
 
-/** The drawn stems: a trunk, used when the branches stack, and one per branch. */
-const STEMS = ['first', 'second', 'third', 'fourth'] as const
+const ITEMS: readonly UnfoldItem[] = HOVER_DIFFICULTY_OPTIONS.map((option) => ({
+  value: option.value,
+  label: option.label,
+  description: option.description,
+  marks: TONES[option.value].marks,
+  tone: TONES[option.value].tone,
+}))
 
 export interface HoverSelectorProps {
   readonly mode: GGMode
@@ -89,19 +89,19 @@ export const HoverSelector = ({ mode, difficulty, onDifficultyChange }: HoverSel
         <Link
           ref={node}
           to={ROUTES.ggHover}
-          className={styles.node}
+          className={unfold.node}
           data-open={open}
           aria-current={open ? 'page' : undefined}
           title={HOVER_DESCRIPTION}
           onPointerDown={() => press('node')}
           onClick={pressNode}
         >
-          <span ref={nodeGlass} className={styles.nodeGlass}>
-            <span ref={nodeLight} className={styles.nodeLight} aria-hidden="true" />
-            <span className={styles.nodeSeat} aria-hidden="true">
-              <span ref={nodeCore} className={styles.nodeCore} />
+          <span ref={nodeGlass} className={unfold.nodeGlass}>
+            <span ref={nodeLight} className={unfold.nodeLight} aria-hidden="true" />
+            <span className={unfold.nodeSeat} aria-hidden="true">
+              <span ref={nodeCore} className={unfold.nodeCore} />
             </span>
-            <span className={styles.nodeLabel}>
+            <span className={unfold.nodeLabel}>
               Hover Mode
               <span className="visually-hidden">: {HOVER_DESCRIPTION}</span>
             </span>
@@ -109,57 +109,19 @@ export const HoverSelector = ({ mode, difficulty, onDifficultyChange }: HoverSel
         </Link>
       </nav>
 
-      {phase !== 'closed' && (
-        <div
-          ref={row}
-          className={styles.row}
-          data-phase={phase}
-          inert={!choosing}
-          aria-hidden={choosing ? undefined : true}
-        >
-          <div ref={inner} className={styles.inner}>
-            <svg className={styles.stems} aria-hidden="true" focusable="false">
-              <g ref={stems} className={styles.stemGroup}>
-                {STEMS.map((key) => (
-                  <path key={key} pathLength={1} />
-                ))}
-              </g>
-            </svg>
-
-            <div ref={list} role="radiogroup" aria-label="Hover difficulty" className={styles.list}>
-              {HOVER_DIFFICULTY_OPTIONS.map((option) => (
-                <label
-                  key={option.value}
-                  className={styles.branch}
-                  data-difficulty={option.value}
-                >
-                  <input
-                    type="radio"
-                    className={styles.nativeInput}
-                    name="gg-hover-difficulty"
-                    value={option.value}
-                    checked={option.value === difficulty}
-                    onChange={() => onDifficultyChange?.(option.value)}
-                    aria-label={`${option.label}: ${option.description}`}
-                  />
-                  <span className={styles.glass}>
-                    <span data-part={BRANCH_PART.light} className={styles.light} aria-hidden="true" />
-                    <span className={styles.beads} aria-hidden="true">
-                      {BEADS[option.value].map((bead) => (
-                        <span key={bead} className={styles.bead} />
-                      ))}
-                    </span>
-                    <span data-part={BRANCH_PART.text} className={styles.text} aria-hidden="true">
-                      <span className={styles.label}>{option.label}</span>
-                      <span className={styles.subtitle}>{option.description}</span>
-                    </span>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <UnfoldBranches
+        phase={phase}
+        row={row}
+        inner={inner}
+        stems={stems}
+        list={list}
+        name="gg-hover-difficulty"
+        label="Hover difficulty"
+        items={ITEMS}
+        value={difficulty}
+        onChange={choosing ? (value) => onDifficultyChange?.(value as HoverDifficulty) : undefined}
+        className={styles.branches}
+      />
     </>
   )
 }

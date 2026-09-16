@@ -9,10 +9,11 @@
  */
 .toolbar {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto auto minmax(0, 1fr);
   grid-template-areas:
-    'modes settings'
-    'branches branches';
+    'modes settings sound-node'
+    'branches branches branches'
+    'sound sound sound';
   align-items: center;
 }
 
@@ -32,7 +33,9 @@
     grid-template-areas:
       'modes'
       'branches'
-      'settings';
+      'settings'
+      'sound-node'
+      'sound';
   }
 
   .settings {

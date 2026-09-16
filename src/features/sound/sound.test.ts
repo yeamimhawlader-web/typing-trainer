@@ -19,7 +19,24 @@ import type { Keystroke } from '@core/types'
 
 import { ladderStep, playHoverSounds, playTypingSounds, voiceForKeystroke, voiceForSignal } from './connect.ts'
 import { createSoundEngine, type SoundEngine } from './sound-engine.ts'
-import { LADDER, longestVoiceMs, MASTER_GAIN, stepRatio, THOCK_PACK, type SoundVoice } from './voices.ts'
+import {
+  buildPack,
+  DEFAULT_SOUND_PACK,
+  KEYBOARD_VOICES,
+  LADDER,
+  longestVoiceMs,
+  MASTER_GAIN,
+  packById,
+  SOUND_PACK_LIST,
+  SOUND_PACKS,
+  soundChoiceFromStored,
+  stepRatio,
+  type SoundPackId,
+  type SoundVoice,
+  type VoiceRecipe,
+} from './voices.ts'
+
+const THOCK_PACK = SOUND_PACKS[DEFAULT_SOUND_PACK]
 
 // --- A recording audio context ----------------------------------------
 
@@ -138,7 +155,7 @@ const sources = (context: FakeContext, kind: string) =>
 
 describe('the sound pack', () => {
   it('has a recipe for every voice, and none of them is loud or long', () => {
-    for (const [name, recipe] of Object.entries(THOCK_PACK)) {
+    for (const [name, recipe] of Object.entries(THOCK_PACK) as [string, VoiceRecipe][]) {
       const loudest = recipe.body.gain + (recipe.partial?.gain ?? 0) + (recipe.click?.gain ?? 0)
       expect(loudest, name).toBeLessThanOrEqual(1)
       expect(recipe.body.decayMs, name).toBeGreaterThan(0)
@@ -175,6 +192,95 @@ describe('the sound pack', () => {
   })
 })
 
+describe('the packs', () => {
+  it('offers several keyboards, each named, described and unique', () => {
+    const ids = SOUND_PACK_LIST.map((pack) => pack.id)
+
+    expect(ids.length).toBeGreaterThanOrEqual(4)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(new Set(SOUND_PACK_LIST.map((pack) => pack.name)).size).toBe(ids.length)
+    for (const pack of SOUND_PACK_LIST) {
+      expect(pack.description.length).toBeGreaterThan(10)
+      expect(pack.name).not.toBe('')
+    }
+    expect(ids).toContain(DEFAULT_SOUND_PACK)
+  })
+
+  it('builds every voice of every pack, none of them loud or long', () => {
+    for (const id of SOUND_PACK_LIST.map((pack) => pack.id)) {
+      const pack = SOUND_PACKS[id]
+      expect(Object.keys(pack).sort()).toEqual(Object.keys(THOCK_PACK).sort())
+      for (const [name, recipe] of Object.entries(pack) as [string, VoiceRecipe][]) {
+        const loudest = recipe.body.gain + (recipe.partial?.gain ?? 0) + (recipe.click?.gain ?? 0)
+        expect(loudest, `${id}/${name}`).toBeLessThanOrEqual(1)
+        expect(recipe.body.from, `${id}/${name}`).toBeGreaterThan(20)
+        expect(recipe.lowpassHz, `${id}/${name}`).toBeGreaterThan(200)
+      }
+      expect(longestVoiceMs(pack)).toBeLessThanOrEqual(500)
+    }
+  })
+
+  it('bends only the keyboard voices: the notes are the same in every pack', () => {
+    const notes = (id: SoundPackId) =>
+      Object.entries(SOUND_PACKS[id]).filter(([name]) => !(KEYBOARD_VOICES as readonly string[]).includes(name))
+
+    for (const { id, character } of SOUND_PACK_LIST) {
+      for (const [name, recipe] of notes(id)) {
+        const base = THOCK_PACK[name as SoundVoice]
+        expect(recipe.body.from, `${id}/${name}`).toBe(base.body.from)
+        expect(recipe.body.decayMs, `${id}/${name}`).toBe(base.body.decayMs)
+        // Only how loud a note is follows the pack.
+        expect(recipe.body.gain, `${id}/${name}`).toBeCloseTo(base.body.gain * character.noteGain, 3)
+      }
+    }
+  })
+
+  it('gives each character the sound its description promises', () => {
+    const key = (id: SoundPackId) => SOUND_PACKS[id].key
+
+    // Cream is smoother and longer than Thock; Click is brighter and harder.
+    expect(key('cream').body.decayMs).toBeGreaterThan(key('thock').body.decayMs)
+    expect(key('cream').click?.gain).toBeLessThan(key('thock').click?.gain as number)
+    expect(key('click').click?.gain).toBeGreaterThan(key('thock').click?.gain as number)
+    expect(key('click').lowpassHz).toBeGreaterThan(key('thock').lowpassHz)
+    // Hush is quieter than all of them, and darker.
+    expect(key('hush').body.gain).toBeLessThan(key('thock').body.gain)
+    expect(key('hush').lowpassHz).toBeLessThan(key('thock').lowpassHz)
+    // The typewriter is the only one that rings.
+    expect(SOUND_PACKS.typewriter.key.partial).toBeDefined()
+    expect(SOUND_PACKS.thock.key.partial).toBeUndefined()
+    // …and never over a mistake, which is not a strike.
+    expect(SOUND_PACKS.typewriter.mistake.partial).toBeUndefined()
+  })
+
+  it('builds a pack from its character alone, and falls back to the default for an unknown one', () => {
+    const quiet = buildPack({
+      bodyPitch: 1,
+      bodyDecay: 1,
+      bodyGain: 0.5,
+      clickPitch: 1,
+      clickGain: 1,
+      clickDecay: 1,
+      lowpass: 1,
+      variation: 1,
+      noteGain: 1,
+    })
+
+    expect(quiet.key.body.gain).toBeCloseTo(THOCK_PACK.key.body.gain / 2, 3)
+    expect(packById('no-such-pack')).toBe(SOUND_PACKS[DEFAULT_SOUND_PACK])
+    expect(packById('cream')).toBe(SOUND_PACKS.cream)
+  })
+
+  it('reads a stored choice, including the switch the first version of sound stored', () => {
+    expect(soundChoiceFromStored('off')).toBe('off')
+    expect(soundChoiceFromStored('typewriter')).toBe('typewriter')
+    expect(soundChoiceFromStored(true)).toBe(DEFAULT_SOUND_PACK)
+    expect(soundChoiceFromStored(false)).toBe('off')
+    expect(soundChoiceFromStored('bongos')).toBeNull()
+    expect(soundChoiceFromStored(undefined)).toBeNull()
+  })
+})
+
 // --- The engine --------------------------------------------------------
 
 describe('the sound engine', () => {
@@ -191,7 +297,7 @@ describe('the sound engine', () => {
   it('opens one when it is switched on — a click, the gesture browsers ask for — and wakes it', () => {
     const { sound, contexts, latest } = withContext()
 
-    sound.setEnabled(true)
+    sound.choose(DEFAULT_SOUND_PACK)
 
     expect(contexts).toHaveLength(1)
     expect(latest().resumes).toBe(1)
@@ -203,7 +309,7 @@ describe('the sound engine', () => {
 
   it('plays a key as a click over a falling body, through one low-pass, into the master', () => {
     const { sound, latest } = withContext()
-    sound.setEnabled(true)
+    sound.choose(DEFAULT_SOUND_PACK)
     const before = latest().nodes.length
 
     sound.play('key')
@@ -230,7 +336,7 @@ describe('the sound engine', () => {
 
   it('ends every envelope at true silence, and stops every source it starts', () => {
     const { sound, latest } = withContext()
-    sound.setEnabled(true)
+    sound.choose(DEFAULT_SOUND_PACK)
 
     for (const voice of Object.keys(THOCK_PACK) as SoundVoice[]) sound.play(voice)
 
@@ -246,7 +352,7 @@ describe('the sound engine', () => {
 
   it('pitches a repetition by its rung on the ladder', () => {
     const { sound, latest } = withContext()
-    sound.setEnabled(true)
+    sound.choose(DEFAULT_SOUND_PACK)
 
     sound.play('hoverClean', { step: 0 })
     sound.play('hoverClean', { step: 3 })
@@ -258,24 +364,52 @@ describe('the sound engine', () => {
 
   it('goes quiet when switched off, and keeps the context for the next time', () => {
     const { sound, contexts, latest } = withContext()
-    sound.setEnabled(true)
+    sound.choose(DEFAULT_SOUND_PACK)
     const opened = latest().nodes.length
 
-    sound.setEnabled(false)
+    sound.choose('off')
     sound.play('key')
 
     expect(latest().nodes.length).toBe(opened)
     expect(contexts).toHaveLength(1)
 
-    sound.setEnabled(true)
+    sound.choose(DEFAULT_SOUND_PACK)
     sound.play('key')
     expect(contexts).toHaveLength(1)
     expect(latest().nodes.length).toBeGreaterThan(opened)
   })
 
+  it('plays the pack it was given, and keeps it when sound is switched off and on', () => {
+    const { sound, latest } = withContext()
+
+    sound.choose('click')
+    expect(sound.pack()).toBe('click')
+    sound.play('key')
+    const [body] = sources(latest(), 'oscillator')
+    expect(body?.frequency.calls[0]?.value).toBe(SOUND_PACKS.click.key.body.from)
+
+    sound.choose('off')
+    expect(sound.isEnabled()).toBe(false)
+    expect(sound.pack()).toBe('click')
+  })
+
+  it('previews a pack as it is chosen, whatever is playing at the time', () => {
+    const { sound, latest } = withContext()
+    sound.choose('thock')
+
+    sound.preview('typewriter')
+
+    // Its body, and the ring only the typewriter has over it.
+    const pitches = sources(latest(), 'oscillator').map((node) => node.frequency.calls[0]?.value)
+    expect(pitches).toContain(SOUND_PACKS.typewriter.key.body.from)
+    expect(pitches).toContain(SOUND_PACKS.typewriter.key.partial?.from)
+    // The preview does not change what is chosen.
+    expect(sound.pack()).toBe('thock')
+  })
+
   it('gives the audio device back when it is closed', () => {
     const { sound, latest } = withContext()
-    sound.setEnabled(true)
+    sound.choose(DEFAULT_SOUND_PACK)
 
     sound.close()
 
@@ -285,7 +419,7 @@ describe('the sound engine', () => {
   it('makes no sound, and no trouble, in a browser without Web Audio', () => {
     const sound = createSoundEngine({ createContext: () => null })
 
-    sound.setEnabled(true)
+    sound.choose(DEFAULT_SOUND_PACK)
     expect(() => sound.play('key')).not.toThrow()
     expect(() => sound.close()).not.toThrow()
   })
@@ -304,7 +438,7 @@ describe('the sound engine', () => {
       createBiquadFilter: () => new FakeSource('filter'),
     }
     const sound = createSoundEngine({ createContext: () => broken as unknown as AudioContext })
-    sound.setEnabled(true)
+    sound.choose(DEFAULT_SOUND_PACK)
 
     expect(() => sound.play('key')).not.toThrow()
   })
@@ -322,8 +456,12 @@ const recorder = () => {
   const played: { voice: SoundVoice; step: number | undefined }[] = []
   const sound = {
     isEnabled: () => true,
-    setEnabled: () => undefined,
-    play: (voice: SoundVoice, options?: { step?: number }) => played.push({ voice, step: options?.step }),
+    pack: () => DEFAULT_SOUND_PACK,
+    choose: () => undefined,
+    play: (voice: SoundVoice, options?: { step?: number }) => {
+      played.push({ voice, step: options?.step })
+    },
+    preview: () => undefined,
     close: () => undefined,
   } satisfies SoundEngine
   return { sound, played }

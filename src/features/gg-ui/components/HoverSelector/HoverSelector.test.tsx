@@ -20,10 +20,11 @@ import type { HoverDifficulty } from '@core/types'
 import { HOVER_DIFFICULTY_OPTIONS } from '@features/ggtyping'
 import { SoundContext, type SoundEngine } from '@features/sound'
 
+import { trajectoryAt } from '../Unfold/spring.ts'
+import { createUnfoldMemory, UnfoldMemoryContext, type UnfoldMemory } from '../Unfold/unfold-memory.ts'
+import { rowPose, UNFOLD_MOTION } from '../Unfold/unfold.motion.ts'
+
 import { HoverSelector } from './HoverSelector.tsx'
-import { trajectoryAt } from './spring.ts'
-import { createUnfoldMemory, UnfoldMemoryContext, type UnfoldMemory } from './unfold-memory.ts'
-import { rowPose, UNFOLD_MOTION } from './unfold.motion.ts'
 
 // --- A clock, boxes and animations ------------------------------------
 
@@ -57,7 +58,7 @@ beforeEach(() => {
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function measure(this: Element) {
     return boxOf(this)
   })
-  const branch = (element: HTMLElement) => element.dataset.difficulty
+  const branch = (element: HTMLElement) => element.dataset.branch
   vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockImplementation(function left(this: HTMLElement) {
     return BRANCH_LEFT[branch(this) ?? ''] ?? 0
   })
@@ -184,7 +185,7 @@ describe("Hover Mode's selector", () => {
       const group = screen.getByRole('radiogroup', { name: 'Hover difficulty' })
       expect(group.textContent).toBe(HOVER_DIFFICULTY_OPTIONS.map((option) => `${option.label}${option.description}`).join(''))
       const beads = HOVER_DIFFICULTY_OPTIONS.map((option) =>
-        group.querySelector(`[data-difficulty="${option.value}"] [aria-hidden="true"]:not([class*="light"])`),
+        group.querySelector(`[data-branch="${option.value}"] [aria-hidden="true"]:not([class*="light"])`),
       )
       expect(beads.every((element) => element !== null)).toBe(true)
     })
@@ -208,7 +209,7 @@ describe("Hover Mode's selector", () => {
       expect(scales.length).toBeGreaterThan(0)
 
       // The branches start at the node, small and unseen.
-      const tired = played.find((record) => (record.element as HTMLElement).dataset.difficulty === 'tired')
+      const tired = played.find((record) => (record.element as HTMLElement).dataset.branch === 'tired')
       expect(tired?.keyframes[0]?.opacity).toBe('0')
       expect(String(tired?.keyframes[0]?.transform)).toMatch(/^translate\(-\d/)
 

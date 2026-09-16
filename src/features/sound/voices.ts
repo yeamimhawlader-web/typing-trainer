@@ -12,18 +12,30 @@
  *
  * ## What a key sounds like
  *
- * A dampened keyboard makes two sounds at once: a click as the key moves, and
- * a low knock as it bottoms out. So each voice is a short burst of filtered
- * noise (the click) over a pitched body that falls as it decays (the knock),
- * both under a low-pass filter, which is what "dampened" means — the hard top
- * end taken off. Space is deeper and longer, backspace lighter and shorter, a
- * mistake duller and lower still, with no click at all: it is the sound of a
- * key that did not want to be pressed.
+ * A keyboard makes two sounds at once: a click as the key moves, and a knock as
+ * it bottoms out. So each voice is a short burst of filtered noise (the click)
+ * over a pitched body that falls as it decays (the knock), both under a low-pass
+ * filter, which is what "dampened" means — the hard top end taken off. Space is
+ * deeper and longer, backspace lighter and shorter, a mistake duller and lower
+ * still, with no click at all: it is the sound of a key that did not want to be
+ * pressed.
  *
- * Hover Mode's sounds are notes rather than knocks. Each clean repetition steps
- * up a pentatonic ladder, so a word being cleared plays a small rising figure,
- * and nothing in the ladder can sound wrong against anything else. A word let go
- * unresolved is a soft low note, not a buzzer: Golden Nuggets are not a telling-off.
+ * ## Packs are characters, not copies
+ *
+ * Every pack is built from the same recipes below, bent by a handful of numbers:
+ * how deep the knock is, how long it rings, how bright and hard the click is,
+ * how much top end is taken off, and whether there is a metallic ring over it.
+ * So a new pack is one small object, not a table of forty numbers, and no pack
+ * can quietly drift out of proportion with the rest.
+ *
+ * Hover Mode's notes and the selector's glass are the same in every pack. They
+ * are not keyboard sounds: they belong to the application, not to the keyboard
+ * you chose. Only how loud they are follows the pack.
+ *
+ * Each clean repetition steps up a pentatonic ladder, so a word being cleared
+ * plays a small rising figure, and nothing in the ladder can sound wrong against
+ * anything else. A word let go unresolved is a soft low note, not a buzzer:
+ * Golden Nuggets are not a telling-off.
  *
  * Nothing here is loud. The master level sits well under a comfortable listening
  * volume for an hour of typing, and sound is off until it is asked for.
@@ -80,6 +92,9 @@ export type SoundVoice =
   | 'selectorOpen'
   | 'selectorClose'
 
+/** The voices that are the keyboard, and so take the pack's character. */
+export const KEYBOARD_VOICES = ['key', 'space', 'backspace', 'mistake'] as const
+
 /**
  * A pentatonic ladder in semitones, for the repetitions of a word: no two steps
  * can sound wrong together, and a cleared word rises.
@@ -94,11 +109,9 @@ export const stepRatio = (step: number): number => {
 /** The master level everything is played at: present, never loud. */
 export const MASTER_GAIN = 0.34
 
-/**
- * The one pack, deep and dampened. Another pack is another object of the same
- * shape; nothing else would have to change.
- */
-export const THOCK_PACK: Readonly<Record<SoundVoice, VoiceRecipe>> = {
+// --- The recipes every pack is bent from -------------------------------
+
+const BASE: Readonly<Record<SoundVoice, VoiceRecipe>> = {
   // A key: a small click over a low knock that falls away in a twentieth of a second.
   key: {
     body: { type: 'sine', from: 168, to: 116, decayMs: 55, gain: 0.5 },
@@ -193,10 +206,225 @@ export const THOCK_PACK: Readonly<Record<SoundVoice, VoiceRecipe>> = {
   },
 }
 
-export type SoundPack = typeof THOCK_PACK
+// --- Characters --------------------------------------------------------
+
+/**
+ * How a pack bends the recipes. Every number is a multiplier on the base above,
+ * except `ring`, which adds a partial the base has no equivalent of.
+ */
+export interface PackCharacter {
+  /** Deeper or higher knock. */
+  readonly bodyPitch: number
+  /** Longer or shorter knock. */
+  readonly bodyDecay: number
+  readonly bodyGain: number
+  /** Brighter or darker click, harder or softer, longer or shorter. */
+  readonly clickPitch: number
+  readonly clickGain: number
+  readonly clickDecay: number
+  /** How much top end is left on: below 1 is more dampened. */
+  readonly lowpass: number
+  /** How lively each play is against the last. */
+  readonly variation: number
+  /** A metallic ring over the knock, for the packs that have one. */
+  readonly ring?: { readonly frequency: number; readonly decayMs: number; readonly gain: number }
+  /** How loud Hover Mode's notes and the selector's glass are in this pack. */
+  readonly noteGain: number
+}
+
+export interface SoundPackDetails {
+  readonly id: string
+  readonly name: string
+  /** What it sounds like, in a few words. */
+  readonly description: string
+  readonly character: PackCharacter
+}
+
+/**
+ * The packs, in order of how much they are heard: from the dampened knock of a
+ * heavy board to a sharp click, with a typewriter at the end.
+ */
+export const SOUND_PACK_LIST = [
+  {
+    id: 'thock',
+    name: 'Thock',
+    description: 'Deep and dampened, like a heavy board on a desk mat',
+    character: {
+      bodyPitch: 1,
+      bodyDecay: 1,
+      bodyGain: 1,
+      clickPitch: 1,
+      clickGain: 1,
+      clickDecay: 1,
+      lowpass: 1,
+      variation: 1,
+      noteGain: 1,
+    },
+  },
+  {
+    id: 'cream',
+    name: 'Cream',
+    description: 'Smooth and rounded, a long buttery bottom-out',
+    character: {
+      bodyPitch: 1.1,
+      bodyDecay: 1.5,
+      bodyGain: 1.05,
+      clickPitch: 0.72,
+      clickGain: 0.55,
+      clickDecay: 1.5,
+      lowpass: 0.78,
+      variation: 0.9,
+      noteGain: 1,
+    },
+  },
+  {
+    id: 'click',
+    name: 'Click',
+    description: 'Crisp and tactile, with a bright top to every press',
+    character: {
+      bodyPitch: 1.28,
+      bodyDecay: 0.62,
+      bodyGain: 0.78,
+      clickPitch: 1.75,
+      clickGain: 1.7,
+      clickDecay: 0.8,
+      lowpass: 1.9,
+      variation: 1.1,
+      noteGain: 1,
+    },
+  },
+  {
+    id: 'hush',
+    name: 'Hush',
+    description: 'Barely there, for a shared room or a late night',
+    character: {
+      bodyPitch: 0.94,
+      bodyDecay: 0.72,
+      bodyGain: 0.5,
+      clickPitch: 0.85,
+      clickGain: 0.3,
+      clickDecay: 0.7,
+      lowpass: 0.55,
+      variation: 0.8,
+      noteGain: 0.7,
+    },
+  },
+  {
+    id: 'typewriter',
+    name: 'Typewriter',
+    description: 'A hard strike with a little ring left behind it',
+    character: {
+      bodyPitch: 1.15,
+      bodyDecay: 0.85,
+      bodyGain: 0.9,
+      clickPitch: 1.35,
+      clickGain: 1.5,
+      clickDecay: 1.15,
+      lowpass: 2.2,
+      variation: 1.2,
+      ring: { frequency: 2960, decayMs: 130, gain: 0.05 },
+      noteGain: 1,
+    },
+  },
+] as const satisfies readonly SoundPackDetails[]
+
+export type SoundPackId = (typeof SOUND_PACK_LIST)[number]['id']
+
+/** Sound off, or the pack it is on. */
+export type SoundChoice = 'off' | SoundPackId
+
+export const DEFAULT_SOUND_PACK: SoundPackId = 'thock'
+
+const bendTone = (tone: Tone, pitch: number, decay: number, gain: number): Tone => ({
+  type: tone.type,
+  from: Math.round(tone.from * pitch),
+  to: Math.round(tone.to * pitch),
+  decayMs: Math.round(tone.decayMs * decay),
+  gain: Number((tone.gain * gain).toFixed(3)),
+})
+
+/** One pack's voices: the base recipes with the character applied to the keys. */
+export const buildPack = (character: PackCharacter): Readonly<Record<SoundVoice, VoiceRecipe>> => {
+  const voices = Object.entries(BASE).map(([name, recipe]) => {
+    const isKeyboard = (KEYBOARD_VOICES as readonly string[]).includes(name)
+    if (!isKeyboard) {
+      // A note: only its level follows the pack.
+      return [
+        name,
+        {
+          ...recipe,
+          body: { ...recipe.body, gain: Number((recipe.body.gain * character.noteGain).toFixed(3)) },
+          ...(recipe.partial === undefined
+            ? {}
+            : { partial: { ...recipe.partial, gain: Number((recipe.partial.gain * character.noteGain).toFixed(3)) } }),
+        },
+      ] as const
+    }
+
+    const body = bendTone(recipe.body, character.bodyPitch, character.bodyDecay, character.bodyGain)
+    const click =
+      recipe.click === undefined
+        ? undefined
+        : {
+            frequency: Math.round(recipe.click.frequency * character.clickPitch),
+            q: recipe.click.q,
+            decayMs: Math.round(recipe.click.decayMs * character.clickDecay),
+            gain: Number((recipe.click.gain * character.clickGain).toFixed(3)),
+          }
+    // The ring sits over the knock, at the pack's own pitch rather than the key's.
+    const ring =
+      character.ring === undefined || name === 'mistake'
+        ? undefined
+        : ({
+            type: 'sine',
+            from: character.ring.frequency,
+            to: Math.round(character.ring.frequency * 0.98),
+            decayMs: character.ring.decayMs,
+            gain: character.ring.gain,
+          } satisfies Tone)
+
+    return [
+      name,
+      {
+        body,
+        ...(ring === undefined ? {} : { partial: ring }),
+        ...(click === undefined ? {} : { click }),
+        lowpassHz: Math.round(recipe.lowpassHz * character.lowpass),
+        variation: {
+          pitch: Number((recipe.variation.pitch * character.variation).toFixed(3)),
+          gain: Number((recipe.variation.gain * character.variation).toFixed(3)),
+        },
+      },
+    ] as const
+  })
+
+  return Object.fromEntries(voices) as Readonly<Record<SoundVoice, VoiceRecipe>>
+}
+
+export type SoundPack = Readonly<Record<SoundVoice, VoiceRecipe>>
+
+/** Every pack, built once. */
+export const SOUND_PACKS: Readonly<Record<SoundPackId, SoundPack>> = Object.fromEntries(
+  SOUND_PACK_LIST.map((pack) => [pack.id, buildPack(pack.character)]),
+) as Readonly<Record<SoundPackId, SoundPack>>
+
+export const packById = (id: string): SoundPack => SOUND_PACKS[id as SoundPackId] ?? SOUND_PACKS[DEFAULT_SOUND_PACK]
+
+export const isSoundPackId = (value: unknown): value is SoundPackId =>
+  SOUND_PACK_LIST.some((pack) => pack.id === value)
+
+/** The pack a stored preference names, or null if it names none. */
+export const soundChoiceFromStored = (value: unknown): SoundChoice | null => {
+  if (value === 'off') return 'off'
+  if (isSoundPackId(value)) return value
+  // What the first version of sound stored, before there were packs to choose.
+  if (value === true) return DEFAULT_SOUND_PACK
+  if (value === false) return 'off'
+  return null
+}
 
 /** The longest any single sound lasts, in milliseconds: nothing rings on. */
-export const longestVoiceMs = (pack: SoundPack = THOCK_PACK): number =>
+export const longestVoiceMs = (pack: SoundPack = SOUND_PACKS[DEFAULT_SOUND_PACK]): number =>
   Math.max(
     ...Object.values(pack).map((voice) =>
       Math.max(voice.body.decayMs, voice.partial?.decayMs ?? 0, voice.click?.decayMs ?? 0),

@@ -20,6 +20,7 @@ import {
   TEXT_SIZES,
   type HoverDifficulty,
   type PracticeWordCount,
+  type SoundPreference,
   type TextSize,
   type ThemePreference,
   type UserPreferences,
@@ -27,6 +28,8 @@ import {
 // The theme registry itself, not the GG.Typing feature's entry point: a leaf
 // module with no imports, so settings and the shell cannot form a cycle.
 import { themeIdFromStored } from '@features/gg-ui/themes/themes.ts'
+// The sound packs themselves, for the same reason: one list of packs.
+import { soundChoiceFromStored } from '@features/sound/voices.ts'
 
 export type SettingsStatus = 'idle' | 'loading' | 'ready'
 
@@ -38,7 +41,7 @@ export interface SettingsState {
   readonly setPracticeWordCount: (count: PracticeWordCount) => Promise<void>
   readonly setTextSize: (size: TextSize) => Promise<void>
   readonly setHoverDifficulty: (difficulty: HoverDifficulty) => Promise<void>
-  readonly setSoundEnabled: (enabled: boolean) => Promise<void>
+  readonly setSound: (sound: SoundPreference) => Promise<void>
 }
 
 /**
@@ -58,7 +61,7 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
     practiceWordCount?: PracticeWordCount
     textSize?: TextSize
     hoverDifficulty?: HoverDifficulty
-    soundEnabled?: boolean
+    sound?: SoundPreference
   } = {}
 
   // A theme the registry knows, or one of the two themes earlier versions
@@ -76,7 +79,9 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
   const difficulty = HOVER_DIFFICULTIES.find((option) => option === record['hoverDifficulty'])
   if (difficulty !== undefined) result.hoverDifficulty = difficulty
 
-  if (typeof record['soundEnabled'] === 'boolean') result.soundEnabled = record['soundEnabled']
+  // A pack this build knows, or what the first version of sound stored: a switch.
+  const sound = soundChoiceFromStored(record['sound'] ?? record['soundEnabled'])
+  if (sound !== null) result.sound = sound
 
   return result
 }
@@ -123,7 +128,7 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
 
       setHoverDifficulty: (hoverDifficulty) => persist({ ...get().preferences, hoverDifficulty }),
 
-      setSoundEnabled: (soundEnabled) => persist({ ...get().preferences, soundEnabled }),
+      setSound: (sound) => persist({ ...get().preferences, sound }),
     }
   })
 

@@ -577,7 +577,7 @@ describe('Hover Mode on the GG.Typing screen', () => {
       // Switched on as the control row's toggle does, after the shell is up.
       act(() => {
         settingsStore.setState({
-          preferences: { ...settingsStore.getState().preferences, soundEnabled: true },
+          preferences: { ...settingsStore.getState().preferences, sound: 'thock' },
           status: 'ready',
         })
       })

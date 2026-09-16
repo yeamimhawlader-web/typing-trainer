@@ -1,6 +1,6 @@
 /**
- * The control row: what is being typed on the left; the live figures, sound,
- * restart and settings on the right; a hairline underneath.
+ * The control row: what is being typed on the left; the live figures, restart
+ * and settings on the right; a hairline underneath.
  *
  * Everything here is the application's own. The source is the text provider's
  * name. The figures are the engine's, chosen for display by the same selectors
@@ -15,7 +15,7 @@ import { formatDuration } from '@features/results'
 import { selectAccuracyPercent, selectElapsedSeconds, selectLiveWpm, useEngineValue } from '@features/typing'
 
 import { IconCircle, IconLink } from '../controls/controls.tsx'
-import { RestartIcon, SettingsIcon, SoundOffIcon, SoundOnIcon } from '../icons.tsx'
+import { RestartIcon, SettingsIcon } from '../icons.tsx'
 
 import styles from './ControlRow.module.css'
 
@@ -68,11 +68,9 @@ export interface ControlRowProps {
   /** How many words the loaded test has, by the engine's own word rule. */
   readonly words: number
   readonly onRestart: () => void
-  /** Sound, where there is any to make. Absent leaves the control out. */
-  readonly sound?: { readonly enabled: boolean; readonly onToggle: () => void } | undefined
 }
 
-export const ControlRow = ({ engine, source, description, words, onRestart, sound }: ControlRowProps) => (
+export const ControlRow = ({ engine, source, description, words, onRestart }: ControlRowProps) => (
   <div className={styles.wrap}>
     <div className={styles.row}>
       <p className={styles.source}>
@@ -90,13 +88,8 @@ export const ControlRow = ({ engine, source, description, words, onRestart, soun
           <Progress engine={engine} total={words} />
         </div>
         <span className={styles.gap} aria-hidden="true" />
-        {/* Together, so on a narrow screen they wrap as a group. */}
+        {/* Together, so on a narrow screen they wrap as a pair. */}
         <span className={styles.buttons}>
-          {sound !== undefined && (
-            <IconCircle label="Sound" aria-pressed={sound.enabled} onClick={sound.onToggle}>
-              {sound.enabled ? <SoundOnIcon /> : <SoundOffIcon />}
-            </IconCircle>
-          )}
           <IconCircle label="Restart test" onClick={onRestart}>
             <RestartIcon />
           </IconCircle>

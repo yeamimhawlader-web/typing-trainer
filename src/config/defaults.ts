@@ -16,5 +16,5 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   // The least persistent: a word is repeated for one cycle and let go.
   hoverDifficulty: 'standard',
   // Silence until it is asked for.
-  soundEnabled: false,
+  sound: 'off',
 }

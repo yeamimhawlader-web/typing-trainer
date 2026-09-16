@@ -31,6 +31,7 @@ export type {
   HoverDifficulty,
   PracticeWordCount,
   TextSize,
+  SoundPreference,
   ThemePreference,
   UserPreferences,
 } from './preferences.ts'

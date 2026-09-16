@@ -1,5 +1,5 @@
 /**
- * Plays Hover Mode's selector unfolding on the elements that make it.
+ * Plays a selector's unfolding on the elements that make it.
  *
  * The Web Animations API throughout, as the word animations use it: every
  * animation is keyframes sampled from one spring trajectory (unfold.motion.ts),
@@ -45,8 +45,8 @@ export type UnfoldPhase = 'open' | 'opening' | 'closing' | 'closed'
  * light — and the stems are found inside `list` and `stems`.
  */
 export interface UnfoldRefs {
-  /** The node's link, measured for where the branches come from. */
-  readonly node: RefObject<HTMLAnchorElement | null>
+  /** The node itself — a link or a button — measured for where the branches come from. */
+  readonly node: RefObject<HTMLElement | null>
   /** The node's glass, which gives under a press. */
   readonly nodeGlass: RefObject<HTMLSpanElement | null>
   /** The light that flexes across the node's glass under a press. */
@@ -76,7 +76,7 @@ const now = (): number => performance.now()
 const rest = (value: number): SpringState => ({ value, velocity: 0 })
 
 const branchesIn = (list: HTMLElement | null): HTMLElement[] =>
-  list === null ? [] : Array.from(list.querySelectorAll<HTMLElement>('[data-difficulty]'))
+  list === null ? [] : Array.from(list.querySelectorAll<HTMLElement>('[data-branch]'))
 
 const partOf = (branch: HTMLElement, part: string): HTMLElement | null =>
   branch.querySelector<HTMLElement>(`[data-part="${part}"]`)
@@ -158,11 +158,19 @@ const beginning = (memory: UnfoldMemory, open: boolean, at: number): MotionState
   return recent ? turning(memory, open, at) : settled(open, at)
 }
 
-export const useUnfold = (open: boolean, refs: UnfoldRefs) => {
+export interface UnfoldOptions {
+  /**
+   * Whether this selector's motion is the shell's, carried between the pages it
+   * appears on. False for a selector opened and closed on one page.
+   */
+  readonly shared?: boolean
+}
+
+export const useUnfold = (open: boolean, refs: UnfoldRefs, { shared: useShared = true }: UnfoldOptions = {}) => {
   const sound = useSound()
   const shared = useContext(UnfoldMemoryContext)
   const [ownMemory] = useState(createUnfoldMemory)
-  const memory = shared ?? ownMemory
+  const memory = useShared ? (shared ?? ownMemory) : ownMemory
   const [motion, setMotion] = useState<MotionState>(() => beginning(memory, open, now()))
 
   // A change of mode without a new page: turn around from wherever it is.

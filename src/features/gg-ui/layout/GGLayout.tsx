@@ -34,9 +34,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { Outlet } from 'react-router'
 
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
-import { createSoundEngine, SoundContext } from '@features/sound'
+import { createSoundEngine, soundChoiceFromStored, SoundContext } from '@features/sound'
 
-import { createUnfoldMemory, UnfoldMemoryContext } from '../components/HoverSelector/unfold-memory.ts'
+import { createUnfoldMemory, UnfoldMemoryContext } from '../components/Unfold/unfold-memory.ts'
 import { ThemePanel } from '../components/ThemePanel/ThemePanel.tsx'
 import { TopBar } from '../components/TopBar/TopBar.tsx'
 import { applyTheme, removeTheme } from '../themes/apply-theme.ts'
@@ -56,11 +56,11 @@ export const GGLayout = () => {
 
   // One sound engine for the shell. It opens no audio context until sound is
   // switched on, and gives the device back when the shell goes away.
-  const soundEnabled = useSettingsStore((state) => state.preferences.soundEnabled)
+  const soundChoice = useSettingsStore((state) => state.preferences.sound)
   const [sound] = useState(createSoundEngine)
   useEffect(() => {
-    sound.setEnabled(soundEnabled)
-  }, [sound, soundEnabled])
+    sound.choose(soundChoiceFromStored(soundChoice) ?? 'off')
+  }, [sound, soundChoice])
   useEffect(() => () => sound.close(), [sound])
   const themesButton = useRef<HTMLButtonElement>(null)
 

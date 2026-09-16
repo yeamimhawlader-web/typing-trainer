@@ -1,0 +1,17 @@
+/* The node sits after the settings, its branches in the toolbar row set aside
+   for them, under Hover Mode's. */
+.cell {
+  grid-area: sound-node;
+  display: flex;
+  align-items: center;
+}
+
+.branches {
+  grid-area: sound;
+}
+
+@media (max-width: 720px) {
+  .cell {
+    margin-top: 0.75rem;
+  }
+}

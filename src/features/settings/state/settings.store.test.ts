@@ -11,7 +11,7 @@ const DEFAULTS: UserPreferences = {
   practiceWordCount: 30,
   textSize: 'sm',
   hoverDifficulty: 'standard',
-  soundEnabled: false,
+  sound: 'off',
 }
 
 describe('settings store', () => {
@@ -55,7 +55,7 @@ describe('settings store', () => {
       practiceWordCount: 60,
       textSize: 'lg',
       hoverDifficulty: 'tired',
-      soundEnabled: true,
+      sound: 'click',
     })
     const store = createSettingsStore(adapter)
 
@@ -66,7 +66,7 @@ describe('settings store', () => {
       practiceWordCount: 60,
       textSize: 'lg',
       hoverDifficulty: 'tired',
-      soundEnabled: true,
+      sound: 'click',
     })
     expect(store.getState().status).toBe('ready')
   })
@@ -103,6 +103,20 @@ describe('settings store', () => {
     await dark.getState().hydrate()
 
     expect(dark.getState().preferences.theme).toBe('default-dark')
+  })
+
+  it('carries over the sound switch the first version of sound stored', async () => {
+    await adapter.write(STORAGE_KEYS.preferences, { soundEnabled: true })
+    const on = createSettingsStore(adapter)
+    await on.getState().hydrate()
+
+    expect(on.getState().preferences.sound).toBe('thock')
+
+    await adapter.write(STORAGE_KEYS.preferences, { soundEnabled: false })
+    const off = createSettingsStore(adapter)
+    await off.getState().hydrate()
+
+    expect(off.getState().preferences.sound).toBe('off')
   })
 
   it('persists a theme change through the adapter', async () => {
@@ -156,14 +170,14 @@ describe('settings store', () => {
     await store.getState().setTheme('classic')
     await store.getState().setTextSize('xs')
     await store.getState().setHoverDifficulty('tired')
-    await store.getState().setSoundEnabled(true)
+    await store.getState().setSound('cream')
 
     await expect(adapter.read(STORAGE_KEYS.preferences)).resolves.toEqual({
       theme: 'classic',
       practiceWordCount: 15,
       textSize: 'xs',
       hoverDifficulty: 'tired',
-      soundEnabled: true,
+      sound: 'cream',
     })
   })
 
@@ -173,7 +187,7 @@ describe('settings store', () => {
       practiceWordCount: 9999,
       textSize: 'huge',
       hoverDifficulty: 'exhausted',
-      soundEnabled: 'yes please',
+      sound: 'bongos',
     })
     const store = createSettingsStore(adapter)
 
