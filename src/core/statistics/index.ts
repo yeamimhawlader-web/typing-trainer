@@ -43,3 +43,6 @@ export {
 export { computeTrends } from './trends.ts'
 
 export { buildStatisticsReport } from './report.ts'
+
+export { PACE_RULES, paceFor, paceIndexAt, paceTargets } from './pace.ts'
+export type { PaceRules, PaceTargets } from './pace.ts'

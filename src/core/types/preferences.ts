@@ -46,6 +46,21 @@ export type PracticeMode = (typeof PRACTICE_MODES)[number]
 export const HOVER_DIFFICULTIES = ['standard', 'all-in', 'tired'] as const
 export type HoverDifficulty = (typeof HOVER_DIFFICULTIES)[number]
 
+/**
+ * The pace a ghost caret keeps in the words, for the typist to hold or chase.
+ *
+ * - `off`: no caret.
+ * - `average`: the typist's own recent typical speed.
+ * - `best`: their fastest recent test.
+ * - `push`: a little past the average — the speed that is trained towards.
+ *
+ * What each is worth in words per minute is read from history when a test
+ * loads (`@core/statistics`); only the choice is kept here, so the pace follows
+ * the typist as they get faster.
+ */
+export const PACE_CHOICES = ['off', 'average', 'best', 'push'] as const
+export type PaceChoice = (typeof PACE_CHOICES)[number]
+
 /** The sizes the typing text can be set in. */
 export const TEXT_SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const
 export type TextSize = (typeof TEXT_SIZES)[number]
@@ -81,4 +96,6 @@ export interface UserPreferences {
   readonly sound: SoundPreference
   /** How loud sound is, 0–100. Full by default: the level the packs were made at. */
   readonly soundVolume: number
+  /** Whether a pace caret runs in the words, and at which of the typist's own speeds. */
+  readonly pace: PaceChoice
 }

@@ -16,10 +16,12 @@ import { DEFAULT_PREFERENCES } from '@config'
 import { STORAGE_KEYS, storage, type StorageAdapter } from '@core/persistence'
 import {
   HOVER_DIFFICULTIES,
+  PACE_CHOICES,
   PRACTICE_MODES,
   PRACTICE_WORD_COUNTS,
   TEXT_SIZES,
   type HoverDifficulty,
+  type PaceChoice,
   type PracticeMode,
   type PracticeWordCount,
   type SoundPreference,
@@ -49,6 +51,7 @@ export interface SettingsState {
   readonly setHoverDifficulty: (difficulty: HoverDifficulty) => Promise<void>
   readonly setSound: (sound: SoundPreference) => Promise<void>
   readonly setSoundVolume: (volume: number) => Promise<void>
+  readonly setPace: (pace: PaceChoice) => Promise<void>
 }
 
 /**
@@ -72,6 +75,7 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
     hoverDifficulty?: HoverDifficulty
     sound?: SoundPreference
     soundVolume?: number
+    pace?: PaceChoice
   } = {}
 
   // A theme the registry knows, or one of the two themes earlier versions
@@ -103,6 +107,9 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
   if (typeof volume === 'number' && Number.isFinite(volume) && volume >= 0 && volume <= 100) {
     result.soundVolume = Math.round(volume)
   }
+
+  const pace = PACE_CHOICES.find((option) => option === record['pace'])
+  if (pace !== undefined) result.pace = pace
 
   return result
 }
@@ -157,6 +164,8 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
       setSound: (sound) => persist({ ...get().preferences, sound }),
 
       setSoundVolume: (soundVolume) => persist({ ...get().preferences, soundVolume }),
+
+      setPace: (pace) => persist({ ...get().preferences, pace }),
     }
   })
 

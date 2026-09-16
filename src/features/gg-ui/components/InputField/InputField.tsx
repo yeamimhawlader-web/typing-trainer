@@ -38,13 +38,20 @@
  * "Under way" includes paused: Hover Mode pauses the text while a word is
  * repeated, and the typist is still typing.
  *
+ * ## Caps Lock
+ *
+ * Every key is compared exactly, so Caps Lock turns a whole test red before
+ * anyone notices why. The field says so the moment it is on — a small note in
+ * its corner, spoken once — read from the keys it already receives, and it
+ * changes only when the state does, never on an ordinary keystroke.
+ *
  * ## Focus
  *
  * The glow is the focus indicator — an accent edge and a soft halo fading in
  * together — so there is no ring on top of it.
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
 import { BACKSPACE } from '@core/engine'
 import type { SessionStatus } from '@core/types'
@@ -68,6 +75,7 @@ export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps
     useImperativeHandle<HTMLTextAreaElement | null, HTMLTextAreaElement | null>(ref, () => field.current, [])
     // Status changes when a test starts or ends, never on a keystroke.
     const placeholder = PLACEHOLDERS[useEngineValue(engine, (snapshot) => snapshot.status)]
+    const [capsLock, setCapsLock] = useState(false)
 
     // A test that starts, ends or is reset starts with an empty field.
     useEffect(
@@ -142,7 +150,22 @@ export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps
        * source of key events, so the key is the one path both always take.
        * Handling it here cancels the line break, so it never counts twice.
        */
+      // What the keyboard says about Caps Lock, as each key arrives. A render
+      // only when it changes: a repeated identical state is not one.
+      let caps = false
+      const readCapsLock = (event: KeyboardEvent) => {
+        const on = event.getModifierState('CapsLock')
+        if (on === caps) return
+        caps = on
+        setCapsLock(on)
+      }
+      const onBlur = () => {
+        caps = false
+        setCapsLock(false)
+      }
+
       const onKeyDown = (event: KeyboardEvent) => {
+        readCapsLock(event)
         if (event.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
 
         const restartOn =
@@ -156,9 +179,13 @@ export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps
 
       element.addEventListener('beforeinput', onBeforeInput)
       element.addEventListener('keydown', onKeyDown)
+      element.addEventListener('keyup', readCapsLock)
+      element.addEventListener('blur', onBlur)
       return () => {
         element.removeEventListener('beforeinput', onBeforeInput)
         element.removeEventListener('keydown', onKeyDown)
+        element.removeEventListener('keyup', readCapsLock)
+        element.removeEventListener('blur', onBlur)
       }
     }, [deleteWord, engine, inputKey, restart])
 
@@ -175,6 +202,18 @@ export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps
           autoCapitalize="off"
           spellCheck={false}
         />
+        {/* Always in the page, so it is announced when it fills; empty while Caps Lock is off. */}
+        <span className={styles.caps} role="status" data-on={capsLock}>
+          {capsLock && (
+            <>
+              <svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true" focusable="false">
+                <path d="M6 1.5 1.75 6.25h2.5V9h3.5V6.25h2.5Z" />
+                <path d="M4.25 10.75h3.5" />
+              </svg>
+              Caps Lock is on
+            </>
+          )}
+        </span>
       </div>
     )
   },

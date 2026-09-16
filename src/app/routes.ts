@@ -24,6 +24,8 @@ export const ROUTES = {
   ggHover: '/gg/hover',
   /** GG.Typing Syllable Trainer: long words typed as syllables, in rhythm. */
   ggSyllables: '/gg/syllables',
+  /** Hover Mode over the typist's Golden Nuggets. */
+  ggHoverNuggets: '/gg/hover/nuggets',
   /** Golden Nuggets: words Hover Mode released before they cleared. */
   ggNuggets: '/gg/nuggets',
   /** Pattern for the router; build real paths with `drillPath`. */

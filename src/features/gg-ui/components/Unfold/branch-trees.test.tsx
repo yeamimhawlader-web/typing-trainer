@@ -35,8 +35,8 @@ interface Played {
 
 let played: Played[] = []
 
-const ROW_HEIGHT: Readonly<Record<string, number>> = { hover: 71, sound: 50 }
-const NODE_LEFT: Readonly<Record<string, number>> = { hover: 120, sound: 900 }
+const ROW_HEIGHT: Readonly<Record<string, number>> = { hover: 71, sound: 50, pace: 64 }
+const NODE_LEFT: Readonly<Record<string, number>> = { hover: 120, pace: 780, sound: 900 }
 
 const box = (left: number, top: number, width: number, height: number) =>
   ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top }) as DOMRect
@@ -108,6 +108,7 @@ const renderToolbar = (trees: BranchTrees = createBranchTrees()) => {
   } as unknown as SoundEngine
   const onHoverDifficultyChange = vi.fn()
   const onSoundChange = vi.fn()
+  const onPaceChange = vi.fn()
   const toolbar = (
     <Toolbar
       mode="hover"
@@ -120,6 +121,10 @@ const renderToolbar = (trees: BranchTrees = createBranchTrees()) => {
       onSoundChange={onSoundChange}
       soundVolume={80}
       onSoundVolumeChange={() => undefined}
+      pace="off"
+      onPaceChange={onPaceChange}
+      paceTargets={{ average: 92, best: 118, push: 97, from: 12 }}
+      paceWpm={null}
     />
   )
   render(
@@ -133,11 +138,12 @@ const renderToolbar = (trees: BranchTrees = createBranchTrees()) => {
       </BranchTreesContext>
     </SoundContext>,
   )
-  return { trees, voices, onHoverDifficultyChange, onSoundChange }
+  return { trees, voices, onHoverDifficultyChange, onSoundChange, onPaceChange }
 }
 
 const hoverNode = () => screen.getByRole('link', { name: /^Hover Mode/ })
 const soundNode = () => screen.getByRole('button', { name: /^Sound:/ })
+const paceNode = () => screen.getByRole('button', { name: /^Pace:/ })
 const rowOf = (tree: string) => document.querySelector<HTMLElement>(`[data-phase][data-branch-tree="${tree}"]`)
 const phaseOf = (tree: string) => rowOf(tree)?.dataset.phase ?? 'closed'
 const heightFrames = (tree: string) =>
@@ -145,7 +151,9 @@ const heightFrames = (tree: string) =>
 const heightOf = (frame: Keyframe | undefined) => Number.parseFloat(String(frame?.height))
 /** The trees' own radio groups, not the toolbar's other settings. */
 const treeGroups = () =>
-  screen.queryAllByRole('radiogroup').filter((group) => ['Hover difficulty', 'Sound'].includes(group.getAttribute('aria-label') ?? ''))
+  screen
+    .queryAllByRole('radiogroup')
+    .filter((group) => ['Hover difficulty', 'Sound', 'Pace'].includes(group.getAttribute('aria-label') ?? ''))
 
 const press = (node: HTMLElement) => {
   act(() => {
@@ -163,8 +171,8 @@ const settle = () => {
 
 /** What no moment may ever show: more than one tree out, or more than one to choose from. */
 const expectAtMostOneOpen = () => {
-  const expanded = [hoverNode(), soundNode()].filter((node) => node.getAttribute('aria-expanded') === 'true')
-  const growing = ['hover', 'sound'].filter((tree) => phaseOf(tree) === 'opening' || phaseOf(tree) === 'open')
+  const expanded = [hoverNode(), paceNode(), soundNode()].filter((node) => node.getAttribute('aria-expanded') === 'true')
+  const growing = ['hover', 'pace', 'sound'].filter((tree) => phaseOf(tree) === 'opening' || phaseOf(tree) === 'open')
   const choosable = treeGroups()
   expect(expanded.length).toBeLessThanOrEqual(1)
   expect(growing.length).toBeLessThanOrEqual(1)
@@ -301,6 +309,29 @@ describe('the branch trees', () => {
       expect(heightOf(growing?.keyframes.at(-1))).toBe(ROW_HEIGHT.hover)
     })
 
+    it('takes the third tree, Pace, into the same rule: it takes over from sound, and Hover Mode from it', () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      renderToolbar()
+      press(soundNode())
+      settle()
+      const pressedAt = now
+
+      press(paceNode())
+
+      expect(phaseOf('sound')).toBe('closing')
+      expect(phaseOf('pace')).toBe('opening')
+      const [growing] = heightFrames('pace')
+      expect(growing?.startTime).toBe(pressedAt + UNFOLD_MOTION.handover.delayMs)
+      expect(heightOf(growing?.keyframes[0])).toBe(ROW_HEIGHT.sound)
+      expect(heightOf(growing?.keyframes.at(-1))).toBe(ROW_HEIGHT.pace)
+
+      settle()
+      press(hoverNode())
+      expect(phaseOf('pace')).toBe('closing')
+      expect(phaseOf('hover')).toBe('opening')
+      expect(paceNode()).toHaveAttribute('aria-expanded', 'false')
+    })
+
     it('opens from nothing, at once, when no tree was out to take over from', () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
       renderToolbar()
@@ -424,12 +455,13 @@ describe('the branch trees', () => {
       renderToolbar()
       // A fixed, awkward sequence: switches mid-flight, repeats, dismissals, choices.
       const moves = [
-        'hover', 'sound', 'sound', 'hover', 'wait', 'sound', 'elsewhere', 'hover', 'hover', 'sound',
-        'wait', 'choose', 'hover', 'escape', 'sound', 'hover', 'sound', 'wait', 'hover', 'choose',
+        'hover', 'sound', 'pace', 'sound', 'hover', 'wait', 'pace', 'elsewhere', 'hover', 'hover', 'sound',
+        'wait', 'choose', 'pace', 'escape', 'sound', 'hover', 'pace', 'wait', 'hover', 'choose', 'pace', 'pace',
       ] as const
       for (const move of moves) {
         if (move === 'hover') press(hoverNode())
         else if (move === 'sound') press(soundNode())
+        else if (move === 'pace') press(paceNode())
         else if (move === 'wait') settle()
         else if (move === 'elsewhere') act(() => void fireEvent.pointerDown(document.body))
         else if (move === 'escape') act(() => void fireEvent.keyDown(document.body, { key: 'Escape' }))

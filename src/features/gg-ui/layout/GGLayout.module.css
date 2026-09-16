@@ -67,6 +67,26 @@
   --gg-status-text: color-mix(in oklab, var(--gg-error) 60%, var(--gg-fg));
 }
 
+/*
+ * Focus while typing (typing-focus.ts): the chrome steps back once a test is
+ * under way, and comes forward when the mouse moves or the test ends. Opacity
+ * alone — nothing moves, nothing is hidden — and a part of it that takes the
+ * keyboard's focus is forward again at once.
+ */
+.app [data-recede] {
+  transition: opacity 420ms var(--gg-ease-out);
+}
+
+.app[data-typing='true'] [data-recede]:not(:focus-within) {
+  opacity: 0.12;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app [data-recede] {
+    transition: none;
+  }
+}
+
 /* Anything focusable that has not styled its own indicator gets the accent,
    not the rest of the application's ring. */
 .app :focus-visible {

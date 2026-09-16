@@ -22,4 +22,6 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   // Silence until it is asked for, and at the level the packs were made at.
   sound: 'off',
   soundVolume: 100,
+  // No caret to follow until one is chosen.
+  pace: 'off',
 }

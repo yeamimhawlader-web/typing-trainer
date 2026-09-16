@@ -45,7 +45,7 @@ npm run preview  # serves dist/ exactly as the host will
 
 ## Why `vercel.json` exists
 
-The routes are client-side: `/gg/hover`, `/gg/syllables`, `/gg/nuggets`,
+The routes are client-side: `/gg/hover`, `/gg/hover/nuggets`, `/gg/syllables`, `/gg/nuggets`,
 `/history/<id>`. A static host asked for `/gg/nuggets` looks for a file of that
 name, finds none and answers 404 — so the rewrite hands every path that is not a
 real file to `index.html`, and the application reads the path itself. The headers

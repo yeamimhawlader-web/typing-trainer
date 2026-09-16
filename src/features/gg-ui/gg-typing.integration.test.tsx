@@ -1030,6 +1030,7 @@ describe('GG.Typing on the real typing session', () => {
       expect(within(screen.getByRole('navigation', { name: 'Main' })).getAllByRole('button').map(label)).toEqual(['Themes'])
       expect(within(screen.getByRole('main')).getAllByRole('button').map(label)).toEqual([
         'Restart test',
+        'Pace: off',
         'Sound: off',
       ])
     })

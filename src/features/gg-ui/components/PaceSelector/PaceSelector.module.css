@@ -1,0 +1,34 @@
+/* The node sits a hairline after the modes, before Sound's; its branches take
+   the branch row beneath the toolbar, as every tree's do, and on a phone hang
+   under the two nodes. */
+.cell {
+  grid-area: pace-node;
+  display: flex;
+  align-items: center;
+}
+
+.branches {
+  grid-area: branches;
+}
+
+/* The speed kept, on the node, as Hover Mode's node says its difficulty. */
+.chosen {
+  position: relative;
+  padding-left: 0.5rem;
+  margin-left: 0.1rem;
+  border-left: 1px solid var(--gg-glass-border);
+  font-family: var(--gg-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  color: var(--gg-accent);
+}
+
+@media (max-width: 720px) {
+  .cell {
+    margin-top: 0.75rem;
+  }
+
+  .branches {
+    grid-area: sound;
+  }
+}

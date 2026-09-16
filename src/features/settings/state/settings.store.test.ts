@@ -15,6 +15,7 @@ const DEFAULTS: UserPreferences = {
   hoverDifficulty: 'standard',
   sound: 'off',
   soundVolume: 100,
+  pace: 'off',
 }
 
 describe('settings store', () => {
@@ -62,6 +63,7 @@ describe('settings store', () => {
       hoverDifficulty: 'tired',
       sound: 'click',
       soundVolume: 40,
+      pace: 'push',
     })
     const store = createSettingsStore(adapter)
 
@@ -76,6 +78,7 @@ describe('settings store', () => {
       hoverDifficulty: 'tired',
       sound: 'click',
       soundVolume: 40,
+      pace: 'push',
     })
     expect(store.getState().status).toBe('ready')
   })
@@ -183,6 +186,7 @@ describe('settings store', () => {
     await store.getState().setSoundVolume(55)
     await store.getState().setPracticeMode('time')
     await store.getState().setPracticeSeconds(45)
+    await store.getState().setPace('average')
 
     await expect(adapter.read(STORAGE_KEYS.preferences)).resolves.toEqual({
       theme: 'classic',
@@ -193,6 +197,7 @@ describe('settings store', () => {
       hoverDifficulty: 'tired',
       sound: 'cream',
       soundVolume: 55,
+      pace: 'average',
     })
   })
 
@@ -206,12 +211,22 @@ describe('settings store', () => {
       hoverDifficulty: 'exhausted',
       sound: 'bongos',
       soundVolume: 999,
+      pace: 'warp-speed',
     })
     const store = createSettingsStore(adapter)
 
     await store.getState().hydrate()
 
     expect(store.getState().preferences).toEqual(DEFAULTS)
+  })
+
+  it('remembers the pace chosen across a reload', async () => {
+    await createSettingsStore(adapter).getState().setPace('best')
+    const reloaded = createSettingsStore(adapter)
+
+    await reloaded.getState().hydrate()
+
+    expect(reloaded.getState().preferences.pace).toBe('best')
   })
 
   it('ignores a stored record that is not an object at all', async () => {

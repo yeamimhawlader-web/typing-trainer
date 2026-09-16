@@ -131,7 +131,7 @@ export const SyllableIntro = ({ engine }: SyllableIntroProps) => {
   const onward = phase === 'rest'
 
   return (
-    <section className={styles.intro} aria-labelledby={`${describedBy}-title`}>
+    <section className={styles.intro} aria-labelledby={`${describedBy}-title`} data-recede="">
       <header className={styles.header}>
         <p className={styles.eyebrow}>High Speed Trainer</p>
         <h1 id={`${describedBy}-title`} className={styles.title}>

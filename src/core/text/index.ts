@@ -15,6 +15,13 @@ export {
 export type { CommonWordsProviderOptions } from './providers/common-words.provider.ts'
 
 export {
+  createGoldenNuggetsProvider,
+  GOLDEN_NUGGETS_IN_A_TEST,
+  GOLDEN_NUGGETS_PROVIDER_ID,
+} from './providers/golden-nuggets.provider.ts'
+export type { GoldenNuggetsProviderOptions } from './providers/golden-nuggets.provider.ts'
+
+export {
   createSyllableWordsProvider,
   SYLLABLE_WORDS_PROVIDER_ID,
 } from './providers/syllable-words.provider.ts'

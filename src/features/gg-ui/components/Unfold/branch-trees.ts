@@ -25,7 +25,7 @@ import { createContext, useContext, useState, useSyncExternalStore } from 'react
 
 import { createUnfoldMemory, type UnfoldMemory } from './unfold-memory.ts'
 
-export type BranchTreeId = 'hover' | 'sound'
+export type BranchTreeId = 'hover' | 'sound' | 'pace'
 
 /** Where a tree's row is on the page and how much room it takes, at one moment. */
 export interface RowBox {

@@ -16,18 +16,28 @@
  * different text would make its before-and-after comparison meaningless. So the
  * shape is not offered for one.
  *
- * Sound is the same shape of control as the mode: a glass node that unfolds into
- * the keyboards to type on. The two are branch trees of one control, and the
- * toolbar is where they are in use (BranchTreesScope): only one is ever out, in
- * the one row beneath the toolbar, and a press anywhere else folds it.
+ * Pace and Sound are the same shape of control as the mode: glass nodes that
+ * unfold, into the speeds a pace caret can keep and the keyboards to type on.
+ * All three are branch trees of one control, and the toolbar is where they are
+ * in use (BranchTreesScope): only one is ever out, in the one row beneath the
+ * nodes, and a press anywhere else folds it.
  */
 
-import { TEXT_SIZES, type HoverDifficulty, type PracticeMode, type PracticeWordCount, type TextSize } from '@core/types'
+import type { PaceTargets } from '@core/statistics'
+import {
+  TEXT_SIZES,
+  type HoverDifficulty,
+  type PaceChoice,
+  type PracticeMode,
+  type PracticeWordCount,
+  type TextSize,
+} from '@core/types'
 import type { SoundPreference } from '@features/sound'
 import type { WordCount } from '@features/typing'
 
 import { PillGroup, Separator, type PillOption } from '../controls/controls.tsx'
 import { HoverSelector, type GGMode } from '../HoverSelector/HoverSelector.tsx'
+import { PaceSelector } from '../PaceSelector/PaceSelector.tsx'
 import { SoundSelector } from '../SoundSelector/SoundSelector.tsx'
 import { BranchTreesScope } from '../Unfold/BranchTreesScope.tsx'
 import { TestShape } from './TestShape.tsx'
@@ -78,6 +88,11 @@ export interface ToolbarProps {
   /** The master volume, 0–100. */
   readonly soundVolume: number
   readonly onSoundVolumeChange: (volume: number) => void
+  /** The pace caret: which of the typist's speeds, what those speeds are, and the one kept now. */
+  readonly pace: PaceChoice
+  readonly onPaceChange: (pace: PaceChoice) => void
+  readonly paceTargets: PaceTargets | null
+  readonly paceWpm: number | null
 }
 
 export const Toolbar = ({
@@ -91,6 +106,10 @@ export const Toolbar = ({
   onSoundChange,
   soundVolume,
   onSoundVolumeChange,
+  pace,
+  onPaceChange,
+  paceTargets,
+  paceWpm,
 }: ToolbarProps) => (
   <BranchTreesScope>
   <div className={styles.toolbar}>
@@ -99,8 +118,6 @@ export const Toolbar = ({
     )}
 
     <div className={styles.settings}>
-      {mode !== null && <Separator />}
-
       <PillGroup name="gg-size" label="Text size" options={SIZE_OPTIONS} value={size} onChange={onSizeChange} />
 
       {shape !== null && (
@@ -117,6 +134,8 @@ export const Toolbar = ({
         </>
       )}
     </div>
+
+    <PaceSelector value={pace} onChange={onPaceChange} targets={paceTargets} wpm={paceWpm} />
 
     <SoundSelector
       value={sound}

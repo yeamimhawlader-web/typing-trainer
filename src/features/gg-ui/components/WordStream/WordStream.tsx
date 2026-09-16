@@ -52,6 +52,7 @@ import { cx } from '@shared/lib'
 
 import { createHoverView } from './hover-view.ts'
 import { HoverFocus } from './HoverFocus.tsx'
+import { PaceCaret } from './PaceCaret.tsx'
 import { engineCursorSource } from './stream-cursor.ts'
 import { useStreamCursor } from './useStreamCursor.ts'
 
@@ -216,9 +217,11 @@ export interface WordStreamProps {
   readonly hover?: HoverController | undefined
   /** Where each word's syllables start, when the stream is the Syllable Trainer's. */
   readonly syllables?: SyllableLayout | undefined
+  /** The pace caret's speed in words per minute, or null for none. */
+  readonly pace?: number | null | undefined
 }
 
-export const WordStream = ({ engine, text, size, onActivate, hover, syllables }: WordStreamProps) => {
+export const WordStream = ({ engine, text, size, onActivate, hover, syllables, pace = null }: WordStreamProps) => {
   const characters = useMemo(() => toCharacters(text), [text])
   const words = useMemo(() => computeWordRanges(characters), [characters])
   // Hover Mode reacts to a word's first mistake itself, so the jump on the third
@@ -252,6 +255,9 @@ export const WordStream = ({ engine, text, size, onActivate, hover, syllables }:
         <span ref={attachCursor} className={styles.cursor} data-placed="false" aria-hidden="true" />
         <div ref={attachContent} className={styles.content}>
           <CharacterList engine={engine} characters={characters} words={words} jumps={jumps} syllables={syllables} />
+          {pace !== null && pace > 0 && (
+            <PaceCaret engine={engine} cursor={cursor} wpm={pace} length={characters.length} />
+          )}
           {hover !== undefined && view !== null && (
             <HoverFocus engine={engine} hover={hover} view={view} cursor={cursor} />
           )}

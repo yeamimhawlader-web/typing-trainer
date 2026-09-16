@@ -17,7 +17,6 @@ import { useCallback, useRef, useState } from 'react'
 
 import { SOUND_PACK_LIST, useSound, type SoundPreference } from '@features/sound'
 
-import { Separator } from '../controls/controls.tsx'
 import { SoundOffIcon, SoundOnIcon } from '../icons.tsx'
 import { useBranchTrees, useTreeOpen } from '../Unfold/branch-trees.ts'
 import unfold from '../Unfold/Unfold.module.css'
@@ -95,7 +94,6 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
   return (
     <>
       <span className={styles.cell}>
-        <Separator />
         <button
           ref={node}
           type="button"

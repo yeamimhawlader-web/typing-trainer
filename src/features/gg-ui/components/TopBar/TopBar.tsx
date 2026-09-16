@@ -34,7 +34,7 @@ const NAV = [
 ] as const
 
 export const TopBar = ({ themesOpen, onOpenThemes, themesButtonRef }: TopBarProps) => (
-  <header className={styles.bar}>
+  <header className={styles.bar} data-recede="">
     <div className={styles.inner}>
       <Link to={PRACTICE_PATH} className={styles.brand} aria-label="GG.Typing">
         <span className={styles.mark} aria-hidden="true">

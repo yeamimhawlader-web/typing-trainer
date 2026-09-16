@@ -127,7 +127,8 @@
   color: var(--gg-muted);
 }
 
-.node[data-open='true'] .nodeIcon {
+.node[data-open='true'] .nodeIcon,
+.nodeIcon[data-on='true'] {
   color: var(--gg-accent);
 }
 
@@ -303,6 +304,18 @@
   color: var(--gg-glass-bead-persistent);
 }
 
+/* Not yet a choice: there, quieter, and not to be pressed. Its description
+   says why, and stays readable. */
+.branch[data-disabled],
+.branch[data-disabled] .nativeInput {
+  cursor: default;
+}
+
+.branch[data-disabled] .label,
+.branch[data-disabled] .beads {
+  opacity: 0.5;
+}
+
 /* --- Chosen ----------------------------------------------------------- */
 
 .nativeInput:checked + .glass {
@@ -344,7 +357,7 @@
 
 @media (hover: hover) {
   .node:hover .nodeGlass,
-  .branch:hover .glass {
+  .branch:not([data-disabled]):hover .glass {
     transform: translateY(-1.5px) scale(1.012);
   }
 

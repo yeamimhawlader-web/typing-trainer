@@ -31,6 +31,63 @@
   text-underline-offset: 0.2em;
 }
 
+/* The way to practise them: a small piece of glass, the one thing on the page
+   to press. */
+.practise {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  margin: 0 0 24px;
+  padding: 0 14px;
+  border: 1px solid var(--gg-glass-border);
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-glass-fill-strong);
+  box-shadow:
+    inset 0 1px 0 var(--gg-glass-highlight),
+    var(--gg-glass-depth),
+    var(--gg-glass-shadow);
+  backdrop-filter: var(--gg-glass-filter);
+  -webkit-backdrop-filter: var(--gg-glass-filter);
+  font-size: var(--gg-text-pill);
+  font-weight: var(--font-weight-medium);
+  color: var(--gg-fg);
+  text-decoration: none;
+  transition: transform var(--gg-duration-touch) var(--gg-ease-touch);
+}
+
+.practise > span {
+  color: var(--gg-accent);
+  transition: transform var(--gg-duration-touch) var(--gg-ease-touch);
+}
+
+@media (hover: hover) {
+  .practise:hover {
+    transform: translateY(-1px);
+  }
+
+  .practise:hover > span {
+    transform: translateX(2px);
+  }
+}
+
+.practise:active {
+  transform: translateY(0.5px) scale(0.97);
+}
+
+.practise:focus-visible {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .practise,
+  .practise > span {
+    transform: none !important;
+  }
+}
+
 .list {
   margin: 0;
   padding: 0;

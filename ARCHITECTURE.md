@@ -949,11 +949,12 @@ shell rather than rebuilt in it. Its token plan is in
   dampening, and whether it rings — so another keyboard is one small object and
   none can drift out of proportion. Hover Mode's notes and the selector's glass
   are the same in every pack: they belong to the application, not to the keyboard.
-- **One unfolding, two trees, one open.** The glass node that opens into branches
-  is `components/Unfold`: Hover Mode's difficulties and the sound packs are the
-  same interaction with different choices. Which tree is out is not either
-  selector's state but one value in the shell (`branch-trees.ts`), so two trees
-  open at once is not a state the page can be in. Both are temporary: a tree
+- **One unfolding, three trees, one open.** The glass node that opens into
+  branches is `components/Unfold`: Hover Mode's difficulties, the paces and the
+  sound packs are the same interaction with different choices. Which tree is out
+  is not any selector's state but one value in the shell (`branch-trees.ts`), so
+  two trees open at once is not a state the page can be in. A branch can be
+  present but not yet a choice (a pace with no history behind it), saying why. Both are temporary: a tree
   unfolds when its node is pressed and folds the moment a choice is made — the
   one already chosen included — when its node is pressed again, on a press
   anywhere outside the trees, or on Escape, which brings focus back to the node.
@@ -999,6 +1000,25 @@ shell rather than rebuilt in it. Its token plan is in
   page carries on from the old one. Every frame is sampled into Web Animations keyframes played
   on the compositor; nothing runs per frame in script, and nothing waits for the
   motion before it can be used.
+- **A pace caret is the typist's own speed, and costs a keystroke nothing.** The
+  paces are read from history (`core/statistics/pace.ts`: the median, the
+  fastest and a 5% push over the last twenty ordinary tests, training modes left
+  out) on arrival and after each save, never while typing. The caret keeps the
+  test's own time from the engine's events — so Hover Mode's pause pauses it —
+  and one animation frame loop, only while a test runs, moves it by transform to
+  a character's already-measured box (`StreamCursor.boxOf`). Measured in
+  Chromium, a keystroke's synchronous cost was the same with it on and off.
+- **Focus while typing is one attribute.** The chrome is marked where it is drawn
+  (`data-recede`); the shell's element carries `data-typing`, set by the typing
+  screen from engine events and cleared by a real pointer movement
+  (`layout/typing-focus.ts`). Per keystroke that is one boolean compared; the
+  stylesheet does the rest with opacity, and `:focus-within` brings back whatever
+  the keyboard reaches.
+- **Golden Nuggets practice is Hover Mode, not a new mode.** A provider lays the
+  typist's nuggets into ordinary text (`golden-nuggets.provider.ts`), and the
+  practice page is the Hover Mode screen over it, so focusing, repetition,
+  saving and writing outcomes back to the nuggets are the machinery that already
+  exists. The session is Hover Mode with source `golden-nuggets`.
 - **Type is Geist, self-hosted.** Geist for everything read and Geist Mono for
   everything typed or counted, as two variable fonts from `@fontsource-variable`
   whose Latin files are about 52 kB together and fetched only for the shell. The

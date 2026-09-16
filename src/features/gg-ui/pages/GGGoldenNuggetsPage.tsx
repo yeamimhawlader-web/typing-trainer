@@ -6,7 +6,8 @@
  * and how that went. No ranking, no score and nothing to fix today: it is a place
  * to see which words keep costing speed.
  *
- * Only reads. Records are written by Hover Mode as each focus ends.
+ * Only reads. Records are written by Hover Mode as each focus ends — including
+ * in the practice this page leads to, Hover Mode over these very words.
  */
 
 import { useEffect, useState } from 'react'
@@ -80,6 +81,13 @@ export const GGGoldenNuggetsPage = ({ service = goldenNuggetService }: GGGoldenN
           None yet. When a word is still giving you trouble at the end of its repetitions in Hover Mode, it is kept
           here.
         </p>
+      )}
+
+      {loaded.status === 'ready' && loaded.nuggets.length > 0 && (
+        <Link to={ROUTES.ggHoverNuggets} className={styles.practise}>
+          Practise these in Hover Mode
+          <span aria-hidden="true">→</span>
+        </Link>
       )}
 
       {loaded.status === 'ready' && loaded.nuggets.length > 0 && (

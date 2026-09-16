@@ -31,6 +31,8 @@ export interface UnfoldItem {
   readonly description: string
   readonly marks: 1 | 2 | 3
   readonly tone: BranchTone
+  /** Present but not yet a choice, with its description saying why. */
+  readonly disabled?: boolean | undefined
 }
 
 export interface UnfoldBranchesProps {
@@ -107,12 +109,19 @@ export const UnfoldBranches = ({
 
         <div ref={list} role="radiogroup" aria-label={label} className={styles.list} data-compact={compact}>
           {items.map((item) => (
-            <label key={item.value} className={styles.branch} data-branch={item.value} data-tone={item.tone}>
+            <label
+              key={item.value}
+              className={styles.branch}
+              data-branch={item.value}
+              data-tone={item.tone}
+              data-disabled={item.disabled === true ? true : undefined}
+            >
               <input
                 type="radio"
                 className={styles.nativeInput}
                 name={name}
                 value={item.value}
+                disabled={item.disabled === true}
                 checked={item.value === value}
                 onChange={() => onChange?.(item.value)}
                 onClick={choosing && item.value === value ? () => onReselect?.(item.value) : undefined}

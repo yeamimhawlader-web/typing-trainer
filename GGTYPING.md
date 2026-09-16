@@ -219,6 +219,13 @@ is already a nugget is updated when it next comes up, cleared or not. The write
 happens as the focus ends, never on a keystroke. A plain list, most recent
 first: no ranking, no score.
 
+**Practising them.** The Golden Nuggets page leads to `/gg/hover/nuggets`: Hover
+Mode, at the chosen difficulty, over text made of the typist's own nuggets — one in
+every other place, each met mid-flow between ordinary words, every nugget coming
+round before any comes again. A nugget that costs a mistake there is focused and
+repeated as any word is, and how that ends is written back to it, so the list says
+whether practising it worked. Saved as Hover Mode, over Golden Nuggets.
+
 **What is recorded.** The session's speed, accuracy and keystroke log are the
 pass through the text, by the engine's unchanged definitions: the session engine
 is paused while a word is repeated, and repetitions never reach it. The session
@@ -269,6 +276,32 @@ repetitions. The only style read is the hover's pose at release, once per focus.
 [`src/features/ggtyping/hover`](./src/features/ggtyping/hover), motion in
 [`src/features/ggtyping/motion`](./src/features/ggtyping/motion), and the layer in
 `src/features/gg-ui/components/WordStream/HoverFocus.tsx`.
+
+## Instruments
+
+**Pace.** A slim line that moves through the words at one of the typist's own
+speeds, to hold or to chase — chosen from a glass node beside Sound, one of the
+same branch trees. Average is their typical speed (the median of their last
+twenty ordinary tests), Push a little past it, Best their fastest of those; each
+branch says what it is worth in words per minute, and none is offered until there
+are three ordinary tests to read. Training modes do not count towards it. The
+line sets off with the first key, keeps the test's own time — pausing while Hover
+Mode repeats a word — glides one character's time at a time along a line, and
+goes when the test ends. It is off until chosen, and costs a keystroke nothing:
+one animation frame loop while a test runs, moving it by transform alone.
+
+**Focus while typing.** From the first key of a test to its end, everything but
+the words, the field, the live figures and Hover Mode's guidance steps back to a
+trace. A real movement of the mouse brings it all forward at once, the next key
+lets it recede again, and anything that takes the keyboard's focus comes forward
+by itself. Opacity only: nothing moves and nothing is hidden from a screen reader.
+
+**Caps Lock.** Every key is compared exactly, so the field says when Caps Lock is
+on — a small note in its corner, spoken once — the moment the keyboard reports it.
+
+**The toolbar.** Two rows: the glass on the first — the modes on the left, Pace and
+Sound on the right — and the test's own settings on the second. A branch tree
+unfolds between them, under the nodes it grows from. On a phone the nodes stack.
 
 ## Mode 2: the Syllable Trainer
 

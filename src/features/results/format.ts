@@ -77,6 +77,7 @@ export const formatMode = (session: TypingSession): string => {
 const SOURCE_LABELS: Record<string, string> = {
   'common-words': 'Common words',
   'syllable-words': 'Common words, in syllables',
+  'golden-nuggets': 'Golden Nuggets',
 }
 
 /** Falls back to the raw id so a source added later still reads sensibly. */

@@ -24,6 +24,12 @@
  * so the selector on the new page unfolds or folds on from where the old one
  * was.
  *
+ * ## Focus while typing
+ *
+ * The shell's element says whether a test is under way (see typing-focus.ts),
+ * so the chrome everywhere in it — the top bar, the toolbar, the hints — can
+ * step back while the words stay forward. The typing screen reports it.
+ *
  * ## Shared pages inside the shell
  *
  * The result panel, session summary and drill comparison are the application's
@@ -43,6 +49,7 @@ import { UnfoldMemoryContext } from '../components/Unfold/unfold-memory.ts'
 import { ThemePanel } from '../components/ThemePanel/ThemePanel.tsx'
 import { TopBar } from '../components/TopBar/TopBar.tsx'
 import { applyTheme, removeTheme } from '../themes/apply-theme.ts'
+import { createTypingFocus, TypingFocusContext } from './typing-focus.ts'
 import { DEFAULT_THEME_ID, themeById, themeIdFromStored, type GGThemeId } from '../themes/themes.ts'
 
 import '@fontsource-variable/geist/wght.css'
@@ -72,6 +79,16 @@ export const GGLayout = () => {
   }, [sound, soundVolume])
   useEffect(() => () => sound.close(), [sound])
   const themesButton = useRef<HTMLButtonElement>(null)
+  const [typingFocus] = useState(createTypingFocus)
+  // The shell's element carries the state, from the moment it is on the page;
+  // nothing steps back once it has gone.
+  const attachApp = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (element === null) typingFocus.typing(false)
+      typingFocus.attach(element)
+    },
+    [typingFocus],
+  )
 
   // Before paint, so the first frame is already in the theme, and a switch
   // lands on the next frame whole.
@@ -108,7 +125,8 @@ export const GGLayout = () => {
     <SoundContext value={sound}>
       <BranchTreesContext value={branchTrees}>
       <UnfoldMemoryContext value={branchTrees.memoryOf('hover')}>
-      <div className={styles.app}>
+      <TypingFocusContext value={typingFocus}>
+      <div ref={attachApp} className={styles.app}>
         <div inert={themesOpen}>
           <TopBar themesOpen={themesOpen} onOpenThemes={() => setThemesOpen(true)} themesButtonRef={themesButton} />
 
@@ -119,6 +137,7 @@ export const GGLayout = () => {
 
           <ThemePanel open={themesOpen} activeThemeId={themeId} onSelect={selectTheme} onClose={closeThemes} />
         </div>
+      </TypingFocusContext>
       </UnfoldMemoryContext>
       </BranchTreesContext>
     </SoundContext>

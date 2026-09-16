@@ -106,7 +106,7 @@ export const ControlRow = ({
 }: ControlRowProps) => (
   <div className={styles.wrap}>
     <div className={styles.row}>
-      <p className={styles.source}>
+      <p className={styles.source} data-recede="">
         {source}
         {description !== undefined && <span className={styles.description}>{description}</span>}
       </p>
@@ -122,7 +122,7 @@ export const ControlRow = ({
         </div>
         <span className={styles.gap} aria-hidden="true" />
         {/* Together, so on a narrow screen they wrap as a pair. */}
-        <span className={styles.buttons}>
+        <span className={styles.buttons} data-recede="">
           <IconCircle label="Restart test" onClick={onRestart}>
             <RestartIcon />
           </IconCircle>
@@ -135,6 +135,6 @@ export const ControlRow = ({
 
     <AccuracyNotice engine={engine} />
 
-    <hr className={styles.divider} />
+    <hr className={styles.divider} data-recede="" />
   </div>
 )

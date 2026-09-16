@@ -66,6 +66,14 @@ export interface CharacterOrigin {
   readonly lineTop: number
 }
 
+/** Where a character's box is, as the last measurement found it, in content coordinates. */
+export interface CharacterBox {
+  readonly x: number
+  /** Top of the character's own box. */
+  readonly y: number
+  readonly height: number
+}
+
 interface StreamLayout {
   readonly spans: readonly HTMLElement[]
   readonly xs: Float64Array
@@ -78,6 +86,8 @@ interface StreamLayout {
   readonly endY: number
   /** Distance from the top of a line box to the top of a character's box in it. */
   readonly glyphInset: number
+  /** The height of a character's box. */
+  readonly glyphHeight: number
 }
 
 export interface StreamCursor {
@@ -93,6 +103,8 @@ export interface StreamCursor {
   follow(source: CursorSource): () => void
   /** A character's measured position, or null before the first measurement. No layout reads. */
   originOf(index: number): CharacterOrigin | null
+  /** A character's measured box — or the end of the text's, past it — or null before the first measurement. No layout reads. */
+  boxOf(index: number): CharacterBox | null
   /** Called after every measurement, for anything positioned from it. */
   onMeasure(listener: () => void): Unsubscribe
   /** Starts watching for resizes and font loading. Returns the stop. */
@@ -204,6 +216,7 @@ export const createStreamCursor = (): StreamCursor => {
       // the top of its line. Measured rather than worked out from the font:
       // baseline alignment of the word boxes moves it by fractions of a pixel.
       glyphInset: ys[0] ?? 0,
+      glyphHeight: firstRect.height,
       spans,
       xs,
       ys,
@@ -260,6 +273,16 @@ export const createStreamCursor = (): StreamCursor => {
       return {
         x: inText ? (layout.xs[index] as number) : layout.endX,
         lineTop: (inText ? (layout.ys[index] as number) : layout.endY) - layout.glyphInset,
+      }
+    },
+
+    boxOf: (index) => {
+      if (layout === null) return null
+      const inText = index < layout.xs.length
+      return {
+        x: inText ? (layout.xs[index] as number) : layout.endX,
+        y: inText ? (layout.ys[index] as number) : layout.endY,
+        height: layout.glyphHeight,
       }
     },
 

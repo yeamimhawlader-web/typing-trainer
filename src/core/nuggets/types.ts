@@ -21,10 +21,11 @@
  *
  * ## Room to grow
  *
- * Training a nugget, ordering by frequency or by what it costs in speed,
- * comparing before and after, archiving — none exist yet. The first and last
- * dates, per-outcome counts and language are kept so those can be built on
- * the record without migrating it.
+ * Training nuggets exists: Hover Mode over them (`/gg/hover/nuggets`), which
+ * writes each focus back here like any other. Ordering by frequency or by what
+ * a word costs in speed, comparing before and after, archiving — none exist yet.
+ * The first and last dates, per-outcome counts and language are kept so those
+ * can be built on the record without migrating it.
  */
 
 import type { LanguageCode } from '@core/sessions'

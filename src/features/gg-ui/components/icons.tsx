@@ -76,6 +76,14 @@ export const SoundOffIcon = (props: IconProps) => (
   </Icon>
 )
 
+/* A caret on the move: the line itself, and the speed trailing behind it. */
+export const PaceIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M17 5v14" />
+    <path d="M4 9h8M6.5 12H12M4 15h8" />
+  </Icon>
+)
+
 export const SunIcon = (props: IconProps) => (
   <Icon width="18" height="18" {...props}>
     <circle cx="12" cy="12" r="3.75" />

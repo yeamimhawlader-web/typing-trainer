@@ -95,10 +95,13 @@ export const HoverSelector = ({ mode, difficulty, onDifficultyChange }: HoverSel
   const pressNode = (event: MouseEvent) => {
     // A pointer already pressed on the way down; a key arrives only as a click.
     if (event.detail === 0) press('node')
-    // In Hover Mode the node is the disclosure: it opens and folds the branches.
+    // In Hover Mode the node is the disclosure: it opens and folds the branches,
+    // and stays on the page — Hover Mode over Golden Nuggets included.
     // Anywhere else it is the way in, and the new page opens them.
-    if (mode === 'hover') trees.toggle('hover', performance.now())
-    else trees.open('hover', performance.now())
+    if (mode === 'hover') {
+      event.preventDefault()
+      trees.toggle('hover', performance.now())
+    } else trees.open('hover', performance.now())
   }
 
   /** Another mode: whatever is open folds, and the page changes under it. */

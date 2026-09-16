@@ -270,3 +270,38 @@
     animation: none;
   }
 }
+
+/* --- Pace: a slim line keeping one of the typist's own speeds ---------- */
+
+/* Placed and moved by PaceCaret, by transform alone. It glides for one
+   character's time at its pace (--gg-pace-glide, set as it moves) and fades in
+   and out with the test. Thinner and quieter than the typist's own cursor, so
+   the two are never mistaken for each other. */
+.pace {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-accent);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--gg-pace-glide, 0ms) linear,
+    opacity var(--gg-duration-focus) var(--gg-ease-out);
+}
+
+.pace[data-shown='true'] {
+  opacity: 0.55;
+}
+
+.block[data-status='completed'] .pace {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pace {
+    transition: none;
+  }
+}
