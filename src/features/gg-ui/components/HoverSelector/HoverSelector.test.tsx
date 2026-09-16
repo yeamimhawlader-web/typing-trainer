@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ROUTES } from '@app/routes.ts'
 import type { HoverDifficulty } from '@core/types'
 import { HOVER_DIFFICULTY_OPTIONS } from '@features/ggtyping'
+import { SoundContext, type SoundEngine } from '@features/sound'
 
 import { HoverSelector } from './HoverSelector.tsx'
 import { trajectoryAt } from './spring.ts'
@@ -96,9 +97,23 @@ afterEach(() => {
 
 // --- Rendering both mode pages ----------------------------------------
 
+/** A sound engine that only remembers what it was asked to play. */
+const recordingSound = () => {
+  const voices: string[] = []
+  const sound = {
+    isEnabled: () => true,
+    setEnabled: () => undefined,
+    play: (voice: string) => voices.push(voice),
+    close: () => undefined,
+  } as unknown as SoundEngine
+  return { sound, voices }
+}
+
 const renderModes = (path: string, memory: UnfoldMemory = createUnfoldMemory(), difficulty: HoverDifficulty = 'all-in') => {
   const onDifficultyChange = vi.fn()
+  const { sound, voices } = recordingSound()
   const rendered = render(
+    <SoundContext value={sound}>
     <UnfoldMemoryContext value={memory}>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
@@ -109,9 +124,10 @@ const renderModes = (path: string, memory: UnfoldMemory = createUnfoldMemory(), 
           />
         </Routes>
       </MemoryRouter>
-    </UnfoldMemoryContext>,
+    </UnfoldMemoryContext>
+    </SoundContext>,
   )
-  return { ...rendered, memory, onDifficultyChange }
+  return { ...rendered, memory, onDifficultyChange, voices }
 }
 
 const node = () => screen.getByRole('link', { name: /^Hover Mode/ })
@@ -271,6 +287,36 @@ describe("Hover Mode's selector", () => {
       const reopening = memory.trajectory()
       expect(reopening?.from).toEqual(trajectoryAt(closing!, now))
       expect(row()).toHaveAttribute('data-phase', 'opening')
+    })
+  })
+
+  describe('sound', () => {
+    it('plays as the selector opens and folds, on the press rather than the animation', () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      const { voices } = renderModes(ROUTES.gg)
+
+      pressNode()
+      expect(voices).toEqual(['selectorOpen'])
+
+      pressStandard()
+      expect(voices).toEqual(['selectorOpen', 'selectorClose'])
+    })
+
+    it('says nothing when the press changes nothing: the node pressed in Hover Mode', () => {
+      const { voices } = renderModes(ROUTES.ggHover)
+
+      pressNode()
+
+      expect(voices).toEqual([])
+    })
+
+    it('still sounds with reduced motion, where there is no animation to go with it', () => {
+      window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia
+      const { voices } = renderModes(ROUTES.gg)
+
+      pressNode()
+
+      expect(voices).toEqual(['selectorOpen'])
     })
   })
 

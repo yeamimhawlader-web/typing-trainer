@@ -11,6 +11,7 @@ const DEFAULTS: UserPreferences = {
   practiceWordCount: 30,
   textSize: 'sm',
   hoverDifficulty: 'standard',
+  soundEnabled: false,
 }
 
 describe('settings store', () => {
@@ -54,6 +55,7 @@ describe('settings store', () => {
       practiceWordCount: 60,
       textSize: 'lg',
       hoverDifficulty: 'tired',
+      soundEnabled: true,
     })
     const store = createSettingsStore(adapter)
 
@@ -64,6 +66,7 @@ describe('settings store', () => {
       practiceWordCount: 60,
       textSize: 'lg',
       hoverDifficulty: 'tired',
+      soundEnabled: true,
     })
     expect(store.getState().status).toBe('ready')
   })
@@ -153,12 +156,14 @@ describe('settings store', () => {
     await store.getState().setTheme('classic')
     await store.getState().setTextSize('xs')
     await store.getState().setHoverDifficulty('tired')
+    await store.getState().setSoundEnabled(true)
 
     await expect(adapter.read(STORAGE_KEYS.preferences)).resolves.toEqual({
       theme: 'classic',
       practiceWordCount: 15,
       textSize: 'xs',
       hoverDifficulty: 'tired',
+      soundEnabled: true,
     })
   })
 
@@ -168,6 +173,7 @@ describe('settings store', () => {
       practiceWordCount: 9999,
       textSize: 'huge',
       hoverDifficulty: 'exhausted',
+      soundEnabled: 'yes please',
     })
     const store = createSettingsStore(adapter)
 

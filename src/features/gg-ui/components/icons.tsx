@@ -61,6 +61,21 @@ export const SettingsIcon = (props: IconProps) => (
   </Icon>
 )
 
+/* A speaker, with the sound coming off it — or crossed out when there is none. */
+export const SoundOnIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z" />
+    <path d="M15.6 9.2a4 4 0 0 1 0 5.6M18.3 6.6a7.7 7.7 0 0 1 0 10.8" />
+  </Icon>
+)
+
+export const SoundOffIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M4 9.5h3.2L12 5.5v13l-4.8-4H4z" />
+    <path d="M16 10l4.5 4.5M20.5 10L16 14.5" />
+  </Icon>
+)
+
 export const SunIcon = (props: IconProps) => (
   <Icon width="18" height="18" {...props}>
     <circle cx="12" cy="12" r="3.75" />

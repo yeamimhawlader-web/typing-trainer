@@ -38,6 +38,7 @@ export interface SettingsState {
   readonly setPracticeWordCount: (count: PracticeWordCount) => Promise<void>
   readonly setTextSize: (size: TextSize) => Promise<void>
   readonly setHoverDifficulty: (difficulty: HoverDifficulty) => Promise<void>
+  readonly setSoundEnabled: (enabled: boolean) => Promise<void>
 }
 
 /**
@@ -57,6 +58,7 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
     practiceWordCount?: PracticeWordCount
     textSize?: TextSize
     hoverDifficulty?: HoverDifficulty
+    soundEnabled?: boolean
   } = {}
 
   // A theme the registry knows, or one of the two themes earlier versions
@@ -73,6 +75,8 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
 
   const difficulty = HOVER_DIFFICULTIES.find((option) => option === record['hoverDifficulty'])
   if (difficulty !== undefined) result.hoverDifficulty = difficulty
+
+  if (typeof record['soundEnabled'] === 'boolean') result.soundEnabled = record['soundEnabled']
 
   return result
 }
@@ -118,6 +122,8 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
       setTextSize: (textSize) => persist({ ...get().preferences, textSize }),
 
       setHoverDifficulty: (hoverDifficulty) => persist({ ...get().preferences, hoverDifficulty }),
+
+      setSoundEnabled: (soundEnabled) => persist({ ...get().preferences, soundEnabled }),
     }
   })
 

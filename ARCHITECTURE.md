@@ -911,6 +911,15 @@ shell rather than rebuilt in it. Its token plan is in
   is written and style is recalculated, so a shared component that eases its own
   colours changes on the same frame as the rest of the page. No GG stylesheet
   transitions a colour at all; touch responses are transform and opacity.
+- **Sound is made, not recorded.** `@features/sound` builds every sound from a
+  couple of oscillators and a burst of filtered noise, so there are no audio
+  files to ship or license and every keystroke can differ slightly. It is off
+  until switched on, and until then no audio context exists at all; the context
+  is opened by the click that switches it on, which is the gesture browsers
+  require. It listens to the events the session and Hover Mode already announce
+  — neither knows sound exists — so a keystroke does no extra work for it, and a
+  browser without Web Audio, or a graph that throws, is silent rather than
+  broken.
 - **Physical motion is a spring solved exactly.** Hover Mode's selector unfolds
   and folds on one spring whose position and speed are known at any moment, so
   it turns around mid-flight from where it is. The shell keeps that state across

@@ -10,6 +10,12 @@
  * on the page. It waits for settings to load, so the first frame is already in
  * the stored theme rather than the default one switching to it.
  *
+ * ## Sound
+ *
+ * The shell owns one sound engine for everything inside it, switched on and off
+ * by the preference. Nothing is heard — and no audio context exists — until it
+ * is switched on.
+ *
  * ## Hover Mode's selector
  *
  * Ordinary practice and Hover Mode are separate pages, each with its own mode
@@ -28,6 +34,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { Outlet } from 'react-router'
 
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
+import { createSoundEngine, SoundContext } from '@features/sound'
 
 import { createUnfoldMemory, UnfoldMemoryContext } from '../components/HoverSelector/unfold-memory.ts'
 import { ThemePanel } from '../components/ThemePanel/ThemePanel.tsx'
@@ -46,6 +53,15 @@ export const GGLayout = () => {
   const [themesOpen, setThemesOpen] = useState(false)
   // Hover Mode's selector, remembered across the pages it appears on.
   const [unfoldMemory] = useState(createUnfoldMemory)
+
+  // One sound engine for the shell. It opens no audio context until sound is
+  // switched on, and gives the device back when the shell goes away.
+  const soundEnabled = useSettingsStore((state) => state.preferences.soundEnabled)
+  const [sound] = useState(createSoundEngine)
+  useEffect(() => {
+    sound.setEnabled(soundEnabled)
+  }, [sound, soundEnabled])
+  useEffect(() => () => sound.close(), [sound])
   const themesButton = useRef<HTMLButtonElement>(null)
 
   // Before paint, so the first frame is already in the theme, and a switch
@@ -80,7 +96,8 @@ export const GGLayout = () => {
   if (!ready) return null
 
   return (
-    <UnfoldMemoryContext value={unfoldMemory}>
+    <SoundContext value={sound}>
+      <UnfoldMemoryContext value={unfoldMemory}>
       <div className={styles.app}>
         <div inert={themesOpen}>
           <TopBar themesOpen={themesOpen} onOpenThemes={() => setThemesOpen(true)} themesButtonRef={themesButton} />
@@ -90,8 +107,9 @@ export const GGLayout = () => {
           </main>
         </div>
 
-        <ThemePanel open={themesOpen} activeThemeId={themeId} onSelect={selectTheme} onClose={closeThemes} />
-      </div>
-    </UnfoldMemoryContext>
+          <ThemePanel open={themesOpen} activeThemeId={themeId} onSelect={selectTheme} onClose={closeThemes} />
+        </div>
+      </UnfoldMemoryContext>
+    </SoundContext>
   )
 }

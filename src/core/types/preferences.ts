@@ -50,4 +50,9 @@ export interface UserPreferences {
   readonly textSize: TextSize
   /** The Hover Mode difficulty last chosen. */
   readonly hoverDifficulty: HoverDifficulty
+  /**
+   * Whether GG.Typing makes sounds as you type. Off until asked for: a typing
+   * tool that starts making noise on a shared or quiet machine is a bad guest.
+   */
+  readonly soundEnabled: boolean
 }

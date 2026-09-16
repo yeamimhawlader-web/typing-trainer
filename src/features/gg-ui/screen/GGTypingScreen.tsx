@@ -22,6 +22,12 @@
  * session saves the test as Hover Mode with its focus records. The controller
  * lives for the life of the screen, like the session.
  *
+ * ## Sound
+ *
+ * The shell's sound engine, switched on and off from the control row here, is
+ * connected to the session's own events and Hover Mode's own signals. Neither
+ * knows about it, and a keystroke does no extra work for it.
+ *
  * Its difficulty is the page's to choose. A change starts a new test, so a test
  * is always typed, repeated and saved at one difficulty. Every focus that ends is
  * handed to Golden Nuggets as it ends, and the way there is on this screen,
@@ -38,6 +44,7 @@ import { DEFAULT_SESSION_CONTEXT } from '@core/sessions'
 import type { HoverDifficulty, Timestamp } from '@core/types'
 import { createHoverController, recordGoldenNuggets } from '@features/ggtyping'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
+import { playHoverSounds, playTypingSounds, useSound } from '@features/sound'
 import {
   ResultAnnouncement,
   SessionHint,
@@ -99,6 +106,18 @@ export const GGTypingScreen = ({
 
   useEffect(() => hover?.connect(engine), [engine, hover])
 
+  // Sound listens to what the session and Hover Mode already announce. With
+  // sound off every call is a no-op, so nothing is conditional here.
+  const sound = useSound()
+  useEffect(() => (sound === null ? undefined : playTypingSounds(engine, sound)), [engine, sound])
+  // Repetitions are typed through Hover Mode's own engine, so keys sound like
+  // keys there too; its moments are the controller's signals on top of that.
+  useEffect(
+    () => (sound === null || hover === null ? undefined : playTypingSounds(hover.attempt, sound)),
+    [hover, sound],
+  )
+  useEffect(() => (sound === null || hover === null ? undefined : playHoverSounds(hover, sound)), [hover, sound])
+
   useEffect(
     () =>
       hover === null
@@ -157,6 +176,18 @@ export const GGTypingScreen = ({
   // difficulty last chosen.
   const rememberedDifficulty = useSettingsStore((state) => state.preferences.hoverDifficulty)
 
+  const soundEnabled = useSettingsStore((state) => state.preferences.soundEnabled)
+  const setSoundEnabled = useSettingsStore((state) => state.setSoundEnabled)
+  const soundControl = useMemo(
+    () => ({
+      enabled: soundEnabled,
+      onToggle: () => {
+        void setSoundEnabled(!soundEnabled)
+      },
+    }),
+    [setSoundEnabled, soundEnabled],
+  )
+
   // A pointer click on a control means the typist is about to type again. A
   // click the keyboard produced (detail 0) leaves focus where it is, so arrow
   // keys keep moving through the group.
@@ -174,6 +205,7 @@ export const GGTypingScreen = ({
         description={hover === null ? undefined : 'Target mistakes and repeat them'}
         words={wordTotal}
         onRestart={restartTest}
+        sound={soundControl}
       />
 
       <div onClick={returnFocusAfterClick}>

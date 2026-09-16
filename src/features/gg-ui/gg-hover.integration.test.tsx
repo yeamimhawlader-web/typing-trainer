@@ -516,6 +516,95 @@ describe('Hover Mode on the GG.Typing screen', () => {
     })
   })
 
+  describe('with sound on', () => {
+    /** Web Audio, counted rather than heard: one oscillator is one voice. */
+    const fakeAudio = () => {
+      const built = { contexts: 0, oscillators: 0 }
+      const param = () => ({
+        value: 0,
+        setValueAtTime: () => undefined,
+        linearRampToValueAtTime: () => undefined,
+        exponentialRampToValueAtTime: () => undefined,
+      })
+      const node = () => ({
+        connect: () => undefined,
+        gain: param(),
+        frequency: param(),
+        Q: param(),
+        start: () => undefined,
+        stop: () => undefined,
+        type: '',
+        buffer: null,
+      })
+      class Fake {
+        state = 'running'
+        currentTime = 0
+        sampleRate = 48_000
+        destination = node()
+        constructor() {
+          built.contexts += 1
+        }
+        createGain() {
+          return node()
+        }
+        createOscillator() {
+          built.oscillators += 1
+          return node()
+        }
+        createBufferSource() {
+          return node()
+        }
+        createBiquadFilter() {
+          return node()
+        }
+        createBuffer(_channels: number, length: number) {
+          return { duration: 0.2, getChannelData: () => new Float32Array(length) }
+        }
+        async resume() {}
+        async close() {}
+      }
+      ;(window as unknown as { AudioContext: unknown }).AudioContext = Fake
+      return built
+    }
+
+    afterEach(() => {
+      delete (window as { AudioContext?: unknown }).AudioContext
+    })
+
+    it('sounds the keys of a repetition as well as the moments of the focus', async () => {
+      const built = fakeAudio()
+      await openHover('standard')
+      // Switched on as the control row's toggle does, after the shell is up.
+      act(() => {
+        settingsStore.setState({
+          preferences: { ...settingsStore.getState().preferences, soundEnabled: true },
+          status: 'ready',
+        })
+      })
+
+      typeText('alpxa ')
+      const caught = built.oscillators
+      expect(caught).toBeGreaterThan(0)
+
+      // A repetition: six keys through Hover Mode's own engine, and the note for
+      // the clean repetition on top of them.
+      typeText('alpha ')
+
+      expect(built.oscillators).toBeGreaterThan(caught + 6)
+      expect(built.contexts).toBe(1)
+    })
+
+    it('stays silent when sound is off, however much is typed and repeated', async () => {
+      const built = fakeAudio()
+      await openHover('standard')
+
+      typeText('alpxa ')
+      typeText('alpha ')
+
+      expect(built).toEqual({ contexts: 0, oscillators: 0 })
+    })
+  })
+
   describe('without motion', () => {
     it('keeps every state and all the information, moving nothing', async () => {
       const originalMatchMedia = window.matchMedia

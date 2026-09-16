@@ -452,6 +452,95 @@ describe('GG.Typing on the real typing session', () => {
     })
   })
 
+  describe('sound', () => {
+    /** A Web Audio that only counts what it was asked to build. */
+    const fakeAudio = () => {
+      const built = { contexts: 0, oscillators: 0 }
+      const param = () => ({ value: 0, setValueAtTime: () => undefined, linearRampToValueAtTime: () => undefined, exponentialRampToValueAtTime: () => undefined })
+      const node = () => ({ connect: () => undefined, gain: param(), frequency: param(), Q: param(), start: () => undefined, stop: () => undefined, type: '', buffer: null })
+      class Fake {
+        state = 'running'
+        currentTime = 0
+        sampleRate = 48_000
+        destination = node()
+        constructor() {
+          built.contexts += 1
+        }
+        createGain() {
+          return node()
+        }
+        createOscillator() {
+          built.oscillators += 1
+          return node()
+        }
+        createBufferSource() {
+          return node()
+        }
+        createBiquadFilter() {
+          return node()
+        }
+        createBuffer(_channels: number, length: number) {
+          return { duration: 0.2, getChannelData: () => new Float32Array(length) }
+        }
+        async resume() {}
+        async close() {}
+      }
+      ;(window as unknown as { AudioContext: unknown }).AudioContext = Fake
+      return built
+    }
+
+    afterEach(() => {
+      delete (window as { AudioContext?: unknown }).AudioContext
+    })
+
+    it('is off to begin with, and typing opens no audio at all', async () => {
+      const built = fakeAudio()
+      await firstTest(wordsProvider().provider)
+
+      const toggle = screen.getByRole('button', { name: 'Sound' })
+      expect(toggle).toHaveAttribute('aria-pressed', 'false')
+      typeText('typing')
+
+      expect(built.contexts).toBe(0)
+    })
+
+    it('is switched on from the control row, plays as you type, and is remembered', async () => {
+      const built = fakeAudio()
+      const user = userEvent.setup()
+      await firstTest(wordsProvider().provider)
+
+      await user.click(screen.getByRole('button', { name: 'Sound' }))
+
+      expect(screen.getByRole('button', { name: 'Sound' })).toHaveAttribute('aria-pressed', 'true')
+      expect(settingsStore.getState().preferences.soundEnabled).toBe(true)
+      // The context is opened by the click itself: the gesture browsers ask for.
+      expect(built.contexts).toBe(1)
+
+      const before = built.oscillators
+      typeText('abc')
+      expect(built.oscillators).toBeGreaterThan(before)
+
+      // A reload: the preference comes back with the rest.
+      const reloaded = createSettingsStore(storage)
+      await reloaded.getState().hydrate()
+      expect(reloaded.getState().preferences.soundEnabled).toBe(true)
+    })
+
+    it('goes quiet again when it is switched off', async () => {
+      const built = fakeAudio()
+      const user = userEvent.setup()
+      settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15, soundEnabled: true } })
+      await firstTest(wordsProvider().provider)
+
+      await user.click(screen.getByRole('button', { name: 'Sound' }))
+      const quiet = built.oscillators
+      typeText('abc')
+
+      expect(settingsStore.getState().preferences.soundEnabled).toBe(false)
+      expect(built.oscillators).toBe(quiet)
+    })
+  })
+
   describe('themes', () => {
     it('opens a fresh installation in Classic Milk', async () => {
       // What hydrating an empty store leaves: the defaults, nothing saved.
@@ -575,7 +664,7 @@ describe('GG.Typing on the real typing session', () => {
       // Every control on the page is a link somewhere real or does something.
       const label = (button: HTMLElement) => button.getAttribute('aria-label')
       expect(within(screen.getByRole('navigation', { name: 'Main' })).getAllByRole('button').map(label)).toEqual(['Themes'])
-      expect(within(screen.getByRole('main')).getAllByRole('button').map(label)).toEqual(['Restart test'])
+      expect(within(screen.getByRole('main')).getAllByRole('button').map(label)).toEqual(['Sound', 'Restart test'])
     })
   })
 })

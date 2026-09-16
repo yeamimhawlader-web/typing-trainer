@@ -18,6 +18,7 @@
 import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 
 import { prefersReducedMotion } from '@features/ggtyping'
+import { useSound } from '@features/sound'
 
 import { startTrajectory, trajectoryAt, type SpringState, type Trajectory } from './spring.ts'
 import { createUnfoldMemory, UnfoldMemoryContext, type UnfoldMemory } from './unfold-memory.ts'
@@ -158,6 +159,7 @@ const beginning = (memory: UnfoldMemory, open: boolean, at: number): MotionState
 }
 
 export const useUnfold = (open: boolean, refs: UnfoldRefs) => {
+  const sound = useSound()
   const shared = useContext(UnfoldMemoryContext)
   const [ownMemory] = useState(createUnfoldMemory)
   const memory = shared ?? ownMemory
@@ -243,9 +245,13 @@ export const useUnfold = (open: boolean, refs: UnfoldRefs) => {
     (control: 'node' | 'other') => {
       const at = now()
       memory.pressed(at, control)
+      // On the press, not on the animation: the sound belongs to the gesture,
+      // and it is the same with reduced motion, where nothing unfolds at all.
+      if (control === 'node' && !open) sound?.play('selectorOpen')
+      if (control === 'other' && open) sound?.play('selectorClose')
       if (control === 'node') playPress(refs, pressAnimations.current, at)
     },
-    [memory, refs],
+    [memory, open, refs, sound],
   )
 
   return { phase: motion.phase, press }
