@@ -1,8 +1,8 @@
 /*
- * The mode on the left and the settings beside it; Hover Mode's branches unfold
- * in a row of their own underneath, so opening them never moves a setting
- * sideways. On a narrow screen the branches hang directly under the mode, with
- * the settings after them.
+ * The mode on the left and the settings beside it; a branch tree — Hover Mode's
+ * difficulties or the sound packs, never both — unfolds in a row of its own
+ * underneath, so opening one never moves a setting sideways. On a narrow screen
+ * each tree hangs directly under its own node instead.
  *
  * A grid rather than a wrapping row, so the branch row takes no space at all
  * when it is not there: no gap is left behind when it folds away.
@@ -14,8 +14,7 @@
   grid-template-columns: auto minmax(0, auto) auto;
   grid-template-areas:
     'modes settings sound-node'
-    'branches branches branches'
-    'sound sound sound';
+    'branches branches branches';
   align-items: center;
 }
 
@@ -26,6 +25,31 @@
   align-items: center;
   row-gap: 0.75rem;
   min-width: 0;
+}
+
+/*
+ * A narrower desktop: the modes and the High Speed Trainer take the first row
+ * with Sound, and the settings a row of their own under whichever tree is out,
+ * rather than being squeezed into a column beside the modes. The branch row
+ * stays directly under the nodes it grows from.
+ */
+@media (min-width: 721px) and (max-width: 1280px) {
+  .toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'modes sound-node'
+      'branches branches'
+      'settings settings';
+  }
+
+  .settings {
+    margin-top: 14px;
+  }
+
+  /* The hairline that set the settings apart from the modes, where they no longer sit side by side. */
+  .settings > [aria-hidden='true']:first-child {
+    display: none;
+  }
 }
 
 /* Without separators, groups need their own spacing once they wrap. */

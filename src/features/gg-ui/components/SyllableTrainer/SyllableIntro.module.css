@@ -1,0 +1,464 @@
+/*
+ * The Syllable Trainer's opening: an editorial header, then the demonstration
+ * card and the instructions beside it.
+ *
+ * Glass is the chrome's material and nothing else: the card and the panel are
+ * made of the foundation's glass tokens, and the demonstration word inside the
+ * card is the typing face on it. The card is the more present of the two — the
+ * stronger fill — because it is the thing to watch; the panel is read.
+ *
+ * Every movement is transform or opacity, and colour never transitions: what
+ * lights up changes on the frame it lights, and only a layer's opacity fades.
+ */
+
+.intro {
+  margin-top: 40px;
+}
+
+/* --- Header ----------------------------------------------------------- */
+
+.header {
+  margin-bottom: 18px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gg-muted);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.5rem, 1.2rem + 0.9vw, 1.875rem);
+  font-weight: 560;
+  line-height: 1.12;
+  letter-spacing: -0.022em;
+  color: var(--gg-fg);
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  font-size: 1rem;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+  color: var(--gg-muted);
+}
+
+/* --- Card and panel --------------------------------------------------- */
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(13rem, 16.5rem);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.card,
+.steps {
+  position: relative;
+  border: 1px solid var(--gg-glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--gg-glass-highlight),
+    var(--gg-glass-depth),
+    var(--gg-glass-shadow);
+  backdrop-filter: var(--gg-glass-filter);
+  -webkit-backdrop-filter: var(--gg-glass-filter);
+}
+
+/* The inner light, as on every piece of glass. */
+.card::before,
+.steps::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--gg-glass-sheen);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.card {
+  margin: 0;
+  padding: 14px 18px 20px;
+  border-radius: 18px;
+  background-color: var(--gg-glass-fill-strong);
+}
+
+.cardHead {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label {
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gg-muted);
+}
+
+.replay {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px 0 9px;
+  border: 1px solid var(--gg-glass-border);
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-glass-fill);
+  box-shadow: inset 0 1px 0 var(--gg-glass-highlight);
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--gg-muted);
+  cursor: pointer;
+  transition: transform var(--gg-duration-touch) var(--gg-ease-touch);
+}
+
+@media (hover: hover) {
+  .replay:hover {
+    color: var(--gg-fg);
+    transform: translateY(-1px);
+  }
+}
+
+.replay:active {
+  transform: translateY(0.5px) scale(0.96);
+}
+
+.replay:focus-visible {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 2px;
+}
+
+/* --- The demonstration ------------------------------------------------ */
+
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 116px;
+  padding-top: 8px;
+}
+
+.word {
+  --gg-demo-gap: 0.55em;
+
+  display: flex;
+  align-items: stretch;
+  font-family: var(--gg-font-mono);
+  font-size: clamp(1.9rem, 1.45rem + 1.3vw, 2.5rem);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--gg-fg);
+}
+
+/* A chunk. Whole, the chunks sit together about the word's middle; apart, each
+   is in its own place with the breath between. */
+.chunk {
+  position: relative;
+  display: inline-flex;
+  transition: transform 420ms var(--gg-ease-touch);
+}
+
+.stage[data-apart='false'] .chunk {
+  transform: translateX(calc(var(--gg-demo-shift) * var(--gg-demo-gap)));
+}
+
+/* The chunk in hand is underlined as it is typed. */
+.chunk::after {
+  content: '';
+  position: absolute;
+  left: 0.04em;
+  right: 0.04em;
+  bottom: -0.06em;
+  height: 2px;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-accent);
+  opacity: 0;
+  transform: scaleX(0.2);
+  transform-origin: left center;
+  transition:
+    opacity 140ms var(--gg-ease-out),
+    transform 220ms var(--gg-ease-touch);
+}
+
+.chunk[data-state='active']::after {
+  opacity: 0.9;
+  transform: none;
+}
+
+.letter {
+  transition: opacity 90ms var(--gg-ease-out);
+}
+
+/* Still to type: there, and faint. Typed: arrives in full. A finished chunk
+   settles back, and the resolved word comes forward whole again. */
+.letter[data-state='waiting'] {
+  opacity: 0.26;
+}
+
+.chunk[data-state='done'] .letter {
+  opacity: 0.6;
+}
+
+.stage[data-demo-phase='resolve'] .letter,
+.stage[data-demo-phase='rest'] .letter,
+.stage[data-demo-phase='diagram'] .letter {
+  opacity: 1;
+}
+
+.stage[data-demo-phase='resolve'] .chunk,
+.stage[data-demo-phase='rest'] .chunk {
+  transition-duration: 480ms;
+}
+
+.gap {
+  position: relative;
+  flex: none;
+  width: var(--gg-demo-gap);
+}
+
+.gap::before,
+.gap::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: var(--gg-radius-full);
+}
+
+.gap::before {
+  background-color: var(--gg-muted);
+  opacity: 0;
+  transform: scale(0.3);
+  transition:
+    opacity 240ms var(--gg-ease-out),
+    transform 320ms var(--gg-ease-touch);
+}
+
+.stage[data-apart='true'] .gap::before {
+  opacity: 0.5;
+  transform: none;
+}
+
+.gap::after {
+  background-color: var(--gg-accent);
+  box-shadow: 0 0 0 4px var(--gg-accent-glow);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 160ms var(--gg-ease-out),
+    transform 260ms var(--gg-ease-touch);
+}
+
+.gap[data-breathing='true']::after {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* The rhythm, as a timing: a bar for each syllable, as long as it is, filling
+   as its letters are typed; a dot for each breath; an arrow to the next word. */
+.rhythm {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 12px;
+}
+
+.beat {
+  position: relative;
+  width: calc(var(--gg-demo-beat) * 0.72rem);
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-hairline);
+}
+
+.beat::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--gg-accent);
+  transform: scaleX(var(--gg-demo-fill));
+  transform-origin: left center;
+  transition:
+    transform var(--gg-demo-letter) linear,
+    opacity 200ms var(--gg-ease-out);
+}
+
+.beat[data-state='done']::after {
+  opacity: 0.45;
+}
+
+.pause {
+  position: relative;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-muted);
+  opacity: 0.4;
+  transition:
+    opacity 160ms var(--gg-ease-out),
+    transform 260ms var(--gg-ease-touch);
+}
+
+.pause::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--gg-accent);
+  opacity: 0;
+  transition: opacity 160ms var(--gg-ease-out);
+}
+
+.pause[data-breathing='true'] {
+  opacity: 1;
+  transform: scale(1.7);
+}
+
+.pause[data-breathing='true']::after {
+  opacity: 1;
+}
+
+.onward {
+  display: inline-flex;
+  color: var(--gg-muted);
+  opacity: 0.35;
+  transition:
+    opacity 200ms var(--gg-ease-out),
+    transform 320ms var(--gg-ease-touch);
+}
+
+.onward path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.onward[data-lit='true'] {
+  opacity: 1;
+  transform: translateX(4px);
+}
+
+/* --- The instructions ------------------------------------------------- */
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  margin: 0;
+  padding: 12px;
+  border-radius: 16px;
+  background-color: var(--gg-glass-fill);
+  list-style: none;
+}
+
+.step {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  color: var(--gg-muted);
+}
+
+/* Lit as the demonstration reaches it: a tint behind, fading in. */
+.step::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--gg-accent-tint);
+  opacity: 0;
+  transition: opacity 180ms var(--gg-ease-out);
+}
+
+.step[data-lit='true'] {
+  color: var(--gg-fg);
+}
+
+.step[data-lit='true']::before {
+  opacity: 1;
+}
+
+.stepNumber {
+  position: relative;
+  font-family: var(--gg-font-mono);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--gg-muted);
+}
+
+.step[data-lit='true'] .stepNumber {
+  color: var(--gg-accent);
+}
+
+/* --- Narrower --------------------------------------------------------- */
+
+@media (max-width: 860px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .intro {
+    margin-top: 28px;
+  }
+
+  .card {
+    padding: 12px 14px 16px;
+  }
+
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .replay,
+  .chunk,
+  .chunk::after,
+  .letter,
+  .gap::before,
+  .gap::after,
+  .beat::after,
+  .pause,
+  .pause::after,
+  .onward,
+  .step::before {
+    transition: none;
+  }
+
+  .replay:hover,
+  .replay:active {
+    transform: none;
+  }
+}

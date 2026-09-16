@@ -15,6 +15,8 @@
 
 import type { ReactNode, RefObject } from 'react'
 
+import type { BranchTreeId } from './branch-trees.ts'
+
 import styles from './Unfold.module.css'
 import type { UnfoldPhase } from './useUnfold.ts'
 import { BRANCH_PART } from './useUnfold.ts'
@@ -37,6 +39,8 @@ export interface UnfoldBranchesProps {
   readonly inner: RefObject<HTMLDivElement | null>
   readonly stems: RefObject<SVGGElement | null>
   readonly list: RefObject<HTMLDivElement | null>
+  /** Which of the branch trees this is, so a press inside it is not a press elsewhere. */
+  readonly tree: BranchTreeId
   /** The radio group's name and its spoken label. */
   readonly name: string
   readonly label: string
@@ -44,6 +48,12 @@ export interface UnfoldBranchesProps {
   readonly value: string
   /** Absent where the branches are only folding away, and no longer a choice. */
   readonly onChange?: ((value: string) => void) | undefined
+  /**
+   * The branch already chosen, pressed again. A native radio says nothing when
+   * that happens — nothing changed — but the typist has still made their
+   * choice, and the tree should fold as it would for any other.
+   */
+  readonly onReselect?: ((value: string) => void) | undefined
   /** Names and beads only, for more choices than a row has room to describe. */
   readonly compact?: boolean
   /** The class that puts the row where it belongs in its own layout. */
@@ -63,11 +73,13 @@ export const UnfoldBranches = ({
   inner,
   stems,
   list,
+  tree,
   name,
   label,
   items,
   value,
   onChange,
+  onReselect,
   compact = false,
   className,
   beside,
@@ -80,6 +92,7 @@ export const UnfoldBranches = ({
       ref={row}
       className={[styles.row, className].filter(Boolean).join(' ')}
       data-phase={phase}
+      data-branch-tree={tree}
       inert={!choosing}
       aria-hidden={choosing ? undefined : true}
     >
@@ -102,6 +115,7 @@ export const UnfoldBranches = ({
                 value={item.value}
                 checked={item.value === value}
                 onChange={() => onChange?.(item.value)}
+                onClick={choosing && item.value === value ? () => onReselect?.(item.value) : undefined}
                 aria-label={`${item.label}: ${item.description}`}
               />
               <span className={styles.glass} title={item.description}>

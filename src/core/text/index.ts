@@ -14,6 +14,12 @@ export {
 } from './providers/common-words.provider.ts'
 export type { CommonWordsProviderOptions } from './providers/common-words.provider.ts'
 
+export {
+  createSyllableWordsProvider,
+  SYLLABLE_WORDS_PROVIDER_ID,
+} from './providers/syllable-words.provider.ts'
+export type { SyllableWordsProviderOptions } from './providers/syllable-words.provider.ts'
+
 export { createWordText } from './generator.ts'
 export type { RandomSource, WordTextOptions } from './generator.ts'
 

@@ -171,9 +171,16 @@ flexes its light; the branches grow out of it on thin stems, one just after
 another, their labels arriving last, and the chosen one lights from within.
 Choosing a difficulty folds them away again — the branches are never left
 sitting there, and the node says which difficulty is on — and so does pressing
-the node again or leaving for ordinary practice. One spring
-drives it: opening is fast (90% in about 160ms), settles 1.5% past and is at rest
-by 500ms; folding does not bounce and is at rest by 400ms. Closing while it opens,
+the node again, pressing anywhere else, Escape, or leaving for another mode. One
+spring drives it: opening is fast (90% in about 160ms), settles 1.5% past and is
+at rest by 500ms; folding does not bounce, is heavier — 90% of the way home in
+about 185ms — and is at rest by 475ms.
+
+**One tree at a time.** Hover Mode's difficulties and the sound packs are two trees
+of one control, and only one is ever out. Pressing Sound while Hover Mode's
+branches are open folds them as the packs grow in the same row — the packs a beat
+later, from the room the difficulties took — so the page moves once, and the other
+way round. Closing while it opens,
 or reopening while it folds, turns it around from where it is, even though the
 page changes underneath. The branches can be chosen from the moment they appear.
 With reduced motion it is simply open or closed. Arriving at Hover Mode any other
@@ -262,6 +269,45 @@ repetitions. The only style read is the hover's pose at release, once per focus.
 [`src/features/ggtyping/hover`](./src/features/ggtyping/hover), motion in
 [`src/features/ggtyping/motion`](./src/features/ggtyping/motion), and the layer in
 `src/features/gg-ui/components/WordStream/HoverFocus.tsx`.
+
+## Mode 2: the Syllable Trainer
+
+Part of the High Speed Trainer, beside Hover Mode, at `/gg/syllables`. Hover Mode
+targets the words a typist gets wrong; the Syllable Trainer trains how long words
+are held: not as one block, but as chunks in rhythm — syllable, a breath,
+syllable, a breath, next word — until the chunks are automatic.
+
+**Words.** Two hundred common words that are worth chunking, from two syllables to
+five, split where a dictionary splits them (moun·tain, dif·fer·ent,
+in·for·ma·tion), in `src/core/syllables/corpus.ts`. A test draws them at random, at
+the practice length, never the same word twice in a row.
+
+**The opening.** The page says what it is, then shows it: a word whole, pulled
+apart, each syllable typed a letter at a time with a breath between, closing up
+again, and on to the next — mountain, important, information — with a timing line
+beneath (a bar per syllable, a dot per breath, an arrow on) and four instructions
+that light as each happens. It plays twice by itself, stops the moment typing
+starts, and can be played again. With reduced motion it is a still diagram of the
+word in its chunks.
+
+**Training.** Each word is drawn as its syllables with a small space between. The
+syllable in hand is underlined and the rest of that word steps back. As a syllable
+is finished, the dot after it breathes once — strongly for the first words of a
+test, fading after, never gone — and the next syllable's line arrives a beat
+later. A word typed right closes up into one block; a word with a letter wrong, or
+left with a space part-way through, stays open: it is over, not done. Nothing waits
+for a pause, and no pause is measured or scored.
+
+**What is recorded.** The same session, telemetry and Golden Nuggets as ordinary
+practice, over the same engine; the syllables are drawn over the text and never
+typed. The test is saved as the Syllable Trainer, a training mode, so history names
+it and analyses of ordinary typing leave it out. The rhythm's durations are data,
+in `src/core/syllables/rhythm.ts`.
+
+**Where it lives.** Words, layout, progress, rhythm and the demonstration's timeline
+in [`src/core/syllables`](./src/core/syllables); the opening in
+`src/features/gg-ui/components/SyllableTrainer`; the syllables in the stream in
+`WordStream.tsx`.
 
 ## Adding an effect
 

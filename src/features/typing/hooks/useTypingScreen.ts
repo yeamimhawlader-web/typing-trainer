@@ -61,7 +61,7 @@ export interface TypingScreenOptions {
    * A training mode running on the ordinary text, such as Hover Mode: the mode
    * the test is saved as, and the hooks it takes part through.
    */
-  readonly training?: { readonly mode: 'hover' | 'time'; readonly hooks: SessionModeHooks } | undefined
+  readonly training?: { readonly mode: 'hover' | 'time' | 'syllable'; readonly hooks: SessionModeHooks } | undefined
 }
 
 export interface TypingScreen extends TypingSessionController {

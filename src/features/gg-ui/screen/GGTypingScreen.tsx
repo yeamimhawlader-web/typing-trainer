@@ -28,7 +28,15 @@
  * connected to the session's own events and Hover Mode's own signals. Neither
  * knows about it, and a keystroke does no extra work for it.
  *
- * Its difficulty is the page's to choose. A change starts a new test, so a test
+ * ## The Syllable Trainer
+ *
+ * The same screen again, with a different text and one more layer over it: its
+ * words come from the syllable corpus, the stream draws each as the syllables it
+ * is typed in, and the page opens with what the trainer is and a demonstration
+ * of it. The engine, the keys, the score and the save are ordinary practice's;
+ * the test is saved as the Syllable Trainer so it can be told apart.
+ *
+ * Hover Mode's difficulty is the page's to choose. A change starts a new test, so a test
  * is always typed, repeated and saved at one difficulty. Every focus that ends is
  * handed to Golden Nuggets as it ends, and the way there is on this screen,
  * not in the top bar: Golden Nuggets belong to Hover Mode.
@@ -41,9 +49,11 @@ import { PRACTICE_PATH, ROUTES } from '@app/routes.ts'
 import { computeWordRanges, toCharacters } from '@core/engine'
 import { goldenNuggetService, type GoldenNuggetService } from '@core/nuggets'
 import { DEFAULT_SESSION_CONTEXT } from '@core/sessions'
+import { layoutSyllables } from '@core/syllables'
+import { createSyllableWordsProvider } from '@core/text'
 import type { HoverDifficulty, Timestamp } from '@core/types'
 import { createHoverController, keepTroublesomeWords, newTestId, recordGoldenNuggets } from '@features/ggtyping'
-import { createTimedMode } from '@features/typing'
+import { createTimedMode, SYLLABLE_MODE } from '@features/typing'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { playHoverSounds, playTypingSounds, useSound } from '@features/sound'
 import {
@@ -57,6 +67,7 @@ import {
 
 import { ControlRow } from '../components/ControlRow/ControlRow.tsx'
 import { InputField } from '../components/InputField/InputField.tsx'
+import { SyllableIntro } from '../components/SyllableTrainer/SyllableIntro.tsx'
 import { Toolbar, type GGMode } from '../components/Toolbar/Toolbar.tsx'
 import { WordStream } from '../components/WordStream/WordStream.tsx'
 import { HoverHint } from './HoverHint.tsx'
@@ -85,6 +96,9 @@ export const GGTypingScreen = ({
   ...options
 }: GGTypingScreenProps) => {
   const [hover] = useState(() => (mode === 'hover' ? createHoverController({ difficulty: hoverDifficulty }) : null))
+  const syllable = mode === 'syllable'
+  // The trainer's own words, unless a test hands the screen a provider of its own.
+  const [syllableProvider] = useState(() => (syllable ? createSyllableWordsProvider() : undefined))
 
   /*
    * What ends an ordinary test: its word count, or the clock. Hover Mode and
@@ -93,19 +107,21 @@ export const GGTypingScreen = ({
    */
   const practiceMode = useSettingsStore((state) => state.preferences.practiceMode)
   const practiceSeconds = useSettingsStore((state) => state.preferences.practiceSeconds)
-  const timed = hover === null && (options.drill ?? null) === null && practiceMode === 'time'
+  const timed = mode === 'standard' && (options.drill ?? null) === null && practiceMode === 'time'
   const timedMode = useMemo(() => (timed ? createTimedMode(practiceSeconds) : null), [timed, practiceSeconds])
 
   const training = useMemo(
     () =>
       hover !== null
         ? { mode: 'hover' as const, hooks: hover }
-        : timedMode !== null
-          ? { mode: 'time' as const, hooks: timedMode }
-          : undefined,
-    [hover, timedMode],
+        : syllable
+          ? { mode: 'syllable' as const, hooks: SYLLABLE_MODE }
+          : timedMode !== null
+            ? { mode: 'time' as const, hooks: timedMode }
+            : undefined,
+    [hover, syllable, timedMode],
   )
-  const screen = useTypingScreen({ ...options, training })
+  const screen = useTypingScreen({ ...options, provider: options.provider ?? syllableProvider, training })
   const {
     engine,
     target,
@@ -123,6 +139,8 @@ export const GGTypingScreen = ({
   } = screen
 
   const wordTotal = useMemo(() => computeWordRanges(toCharacters(target.text)).length, [target])
+  // Where every word's syllables are: worked out once per text, never per key.
+  const syllables = useMemo(() => (syllable ? layoutSyllables(target.text) : undefined), [syllable, target])
 
   useEffect(() => hover?.connect(engine), [engine, hover])
 
@@ -215,10 +233,12 @@ export const GGTypingScreen = ({
 
   const changeWordCount = useCallback(
     (count: WordCount) => {
-      void setPracticeMode('words')
+      // Only ordinary practice has words and time to choose between: the
+      // Syllable Trainer's length leaves that choice where it was.
+      if (!syllable) void setPracticeMode('words')
       setWordCount(count)
     },
-    [setPracticeMode, setWordCount],
+    [setPracticeMode, setWordCount, syllable],
   )
 
   // A time is a different shape of test: the engine's clock rule changes with
@@ -277,7 +297,8 @@ export const GGTypingScreen = ({
 
   return (
     <>
-      <h1 className="visually-hidden">{heading}</h1>
+      {/* The trainer's heading is on the page, in its opening; elsewhere it is for assistive technology. */}
+      {!syllable && <h1 className="visually-hidden">{heading}</h1>}
 
       <ControlRow
         engine={engine}
@@ -303,6 +324,7 @@ export const GGTypingScreen = ({
                   seconds: practiceSeconds,
                   onWords: changeWordCount,
                   onTime: changeTime,
+                  timeOffered: !syllable,
                 }
               : null
           }
@@ -313,6 +335,8 @@ export const GGTypingScreen = ({
         />
       </div>
 
+      {syllable && <SyllableIntro engine={engine} />}
+
       <div className={styles.stream}>
         <WordStream
           engine={engine}
@@ -320,6 +344,7 @@ export const GGTypingScreen = ({
           size={size}
           onActivate={focusInput}
           hover={hover ?? undefined}
+          syllables={syllables}
         />
       </div>
 

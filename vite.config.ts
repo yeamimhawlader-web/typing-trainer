@@ -60,6 +60,7 @@ export default defineConfig({
             'src/core/engine/**/*.test.ts',
             'src/core/types/**/*.test.ts',
             'src/core/text/**/*.test.ts',
+            'src/core/syllables/**/*.test.ts',
             'src/core/statistics/**/*.test.ts',
             'src/core/telemetry/**/*.test.ts',
             'src/core/history/**/*.test.ts',

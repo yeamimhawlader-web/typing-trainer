@@ -7,9 +7,10 @@
  * again, so the branches are never left taking up the page. Nothing is applied
  * later or on a confirmation: the choice is the preview.
  *
- * Unlike Hover Mode's, this selector is opened and closed on this page rather
- * than by changing page, so its motion is its own and is not remembered across
- * the shell.
+ * It is one of the branch trees (Unfold/branch-trees.ts), so it is never open
+ * alongside Hover Mode's: pressing one while the other is out folds the other
+ * as this one grows, in the same row beneath the toolbar. Its motion is kept
+ * by the shell with the trees, so a page change mid-fold carries on folding.
  */
 
 import { useCallback, useRef, useState } from 'react'
@@ -18,6 +19,7 @@ import { SOUND_PACK_LIST, useSound, type SoundPreference } from '@features/sound
 
 import { Separator } from '../controls/controls.tsx'
 import { SoundOffIcon, SoundOnIcon } from '../icons.tsx'
+import { useBranchTrees, useTreeOpen } from '../Unfold/branch-trees.ts'
 import unfold from '../Unfold/Unfold.module.css'
 import { UnfoldBranches, type BranchTone, type UnfoldItem } from '../Unfold/UnfoldBranches.tsx'
 import { useUnfold } from '../Unfold/useUnfold.ts'
@@ -56,7 +58,8 @@ export interface SoundSelectorProps {
 }
 
 export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: SoundSelectorProps) => {
-  const [open, setOpen] = useState(false)
+  const trees = useBranchTrees()
+  const open = useTreeOpen(trees, 'sound')
   const sound = useSound()
 
   const node = useRef<HTMLButtonElement>(null)
@@ -67,13 +70,12 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
   const stems = useRef<SVGGElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const [refs] = useState(() => ({ node, nodeGlass, nodeLight, row, inner, stems, list }))
-  // Its own motion, not the shell's: this selector belongs to one page.
-  const { phase, press } = useUnfold(open, refs, { shared: false })
+  const { phase, press } = useUnfold(open, refs, { memory: trees.memoryOf('sound'), trees, tree: 'sound' })
 
   const toggle = useCallback(() => {
     press('node')
-    setOpen((was) => !was)
-  }, [press])
+    trees.toggle('sound', performance.now())
+  }, [press, trees])
 
   const choose = useCallback(
     (next: string) => {
@@ -81,9 +83,9 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
       // Heard as it is chosen, in the pack chosen — the description no words give.
       if (next !== 'off') sound?.preview(next as Parameters<NonNullable<typeof sound>['preview']>[0])
       // And folded away again: the choice is made.
-      setOpen(false)
+      trees.close('sound')
     },
-    [onChange, sound],
+    [onChange, sound, trees],
   )
 
   const on = value !== 'off'
@@ -99,6 +101,8 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
           type="button"
           className={unfold.node}
           data-open={open}
+          data-branch-tree="sound"
+          data-branch-node=""
           aria-expanded={open}
           aria-label={label}
           title={label}
@@ -120,11 +124,17 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
         inner={inner}
         stems={stems}
         list={list}
+        tree="sound"
         name="gg-sound"
         label="Sound"
         items={ITEMS}
         value={on ? value : 'off'}
         onChange={open ? choose : undefined}
+        onReselect={(again) => {
+          // Heard again, and folded: the same choice, made once more.
+          if (again !== 'off') sound?.preview(again as Parameters<NonNullable<typeof sound>['preview']>[0])
+          trees.close('sound')
+        }}
         compact
         className={styles.branches}
         beside={<VolumeSlider value={volume} onChange={onVolumeChange} />}

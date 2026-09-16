@@ -6,6 +6,20 @@
   background-repeat: no-repeat;
   color: var(--gg-fg);
   font-family: var(--gg-font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /*
+   * Type inside the shell. The application's own components read these tokens
+   * too, so the result panel and summaries set in Geist without a change of
+   * their own. A variable face lets the weights sit between the usual steps:
+   * emphasis without heaviness.
+   */
+  --font-sans: var(--gg-font-ui);
+  --font-mono: var(--gg-font-mono);
+  --font-weight-medium: 480;
+  --font-weight-semibold: 560;
+  --font-weight-bold: 650;
 
   /*
    * The token bridge. The result panel, session summary, drill comparison and

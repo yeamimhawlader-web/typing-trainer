@@ -64,6 +64,11 @@
   --gg-glass-shadow:
     0 1px 2px color-mix(in oklab, var(--gg-glass-shade) calc(var(--gg-glass-shadow-percent) * 0.6), transparent),
     0 6px 18px -10px color-mix(in oklab, var(--gg-glass-shade) var(--gg-glass-shadow-percent), transparent);
+  /* The underside of a piece of glass: the faintest shade along its lower edge,
+     so a control reads as a thing with thickness, set on the page, rather than
+     printed on it. Barely there — the effect is in the restraint. */
+  --gg-glass-depth: inset 0 -1px 0
+    color-mix(in oklab, var(--gg-glass-shade) calc(var(--gg-glass-shadow-percent) * 0.45), transparent);
   --gg-glass-shadow-lifted:
     0 2px 4px color-mix(in oklab, var(--gg-glass-shade) calc(var(--gg-glass-shadow-percent) * 0.7), transparent),
     0 12px 26px -12px color-mix(in oklab, var(--gg-glass-shade) calc(var(--gg-glass-shadow-percent) * 1.6), transparent);
@@ -90,8 +95,15 @@
     );
 
   /* --- Type ----------------------------------------------------------- */
-  --gg-font-ui: var(--font-sans);
-  --gg-font-mono: var(--font-mono);
+  /*
+   * Geist for everything read — labels, controls, headings — and Geist Mono for
+   * everything typed or counted: the words, the field, the figures. Both are
+   * variable, self-hosted, and only their Latin files are fetched for English
+   * text (layout imports them). The system faces behind them are what shows for
+   * the moment before they arrive, and wherever they cannot.
+   */
+  --gg-font-ui: 'Geist Variable', var(--font-sans);
+  --gg-font-mono: 'Geist Mono Variable', var(--font-mono);
   --gg-text-nav: 0.9375rem;
   --gg-text-control: 0.9375rem;
   --gg-text-pill: 0.8125rem;

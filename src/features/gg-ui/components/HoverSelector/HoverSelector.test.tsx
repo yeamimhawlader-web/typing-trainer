@@ -394,7 +394,7 @@ describe("Hover Mode's selector", () => {
   })
 
   describe('from the keyboard', () => {
-    it('is reached in order — Standard, then the node — and arrow keys choose once it is open', async () => {
+    it('is reached in order — Standard, the node, the Syllable Trainer — and arrow keys choose once it is open', async () => {
       const user = userEvent.setup()
       const { onDifficultyChange } = renderModes(ROUTES.ggHover, createUnfoldMemory(), 'standard')
 
@@ -404,6 +404,8 @@ describe("Hover Mode's selector", () => {
       expect(node()).toHaveFocus()
 
       await user.keyboard('{Enter}')
+      await user.tab()
+      expect(screen.getByRole('link', { name: /^Syllable Trainer/ })).toHaveFocus()
       await user.tab()
       expect(screen.getByRole('radio', { name: /^Standard:/ })).toHaveFocus()
 

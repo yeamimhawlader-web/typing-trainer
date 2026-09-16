@@ -124,3 +124,149 @@
 .block[data-hover='repeating'] .cursor {
   opacity: 0;
 }
+
+/* --- Syllables: the Syllable Trainer's words, as the chunks they are typed in */
+
+/*
+ * The breathing space between syllables is a fixed gap, laid out once with the
+ * text, so nothing on the line moves as words are typed. Everything that
+ * happens to a syllable is transform and opacity on the compositor; colour
+ * stays the characters' own and changes instantly, as it does everywhere else.
+ */
+.block[data-syllables] {
+  --gg-syllable-gap: 0.34em;
+  /* --gg-syllable-breath, the cue's length, is SYLLABLE_RHYTHM's, set on the block. */
+}
+
+.syllable {
+  position: relative;
+  display: inline-block;
+  transition:
+    opacity 140ms var(--gg-ease-out),
+    transform 240ms var(--gg-ease-touch);
+}
+
+/* The rest of the word being typed steps back, so the chunk in hand is the one
+   the eye lands on. Words further on are left as they are. */
+.syllables[data-resolution='current'] .syllable[data-syllable='pending'] {
+  opacity: 0.42;
+}
+
+/* The chunk in hand: a hairline drawn out beneath it, below where a mistake's
+   underline sits. After a breath it arrives a beat after the key that reached
+   it, which is the pause being shown rather than imposed. */
+.syllable::after {
+  content: '';
+  position: absolute;
+  left: 0.06em;
+  right: 0.06em;
+  bottom: 0.12em;
+  height: 0.06em;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-accent);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition:
+    transform 180ms var(--gg-ease-touch),
+    opacity 120ms var(--gg-ease-out);
+}
+
+.syllable[data-syllable='active']::after {
+  opacity: 0.8;
+  transform: scaleX(1);
+}
+
+.breath + .syllable[data-syllable='active']::after {
+  transition-delay: calc(var(--gg-syllable-breath) * 0.5);
+}
+
+.breath {
+  position: relative;
+  display: inline-block;
+  width: var(--gg-syllable-gap);
+  height: 1em;
+}
+
+/* A dot at the height of the letters' middles, and the light that breathes out
+   of it as the chunk before it is finished. */
+.breath::before,
+.breath::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  width: 0.14em;
+  height: 0.14em;
+  margin: -0.07em 0 0 -0.07em;
+  border-radius: var(--gg-radius-full);
+}
+
+.breath::before {
+  background-color: var(--gg-muted);
+  opacity: 0.5;
+  transition:
+    opacity 220ms var(--gg-ease-out),
+    transform 220ms var(--gg-ease-touch);
+}
+
+.breath::after {
+  background-color: var(--gg-accent);
+  opacity: 0;
+}
+
+/* Strength fades over the test (guidanceStrength), so the cue is felt at first
+   and then left to the typist. */
+.syllables[data-resolution='current'] .syllable[data-syllable='typed'] + .breath::after {
+  animation: gg-syllable-breath var(--gg-syllable-breath) var(--gg-ease-out);
+}
+
+@keyframes gg-syllable-breath {
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+
+  45% {
+    opacity: var(--gg-syllable-guide, 1);
+    transform: scale(calc(1 + 1.4 * var(--gg-syllable-guide, 1)));
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* Resolved clean: the word closes up into one block. The syllables slide
+   together about the word's middle — by transform, so the line's layout is
+   untouched — and the dots go. A missed word stays open, its breaths still
+   showing: it is over, not done. */
+.syllables[data-resolution='resolved'] .syllable {
+  transform: translateX(calc(var(--gg-syllable-shift, 0) * var(--gg-syllable-gap)));
+}
+
+.syllables[data-resolution='resolved'] .breath::before {
+  opacity: 0;
+  transform: scale(0.2);
+}
+
+.syllables[data-resolution='missed'] .breath::before {
+  opacity: 0.32;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .syllable,
+  .syllable::after,
+  .breath::before {
+    transition: none;
+  }
+
+  .breath + .syllable[data-syllable='active']::after {
+    transition-delay: 0s;
+  }
+
+  .syllables[data-resolution='current'] .syllable[data-syllable='typed'] + .breath::after {
+    animation: none;
+  }
+}

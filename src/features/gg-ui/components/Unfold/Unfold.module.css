@@ -35,6 +35,7 @@
   border: 1px solid var(--gg-glass-border);
   box-shadow:
     inset 0 1px 0 var(--gg-glass-highlight),
+    var(--gg-glass-depth),
     var(--gg-glass-shadow);
   backdrop-filter: var(--gg-glass-filter);
   -webkit-backdrop-filter: var(--gg-glass-filter);
@@ -147,8 +148,17 @@
 
 /* --- The row the branches take -------------------------------------- */
 
+/* Held to the top of its place, whatever else shares it: during a handover the
+   folding tree and the growing one are in the same row, and the one growing is
+   drawn over the one going. */
 .row {
   position: relative;
+  z-index: 1;
+  align-self: start;
+}
+
+.row[data-phase='closing'] {
+  z-index: 0;
 }
 
 /* Room for the stems between the node and the branches. */

@@ -78,13 +78,43 @@ describe('the spring', () => {
     expect(overshoot).toBeLessThan(0.03)
   })
 
-  it('folds without a bounce, at rest in 250–400ms', () => {
+  it('folds without a bounce, and at rest within 500ms', () => {
     expect(peak(UNFOLD_SPRINGS.close, 0, OPEN)).toBeLessThanOrEqual(1)
     let lowest = Infinity
     for (let ms = 0; ms < 600; ms += 1) lowest = Math.min(lowest, springAt(UNFOLD_SPRINGS.close, OPEN, 0, ms).value)
     expect(lowest).toBeGreaterThan(-0.001)
-    expect(restMs(UNFOLD_SPRINGS.close, OPEN, 0)).toBeGreaterThanOrEqual(250)
-    expect(restMs(UNFOLD_SPRINGS.close, OPEN, 0)).toBeLessThanOrEqual(400)
+    expect(restMs(UNFOLD_SPRINGS.close, OPEN, 0)).toBeGreaterThanOrEqual(300)
+    expect(restMs(UNFOLD_SPRINGS.close, OPEN, 0)).toBeLessThanOrEqual(500)
+  })
+
+  it('folds heavier than it opens: later to get most of the way, and never sooner at rest than it can be seen going', () => {
+    const closingTo90 = (() => {
+      for (let ms = 0; ms < 1000; ms += 1) if (springAt(UNFOLD_SPRINGS.close, OPEN, 0, ms).value <= 0.1) return ms
+      return Infinity
+    })()
+
+    expect(UNFOLD_SPRINGS.close.damping).toBe(1)
+    expect(closingTo90).toBeGreaterThan(timeTo(UNFOLD_SPRINGS.open, 0.9))
+    expect(closingTo90).toBeLessThan(220)
+  })
+
+  it('hands over in one gesture: the new tree starts a beat after the old one starts folding, once most of it has gone', () => {
+    const { delayMs, windowMs } = UNFOLD_MOTION.handover
+    const folded = springAt(UNFOLD_SPRINGS.close, OPEN, 0, delayMs).value
+
+    expect(delayMs).toBeGreaterThan(0)
+    expect(delayMs).toBeLessThan(150)
+    expect(windowMs).toBeGreaterThanOrEqual(delayMs)
+    // By the time the new branches begin to move, the old ones are well on their way in.
+    expect(folded).toBeLessThan(0.6)
+  })
+
+  it('makes room once when a tree takes over: from the room the old one took, never from nothing', () => {
+    const geometry = { rowHeight: 60, fromHeight: 80, node: { x: 0, y: 0 }, branches: [] }
+
+    expect(Number.parseFloat(String(rowPose(0, geometry).height))).toBe(80)
+    expect(Number.parseFloat(String(rowPose(1, geometry).height))).toBe(60)
+    expect(Number.parseFloat(String(rowPose(0, { rowHeight: 60, node: { x: 0, y: 0 }, branches: [] }).height))).toBe(0)
   })
 
   it('arrives exactly at its target once at rest', () => {

@@ -29,8 +29,19 @@
  *
  * Opening is slightly underdamped: fast away from the node (90% of the way in
  * about 160ms), settling 1.5% past its places and back, at rest by 500ms.
- * Folding is critically damped — an object closing does not bounce — and a
- * little stiffer, at rest by 400ms. A touch on a piece of glass uses a stiffer,
+ * Folding is critically damped — an object closing does not bounce — and
+ * heavier than opening: it takes longer to get most of the way home (90% at
+ * about 185ms), so it reads as something set down under control rather than
+ * snatched back, and is still at rest before the opening would be.
+ *
+ * ## One tree at a time
+ *
+ * Only one tree is ever open (see branch-trees.ts). Asking for another while
+ * one is out is a handover: the open one starts folding at once, and the new
+ * one starts growing a beat later, from the room the old one took. By the time
+ * the new branches are visible the old ones have all but gone into their node,
+ * so the two never read as open together, and the row under the toolbar
+ * changes size once. A touch on a piece of glass uses a stiffer,
  * livelier spring for movements of a pixel or two, sampled into CSS as
  * `--gg-ease-touch`.
  *
@@ -53,7 +64,7 @@ export type Frame = { readonly offset?: number; readonly easing?: string } & Rea
 
 export const UNFOLD_SPRINGS = {
   open: { frequency: 19, damping: 0.8 },
-  close: { frequency: 26, damping: 1 },
+  close: { frequency: 21, damping: 1 },
 } as const satisfies Record<string, Spring>
 
 /** The spring `--gg-ease-touch` samples, for the record and its test. */
@@ -101,6 +112,14 @@ export const UNFOLD_MOTION = {
     lightPeakAt: 0.3,
   },
 
+  /**
+   * A handover from one tree to another: how long after the press the new tree
+   * starts to grow — long enough for the old branches to be most of the way
+   * back into their node — and how soon after the press a tree must be opened
+   * to count as taking over rather than simply opening.
+   */
+  handover: { delayMs: 120, windowMs: 160 },
+
   /** A leftover state is continued if a selector mounts this soon after one left. */
   continuityMs: 600,
   /** Frame spacing for sampled keyframes. */
@@ -136,6 +155,11 @@ export interface Box {
 export interface UnfoldGeometry {
   /** The row's full height when open, in pixels. */
   readonly rowHeight: number
+  /**
+   * The height the row grows from: zero, or the room another tree's row took
+   * in the same place, when this tree took over from it.
+   */
+  readonly fromHeight?: number
   /** The bottom centre of the node, in the row's coordinates. */
   readonly node: Point
   /** Each branch's box, untransformed, in the row's coordinates. */
@@ -210,10 +234,15 @@ export const stemPaths = (geometry: UnfoldGeometry): readonly string[] => {
 
 // --- Poses ---------------------------------------------------------------
 
-/** The row's height at `x`. It makes room, and never more than the room needed. */
-export const rowPose = (x: number, geometry: UnfoldGeometry, motion: UnfoldMotion = UNFOLD_MOTION): Frame => ({
-  height: `${round(geometry.rowHeight * clamp(across(x, motion.row.start, motion.row.end), 0, 1), 2)}px`,
-})
+/**
+ * The row's height at `x`. It makes room, and never more than the room needed:
+ * from nothing, or from the room a tree it took over from was taking.
+ */
+export const rowPose = (x: number, geometry: UnfoldGeometry, motion: UnfoldMotion = UNFOLD_MOTION): Frame => {
+  const from = geometry.fromHeight ?? 0
+  const made = clamp(across(x, motion.row.start, motion.row.end), 0, 1)
+  return { height: `${round(from + (geometry.rowHeight - from) * made, 2)}px` }
+}
 
 export const stemsPose = (x: number, motion: UnfoldMotion = UNFOLD_MOTION): Frame => {
   const drawn = clamp(across(x, motion.stems.start, motion.stems.end), 0, 1)

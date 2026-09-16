@@ -13,6 +13,11 @@
  *
  * Reduced motion is checked when a change starts. When it is on, nothing moves:
  * the selector is simply open or closed.
+ *
+ * A selector that belongs to the shell's branch trees (branch-trees.ts) tells
+ * them how to measure its row, so a tree that takes over from it can grow from
+ * the room it took, and reads from them whether it was itself opened by taking
+ * over — in which case it starts a beat after the press, as the old tree folds.
  */
 
 import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
@@ -20,7 +25,8 @@ import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, 
 import { prefersReducedMotion } from '@features/ggtyping'
 import { useSound } from '@features/sound'
 
-import { startTrajectory, trajectoryAt, type SpringState, type Trajectory } from './spring.ts'
+import type { BranchHandover, BranchTreeId, BranchTrees, RowBox } from './branch-trees.ts'
+import { isAtRest, startTrajectory, trajectoryAt, type SpringState, type Trajectory } from './spring.ts'
 import { createUnfoldMemory, UnfoldMemoryContext, type UnfoldMemory } from './unfold-memory.ts'
 import {
   branchPose,
@@ -78,24 +84,36 @@ const branchesIn = (list: HTMLElement | null): HTMLElement[] =>
 const partOf = (branch: HTMLElement, part: string): HTMLElement | null =>
   branch.querySelector<HTMLElement>(`[data-part="${part}"]`)
 
+interface Measured {
+  readonly geometry: UnfoldGeometry
+  /** Where the row starts on the page, to tell whether another tree's row was in the same place. */
+  readonly top: number
+}
+
 /** Where the node and the branches are, in the row's coordinates. A layout read: never while typing. */
-const measure = (refs: UnfoldRefs): UnfoldGeometry | null => {
+const measure = (refs: UnfoldRefs): Measured | null => {
   const node = refs.node.current
   const inner = refs.inner.current
   if (node === null || inner === null) return null
   const innerBox = inner.getBoundingClientRect()
   const nodeBox = node.getBoundingClientRect()
   return {
-    rowHeight: innerBox.height,
-    node: { x: nodeBox.left + nodeBox.width / 2 - innerBox.left, y: nodeBox.bottom - innerBox.top },
-    branches: branchesIn(refs.list.current).map((branch) => ({
-      left: branch.offsetLeft,
-      top: branch.offsetTop,
-      width: branch.offsetWidth,
-      height: branch.offsetHeight,
-    })),
+    top: innerBox.top,
+    geometry: {
+      rowHeight: innerBox.height,
+      node: { x: nodeBox.left + nodeBox.width / 2 - innerBox.left, y: nodeBox.bottom - innerBox.top },
+      branches: branchesIn(refs.list.current).map((branch) => ({
+        left: branch.offsetLeft,
+        top: branch.offsetTop,
+        width: branch.offsetWidth,
+        height: branch.offsetHeight,
+      })),
+    },
   }
 }
+
+/** How close two rows' tops must be to be the same place on the page, rather than stacked apart. */
+const SAME_PLACE_PX = 2
 
 const drawStems = (refs: UnfoldRefs, geometry: UnfoldGeometry): void => {
   const paths = stemPaths(geometry)
@@ -124,68 +142,129 @@ const playPress = (refs: UnfoldRefs, playing: Animation[], startedAt: number): v
 interface MotionState {
   readonly phase: UnfoldPhase
   readonly trajectory: Trajectory
+  /** The row this opening grows from: the one it took over from, or null to grow from nothing. */
+  readonly fromRow: RowBox | null
 }
 
 const settled = (open: boolean, at: number): MotionState => ({
   phase: open ? 'open' : 'closed',
   trajectory: startTrajectory(UNFOLD_SPRINGS.open, rest(open ? 1 : 0), open ? 1 : 0, at),
+  fromRow: null,
 })
 
-/** Towards open or closed from wherever the remembered spring is at `at`. */
-const turning = (memory: UnfoldMemory, open: boolean, at: number): MotionState => {
+/**
+ * Towards open or closed from wherever the remembered spring is at `at`.
+ *
+ * Opened in place of another tree just now, it waits the handover's beat — a
+ * start time a little in the future, whose first frame the animations hold —
+ * and grows from that tree's row. Not if it was itself still moving: a tree
+ * turned around mid-flight carries straight on.
+ */
+const turning = (
+  memory: UnfoldMemory,
+  open: boolean,
+  at: number,
+  handover: BranchHandover | null = null,
+): MotionState => {
   const target = open ? 1 : 0
   const remembered = memory.trajectory()
   const from = remembered === null ? rest(1 - target) : trajectoryAt(remembered, at)
   if (!canMove() || (Math.abs(from.value - target) < AT_REST && Math.abs(from.velocity) < AT_REST)) {
     return settled(open, at)
   }
+  const takingOver =
+    open &&
+    handover !== null &&
+    at - handover.at <= UNFOLD_MOTION.handover.windowMs &&
+    Math.abs(from.value) < AT_REST &&
+    Math.abs(from.velocity) < AT_REST
+      ? handover
+      : null
+  const startAt = takingOver === null ? at : Math.max(at, takingOver.at + UNFOLD_MOTION.handover.delayMs)
   return {
     phase: open ? 'opening' : 'closing',
-    trajectory: startTrajectory(open ? UNFOLD_SPRINGS.open : UNFOLD_SPRINGS.close, from, target, at),
+    trajectory: startTrajectory(open ? UNFOLD_SPRINGS.open : UNFOLD_SPRINGS.close, from, target, startAt),
+    fromRow: takingOver?.row ?? null,
   }
 }
 
 /**
  * Where a selector should start: moving on from the state the memory holds if a
- * mode control was pressed a moment ago, at rest otherwise.
+ * mode control was pressed a moment ago, or if what the memory holds is still
+ * in flight — a tree that was folding as the page changed — and at rest
+ * otherwise.
  */
-const beginning = (memory: UnfoldMemory, open: boolean, at: number): MotionState => {
+const beginning = (
+  memory: UnfoldMemory,
+  open: boolean,
+  at: number,
+  handover: BranchHandover | null,
+): MotionState => {
   const switchedAt = memory.switchedAt()
   const recent = switchedAt !== null && at - switchedAt <= UNFOLD_MOTION.continuityMs
-  return recent ? turning(memory, open, at) : settled(open, at)
+  const remembered = memory.trajectory()
+  const inFlight = remembered !== null && !isAtRest(remembered, at)
+  return recent || inFlight ? turning(memory, open, at, handover) : settled(open, at)
 }
 
 export interface UnfoldOptions {
   /**
-   * Whether this selector's motion is the shell's, carried between the pages it
-   * appears on. False for a selector opened and closed on one page.
+   * What this selector's motion is remembered in. The shell keeps one for each
+   * tree, so the selector on a new page carries on from the old page's. Absent,
+   * the shell's Hover Mode memory, or one of the selector's own.
    */
-  readonly shared?: boolean
+  readonly memory?: UnfoldMemory | undefined
+  /** The branch trees this selector is one of, and its name among them. */
+  readonly trees?: BranchTrees | undefined
+  readonly tree?: BranchTreeId | undefined
 }
 
-export const useUnfold = (open: boolean, refs: UnfoldRefs, { shared: useShared = true }: UnfoldOptions = {}) => {
+export const useUnfold = (open: boolean, refs: UnfoldRefs, { memory: given, trees, tree }: UnfoldOptions = {}) => {
   const sound = useSound()
   const shared = useContext(UnfoldMemoryContext)
   const [ownMemory] = useState(createUnfoldMemory)
-  const memory = useShared ? (shared ?? ownMemory) : ownMemory
-  const [motion, setMotion] = useState<MotionState>(() => beginning(memory, open, now()))
+  const memory = given ?? shared ?? ownMemory
+  const handoverTo = useCallback(
+    (opening: boolean) => (opening && trees !== undefined && tree !== undefined ? trees.handoverTo(tree) : null),
+    [tree, trees],
+  )
+  const [motion, setMotion] = useState<MotionState>(() => beginning(memory, open, now(), handoverTo(open)))
 
   // A change of mode without a new page: turn around from wherever it is.
   const shownOpen = useRef(open)
   useLayoutEffect(() => {
     if (shownOpen.current === open) return
     shownOpen.current = open
-    setMotion(turning(memory, open, now()))
-  }, [memory, open])
+    setMotion(turning(memory, open, now(), handoverTo(open)))
+  }, [handoverTo, memory, open])
+
+  // How this tree's row is measured, for a tree that takes over from it.
+  useEffect(() => {
+    if (trees === undefined || tree === undefined) return undefined
+    return trees.registerRow(tree, () => {
+      const row = refs.row.current
+      if (row === null) return null
+      const box = row.getBoundingClientRect()
+      return { top: box.top, height: box.height }
+    })
+  }, [refs, tree, trees])
 
   // The motion itself: remembered for the next selector, played, and settled.
   useLayoutEffect(() => {
     memory.remember(motion.trajectory)
     if (motion.phase === 'closed') return undefined
 
-    const geometry = measure(refs)
-    if (geometry !== null) drawStems(refs, geometry)
-    if (motion.phase === 'open' || geometry === null) return undefined
+    const measured = measure(refs)
+    if (measured !== null) drawStems(refs, measured.geometry)
+    if (motion.phase === 'open' || measured === null) return undefined
+
+    // Taking over in the same place: grow from the room the other tree took, so
+    // the page under the toolbar moves once rather than closing and opening.
+    const { fromRow } = motion
+    const geometry: UnfoldGeometry =
+      motion.phase === 'opening' && fromRow !== null && Math.abs(measured.top - fromRow.top) <= SAME_PLACE_PX
+        ? { ...measured.geometry, fromHeight: fromRow.height }
+        : measured.geometry
 
     const { trajectory, phase } = motion
     const running: Animation[] = []
@@ -210,7 +289,7 @@ export const useUnfold = (open: boolean, refs: UnfoldRefs, { shared: useShared =
     })
 
     const timer = window.setTimeout(
-      () => setMotion({ phase: phase === 'opening' ? 'open' : 'closed', trajectory }),
+      () => setMotion({ phase: phase === 'opening' ? 'open' : 'closed', trajectory, fromRow: null }),
       Math.max(0, trajectory.startedAt + trajectory.durationMs - now()),
     )
 
@@ -225,8 +304,8 @@ export const useUnfold = (open: boolean, refs: UnfoldRefs, { shared: useShared =
     const inner = refs.inner.current
     if (motion.phase !== 'open' || inner === null || typeof ResizeObserver === 'undefined') return undefined
     const observer = new ResizeObserver(() => {
-      const geometry = measure(refs)
-      if (geometry !== null) drawStems(refs, geometry)
+      const measured = measure(refs)
+      if (measured !== null) drawStems(refs, measured.geometry)
     })
     observer.observe(inner)
     return () => observer.disconnect()

@@ -7,6 +7,9 @@
  * it. Choosing in the other group changes both at once, which is what pressing
  * "30s" means.
  *
+ * Where a test's shape is words alone — the Syllable Trainer, whose rhythm is
+ * a thing of words and not of a clock — only the words are offered.
+ *
  * A custom time is the last pill. Pressing it shows a small field, already
  * holding the time in use, and any whole number of seconds inside the range is
  * accepted as it is typed; anything outside is refused rather than silently
@@ -48,9 +51,12 @@ export interface TestShapeProps {
   readonly seconds: number
   readonly onWords: (words: PracticeWordCount) => void
   readonly onTime: (seconds: number) => void
+  /** Whether a length of time is on offer at all. */
+  readonly timeOffered?: boolean
 }
 
-export const TestShape = ({ mode, words, seconds, onWords, onTime }: TestShapeProps) => {
+export const TestShape = ({ mode: chosenMode, words, seconds, onWords, onTime, timeOffered = true }: TestShapeProps) => {
+  const mode = timeOffered ? chosenMode : 'words'
   const custom = mode === 'time' && !(TIME_OPTIONS as readonly number[]).includes(seconds)
   const [editing, setEditing] = useState(custom)
   const [draft, setDraft] = useState(String(seconds))
@@ -93,6 +99,7 @@ export const TestShape = ({ mode, words, seconds, onWords, onTime }: TestShapePr
         onChange={onWords}
       />
 
+      {timeOffered && (
       <PillGroup
         name="gg-time"
         label="Test length in time"
@@ -101,6 +108,7 @@ export const TestShape = ({ mode, words, seconds, onWords, onTime }: TestShapePr
         value={mode === 'time' ? (custom ? CUSTOM : String(seconds)) : null}
         onChange={chooseTime}
       />
+      )}
 
       {editing && (
         <span className={styles.custom}>

@@ -36,6 +36,7 @@ export {
   TIME_OPTIONS,
   wordsForTime,
 } from './modes/timed.ts'
+export { SYLLABLE_MODE } from './modes/syllable.ts'
 export type { TimeOption } from './modes/timed.ts'
 
 export { ResultAnnouncement } from './components/ResultAnnouncement.tsx'

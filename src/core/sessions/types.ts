@@ -26,16 +26,17 @@ import type {
  * adding a field to a record shape after months of history means migrating that
  * history; reserving the shape costs nothing and a migration costs a weekend.
  */
-export type SessionMode = 'words' | 'time' | 'quote' | 'drill' | 'hover'
+export type SessionMode = 'words' | 'time' | 'quote' | 'drill' | 'hover' | 'syllable'
 
 /**
  * Training modes: sessions whose typing was shaped on purpose — a drill's
- * lopsided text, Hover Mode's repeated words — rather than ordinary practice.
+ * lopsided text, Hover Mode's repeated words, the Syllable Trainer's long words
+ * typed in chunks — rather than ordinary practice.
  *
  * Analyses of how someone ordinarily types leave these out, so a mode built to
  * change the typing cannot quietly change the picture of it.
  */
-export const TRAINING_MODES: readonly SessionMode[] = ['drill', 'hover']
+export const TRAINING_MODES: readonly SessionMode[] = ['drill', 'hover', 'syllable']
 
 export const isTrainingMode = (mode: SessionMode): boolean => TRAINING_MODES.includes(mode)
 export type SessionDifficulty = 'normal' | 'punctuation' | 'numbers'

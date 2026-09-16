@@ -17,7 +17,9 @@
  * shape is not offered for one.
  *
  * Sound is the same shape of control as the mode: a glass node that unfolds into
- * the keyboards to type on, in a row of its own under Hover Mode's.
+ * the keyboards to type on. The two are branch trees of one control, and the
+ * toolbar is where they are in use (BranchTreesScope): only one is ever out, in
+ * the one row beneath the toolbar, and a press anywhere else folds it.
  */
 
 import { TEXT_SIZES, type HoverDifficulty, type PracticeMode, type PracticeWordCount, type TextSize } from '@core/types'
@@ -27,6 +29,7 @@ import type { WordCount } from '@features/typing'
 import { PillGroup, Separator, type PillOption } from '../controls/controls.tsx'
 import { HoverSelector, type GGMode } from '../HoverSelector/HoverSelector.tsx'
 import { SoundSelector } from '../SoundSelector/SoundSelector.tsx'
+import { BranchTreesScope } from '../Unfold/BranchTreesScope.tsx'
 import { TestShape } from './TestShape.tsx'
 
 import styles from './Toolbar.module.css'
@@ -66,6 +69,8 @@ export interface ToolbarProps {
     readonly seconds: number
     readonly onWords: (count: WordCount) => void
     readonly onTime: (seconds: number) => void
+    /** False where only a number of words makes sense. */
+    readonly timeOffered?: boolean
   } | null
   /** Sound off, or the pack it is on, and how to change it. */
   readonly sound: SoundPreference
@@ -87,6 +92,7 @@ export const Toolbar = ({
   soundVolume,
   onSoundVolumeChange,
 }: ToolbarProps) => (
+  <BranchTreesScope>
   <div className={styles.toolbar}>
     {mode !== null && (
       <HoverSelector mode={mode} difficulty={hoverDifficulty} onDifficultyChange={onHoverDifficultyChange} />
@@ -106,6 +112,7 @@ export const Toolbar = ({
             seconds={shape.seconds}
             onWords={shape.onWords}
             onTime={shape.onTime}
+            timeOffered={shape.timeOffered ?? true}
           />
         </>
       )}
@@ -118,4 +125,5 @@ export const Toolbar = ({
       onVolumeChange={onSoundVolumeChange}
     />
   </div>
+  </BranchTreesScope>
 )

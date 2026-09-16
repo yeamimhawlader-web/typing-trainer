@@ -1,5 +1,7 @@
-/* The node sits after the settings, its branches in the toolbar row set aside
-   for them, under Hover Mode's. */
+/* The node sits after the settings. Its branches take the same row beneath the
+   toolbar as Hover Mode's — only one tree is ever out, and a handover is the
+   one row changing what it holds — until a narrow screen stacks the toolbar,
+   where they hang under their own node instead. */
 .cell {
   grid-area: sound-node;
   display: flex;
@@ -7,11 +9,15 @@
 }
 
 .branches {
-  grid-area: sound;
+  grid-area: branches;
 }
 
 @media (max-width: 720px) {
   .cell {
     margin-top: 0.75rem;
+  }
+
+  .branches {
+    grid-area: sound;
   }
 }

@@ -16,11 +16,13 @@
  * by the preference. Nothing is heard — and no audio context exists — until it
  * is switched on.
  *
- * ## Hover Mode's selector
+ * ## The branch trees
  *
- * Ordinary practice and Hover Mode are separate pages, each with its own mode
- * selector. The shell keeps what the selector was doing between them, so the
- * one on the new page unfolds or folds on from where the old one was.
+ * Ordinary practice, Hover Mode and the Syllable Trainer are separate pages,
+ * each with its own toolbar. The shell keeps which branch tree is open — Hover
+ * Mode's difficulties or the sound packs, never both — and what each was doing,
+ * so the selector on the new page unfolds or folds on from where the old one
+ * was.
  *
  * ## Shared pages inside the shell
  *
@@ -36,12 +38,15 @@ import { Outlet } from 'react-router'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { createSoundEngine, soundChoiceFromStored, SoundContext } from '@features/sound'
 
-import { createUnfoldMemory, UnfoldMemoryContext } from '../components/Unfold/unfold-memory.ts'
+import { BranchTreesContext, createBranchTrees } from '../components/Unfold/branch-trees.ts'
+import { UnfoldMemoryContext } from '../components/Unfold/unfold-memory.ts'
 import { ThemePanel } from '../components/ThemePanel/ThemePanel.tsx'
 import { TopBar } from '../components/TopBar/TopBar.tsx'
 import { applyTheme, removeTheme } from '../themes/apply-theme.ts'
 import { DEFAULT_THEME_ID, themeById, themeIdFromStored, type GGThemeId } from '../themes/themes.ts'
 
+import '@fontsource-variable/geist/wght.css'
+import '@fontsource-variable/geist-mono/wght.css'
 import '../styles/gg-foundation.css'
 import styles from './GGLayout.module.css'
 
@@ -51,8 +56,8 @@ export const GGLayout = () => {
   const setTheme = useSettingsStore((state) => state.setTheme)
 
   const [themesOpen, setThemesOpen] = useState(false)
-  // Hover Mode's selector, remembered across the pages it appears on.
-  const [unfoldMemory] = useState(createUnfoldMemory)
+  // The branch trees, and what each was doing, remembered across the pages they appear on.
+  const [branchTrees] = useState(createBranchTrees)
 
   // One sound engine for the shell. It opens no audio context until sound is
   // switched on, and gives the device back when the shell goes away.
@@ -101,7 +106,8 @@ export const GGLayout = () => {
 
   return (
     <SoundContext value={sound}>
-      <UnfoldMemoryContext value={unfoldMemory}>
+      <BranchTreesContext value={branchTrees}>
+      <UnfoldMemoryContext value={branchTrees.memoryOf('hover')}>
       <div className={styles.app}>
         <div inert={themesOpen}>
           <TopBar themesOpen={themesOpen} onOpenThemes={() => setThemesOpen(true)} themesButtonRef={themesButton} />
@@ -114,6 +120,7 @@ export const GGLayout = () => {
           <ThemePanel open={themesOpen} activeThemeId={themeId} onSelect={selectTheme} onClose={closeThemes} />
         </div>
       </UnfoldMemoryContext>
+      </BranchTreesContext>
     </SoundContext>
   )
 }

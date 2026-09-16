@@ -56,6 +56,7 @@ const MODE_LABELS: Record<TypingSession['context']['mode'], string> = {
   quote: 'Quote',
   drill: 'Drill',
   hover: 'Hover Mode',
+  syllable: 'Syllable Trainer',
 }
 
 /**
@@ -75,6 +76,7 @@ export const formatMode = (session: TypingSession): string => {
 
 const SOURCE_LABELS: Record<string, string> = {
   'common-words': 'Common words',
+  'syllable-words': 'Common words, in syllables',
 }
 
 /** Falls back to the raw id so a source added later still reads sensibly. */

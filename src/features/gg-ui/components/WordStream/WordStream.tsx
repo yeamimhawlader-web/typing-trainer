@@ -19,11 +19,32 @@
  * In Hover Mode the stream also carries the focused word's layer (see
  * `HoverFocus`), and follows the mode's view of where to keep the text. Without
  * a hover controller none of that exists and the stream is exactly as above.
+ *
+ * ## Syllables
+ *
+ * In the Syllable Trainer each word is also drawn as the chunks it is typed in:
+ * the same characters, subscribed the same way, grouped into syllables with a
+ * small breathing space between them. The space is not a character — the
+ * engine is never given it — so it is never typed, never scored and never
+ * where the cursor stops. A syllable knows only whether it is still to come,
+ * in hand, or typed; a word knows only whether it is ahead, being typed,
+ * resolved clean or missed (`@core/syllables`). Each re-renders when that
+ * answer changes, which is once or twice a word, and the characters inside
+ * them never re-render for it.
  */
 
-import { memo, useCallback, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
+import { Fragment, memo, useCallback, useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react'
 
 import { computeWordRanges, toCharacters, type TypingEngine, type WordRange } from '@core/engine'
+import {
+  guidanceStrength,
+  SYLLABLE_RHYTHM,
+  syllableRanges,
+  syllableState,
+  wordResolution,
+  type SyllableLayout,
+  type SyllableRange,
+} from '@core/syllables'
 import type { TextSize } from '@core/types'
 import { useWordJumps, type HoverController, type WordJumpController } from '@features/ggtyping'
 import { useEngineValue } from '@features/typing'
@@ -77,14 +98,63 @@ const Word = ({ index, jumps, children }: WordProps) => {
   )
 }
 
+interface SyllableProps {
+  readonly engine: TypingEngine
+  readonly range: SyllableRange
+  readonly shift: number
+  readonly children: ReactNode
+}
+
+/** One chunk of a word: still to come, in hand, or typed. */
+const Syllable = ({ engine, range, shift, children }: SyllableProps) => {
+  const state = useEngineValue(engine, (snapshot) => syllableState(snapshot.cursorIndex, range.start, range.end))
+  // How many gaps it slides by when its word closes up about its middle.
+  const style = { '--gg-syllable-shift': shift } as CSSProperties
+
+  return (
+    <span className={styles.syllable} data-syllable={state} style={style}>
+      {children}
+    </span>
+  )
+}
+
+interface SyllableWordProps {
+  readonly engine: TypingEngine
+  readonly word: WordRange
+  readonly ranges: readonly SyllableRange[]
+  /** Each syllable's characters, already made, so a change here re-renders none of them. */
+  readonly letters: readonly ReactNode[][]
+}
+
+/** A word as its syllables, with a breath between each, and how far it has got. */
+const SyllableWord = ({ engine, word, ranges, letters }: SyllableWordProps) => {
+  const resolution = useEngineValue(engine, (snapshot) => wordResolution(snapshot, word.start, word.end))
+  // How strongly the boundaries breathe: fully for the first words, fading after.
+  const guide = { '--gg-syllable-guide': guidanceStrength(word.index) } as CSSProperties
+
+  return (
+    <span className={styles.syllables} data-resolution={resolution} style={guide}>
+      {ranges.map((range, index) => (
+        <Fragment key={range.start}>
+          {index > 0 && <span className={styles.breath} aria-hidden="true" />}
+          <Syllable engine={engine} range={range} shift={(ranges.length - 1) / 2 - index}>
+            {letters[index]}
+          </Syllable>
+        </Fragment>
+      ))}
+    </span>
+  )
+}
+
 interface CharacterListProps {
   readonly engine: TypingEngine
   readonly characters: readonly string[]
   readonly words: readonly WordRange[]
   readonly jumps: WordJumpController
+  readonly syllables: SyllableLayout | undefined
 }
 
-const CharacterList = memo(({ engine, characters, words, jumps }: CharacterListProps) => {
+const CharacterList = memo(({ engine, characters, words, jumps, syllables }: CharacterListProps) => {
   /* Position is the identity here: characters never reorder, the index is what
      each one subscribes by, and a new test replaces the whole array. */
   const characterAt = (index: number) => (
@@ -98,6 +168,23 @@ const CharacterList = memo(({ engine, characters, words, jumps }: CharacterListP
     // The spaces between words stay outside them: that is where a line may
     // break, and a mistyped space never jumps with the word before it.
     for (; position < word.start; position += 1) nodes.push(characterAt(position))
+
+    const starts = syllables?.[word.index]
+    if (starts !== undefined && starts.length > 1) {
+      const ranges = syllableRanges(word.start, word.end, starts)
+      const letters: ReactNode[][] = []
+      for (const range of ranges) {
+        const chunk: ReactNode[] = []
+        for (; position < range.end; position += 1) chunk.push(characterAt(position))
+        letters.push(chunk)
+      }
+      nodes.push(
+        <Word key={`word-${word.index}`} index={word.index} jumps={jumps}>
+          <SyllableWord engine={engine} word={word} ranges={ranges} letters={letters} />
+        </Word>,
+      )
+      continue
+    }
 
     const letters: ReactNode[] = []
     for (; position < word.end; position += 1) letters.push(characterAt(position))
@@ -116,6 +203,9 @@ const CharacterList = memo(({ engine, characters, words, jumps }: CharacterListP
 
 CharacterList.displayName = 'CharacterList'
 
+/** The rhythm's own timing, handed to the stylesheet rather than written into it. */
+const SYLLABLE_TIMING = { '--gg-syllable-breath': `${SYLLABLE_RHYTHM.guidance.breathMs}ms` } as CSSProperties
+
 export interface WordStreamProps {
   readonly engine: TypingEngine
   /** The loaded test's text, exactly as the engine was given it. */
@@ -124,9 +214,11 @@ export interface WordStreamProps {
   readonly onActivate?: () => void
   /** Hover Mode's controller, when the stream is Hover Mode's. */
   readonly hover?: HoverController | undefined
+  /** Where each word's syllables start, when the stream is the Syllable Trainer's. */
+  readonly syllables?: SyllableLayout | undefined
 }
 
-export const WordStream = ({ engine, text, size, onActivate, hover }: WordStreamProps) => {
+export const WordStream = ({ engine, text, size, onActivate, hover, syllables }: WordStreamProps) => {
   const characters = useMemo(() => toCharacters(text), [text])
   const words = useMemo(() => computeWordRanges(characters), [characters])
   // Hover Mode reacts to a word's first mistake itself, so the jump on the third
@@ -151,13 +243,15 @@ export const WordStream = ({ engine, text, size, onActivate, hover }: WordStream
       className={styles.block}
       data-size={size}
       data-status={status}
+      data-syllables={syllables === undefined ? undefined : true}
+      style={syllables === undefined ? undefined : SYLLABLE_TIMING}
       aria-label="Words to type"
       onMouseDown={activate}
     >
       <div ref={attachViewport} className={styles.viewport}>
         <span ref={attachCursor} className={styles.cursor} data-placed="false" aria-hidden="true" />
         <div ref={attachContent} className={styles.content}>
-          <CharacterList engine={engine} characters={characters} words={words} jumps={jumps} />
+          <CharacterList engine={engine} characters={characters} words={words} jumps={jumps} syllables={syllables} />
           {hover !== undefined && view !== null && (
             <HoverFocus engine={engine} hover={hover} view={view} cursor={cursor} />
           )}

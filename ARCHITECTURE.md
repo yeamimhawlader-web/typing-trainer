@@ -949,26 +949,63 @@ shell rather than rebuilt in it. Its token plan is in
   dampening, and whether it rings — so another keyboard is one small object and
   none can drift out of proportion. Hover Mode's notes and the selector's glass
   are the same in every pack: they belong to the application, not to the keyboard.
-- **One unfolding, two selectors.** The glass node that opens into branches is
-  `components/Unfold`: Hover Mode's difficulties and the sound packs are the same
-  interaction with different choices. Hover Mode's motion is the shell's, carried
-  across the two mode pages; the sound selector opens and closes on one page and
-  keeps its own. Both are temporary: the branches unfold when the node is
-  pressed and fold again the moment a choice is made, so they never sit there
-  taking up the page, and the node itself says what is chosen.
+- **One unfolding, two trees, one open.** The glass node that opens into branches
+  is `components/Unfold`: Hover Mode's difficulties and the sound packs are the
+  same interaction with different choices. Which tree is out is not either
+  selector's state but one value in the shell (`branch-trees.ts`), so two trees
+  open at once is not a state the page can be in. Both are temporary: a tree
+  unfolds when its node is pressed and folds the moment a choice is made — the
+  one already chosen included — when its node is pressed again, on a press
+  anywhere outside the trees, or on Escape, which brings focus back to the node.
+- **Asking for one tree while another is out is a handover, not two animations.**
+  On a desktop both trees grow in the same row beneath the toolbar. The open one
+  starts folding on the press; the new one starts growing 120ms later, from the
+  height the old row had at the press, so the page below moves once and in one
+  direction. Measured in Chromium: never two trees' branches both more than half
+  visible in any frame, about 30ms in which both are faintly there, and no
+  reversal in the movement of the text beneath. The shell keeps each tree's
+  spring, so a tree folding as the page changes carries on folding on the new
+  page. On a phone each tree hangs under its own node; the rule is the same.
+- **The Syllable Trainer lays syllables over the text; it never types them.** A
+  Syllable Trainer test is an ordinary engine over ordinary text — words from a
+  200-word syllable corpus (`core/syllables`), joined by spaces — so every key is
+  compared, recorded and scored exactly as anywhere else, and the telemetry is a
+  keystroke per character typed. The stream draws each word as its syllables
+  with a breathing space between them that is laid out once and never typed.
+  Which syllable is in hand, and whether a word resolved clean or was missed, is
+  worked out from the cursor and the engine's character states, never kept: a
+  word resolves clean only when every letter is right, so a space part-way
+  through or a standing mistake is shown as missed, not done. The test is saved
+  as mode `syllable`, one of the training modes that analyses of ordinary typing
+  leave out. The per-keystroke cost measured the same as ordinary practice's
+  within a tenth of a millisecond.
+- **The rhythm is data, and guidance is not a gate.** Every duration — the
+  demonstration's letters, breaths and holds, and the cue at a boundary while
+  training — is in `core/syllables/rhythm.ts`, handed to the stylesheet rather
+  than written into it. Nothing waits for a pause and no pause is scored; the
+  boundary cue fades over a test so the rhythm moves from the screen to the
+  typist.
 - **A word that keeps costing mistakes is kept.** Five wrong keystrokes on the
   same word in one test make it a Golden Nugget, counted in memory from the
   engine's own account of which word a keystroke acted on. Storage is touched
   once, at the moment a word crosses the line, and never again for that word;
   a test in which nothing crosses writes nothing. Hover Mode does not count
   twice: there, every mistake on a focused word is already part of the focus.
-- **Physical motion is a spring solved exactly.** Hover Mode's selector unfolds
-  and folds on one spring whose position and speed are known at any moment, so
-  it turns around mid-flight from where it is. The shell keeps that state across
-  the practice and Hover Mode pages, so the selector on the new page carries on
-  from the old one. Every frame is sampled into Web Animations keyframes played
+- **Physical motion is a spring solved exactly.** Each tree unfolds and folds on
+  one spring whose position and speed are known at any moment, so it turns
+  around mid-flight from where it is. Opening overshoots by a hair; folding is
+  critically damped and a little heavier than opening, slower to get most of the
+  way home. The shell keeps that state across pages, so the selector on the new
+  page carries on from the old one. Every frame is sampled into Web Animations keyframes played
   on the compositor; nothing runs per frame in script, and nothing waits for the
   motion before it can be used.
+- **Type is Geist, self-hosted.** Geist for everything read and Geist Mono for
+  everything typed or counted, as two variable fonts from `@fontsource-variable`
+  whose Latin files are about 52 kB together and fetched only for the shell. The
+  shell maps the application's type and weight tokens onto them — weights set
+  between the usual steps, so emphasis never turns heavy — and the application's
+  own components inside it follow without a change. The stream measures its
+  characters again when the fonts arrive.
 - **Input comes from `beforeinput`, not `keydown`**, so input methods,
   automation and multi-character insertions reach the session the same way a
   physical key does. On-screen keyboards are still not supported, as on the
