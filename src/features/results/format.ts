@@ -59,19 +59,28 @@ const MODE_LABELS: Record<TypingSession['context']['mode'], string> = {
   syllable: 'Syllable Trainer',
 }
 
+const DIFFICULTY_LABELS: Record<TypingSession['context']['difficulty'], string | null> = {
+  normal: null,
+  punctuation: 'punctuation',
+  numbers: 'numbers',
+  'punctuation-numbers': 'punctuation & numbers',
+}
+
 /**
  * How a session was run.
  *
  * A drill names the sequence it was built around, because "Drill" on its own
- * tells a reader nothing about which one they did.
+ * tells a reader nothing about which one they did. A test dressed with
+ * punctuation or numbers says so, because it is a harder test than its speed
+ * alone would suggest.
  */
 export const formatMode = (session: TypingSession): string => {
   const label = MODE_LABELS[session.context.mode]
   const target = session.context.targetSequence
+  const dressed = DIFFICULTY_LABELS[session.context.difficulty]
 
-  return session.context.mode === 'drill' && target !== undefined
-    ? `${label}: ${target}`
-    : label
+  if (session.context.mode === 'drill' && target !== undefined) return `${label}: ${target}`
+  return dressed === null ? label : `${label} · ${dressed}`
 }
 
 const SOURCE_LABELS: Record<string, string> = {

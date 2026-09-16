@@ -98,4 +98,8 @@ export interface UserPreferences {
   readonly soundVolume: number
   /** Whether a pace caret runs in the words, and at which of the typist's own speeds. */
   readonly pace: PaceChoice
+  /** Whether ordinary practice is dressed as sentences: capitals, commas, endings. */
+  readonly punctuation: boolean
+  /** Whether ordinary practice has figures among its words. */
+  readonly numbers: boolean
 }

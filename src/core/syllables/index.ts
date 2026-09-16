@@ -22,3 +22,6 @@ export type { SyllableRhythm } from './rhythm.ts'
 
 export { buildDemoTimeline, cueOf } from './demo.ts'
 export type { DemoCue, DemoPhase, DemoStep, DemoTimeline } from './demo.ts'
+
+export { READING_RULES, readRhythm } from './reading.ts'
+export type { RhythmReading, RhythmTiming, RhythmVerdict } from './reading.ts'

@@ -21,7 +21,7 @@ export type {
   TypingSession,
 } from './types.ts'
 
-export { isTrainingMode, TRAINING_MODES } from './types.ts'
+export { difficultyOf, isTrainingMode, TRAINING_MODES } from './types.ts'
 
 export { DEFAULT_SESSION_CONTEXT } from './defaults.ts'
 

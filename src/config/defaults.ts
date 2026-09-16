@@ -24,4 +24,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   soundVolume: 100,
   // No caret to follow until one is chosen.
   pace: 'off',
+  // Plain words, as the application has always opened; the harder drill is chosen.
+  punctuation: false,
+  numbers: false,
 }

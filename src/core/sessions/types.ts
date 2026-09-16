@@ -39,7 +39,11 @@ export type SessionMode = 'words' | 'time' | 'quote' | 'drill' | 'hover' | 'syll
 export const TRAINING_MODES: readonly SessionMode[] = ['drill', 'hover', 'syllable']
 
 export const isTrainingMode = (mode: SessionMode): boolean => TRAINING_MODES.includes(mode)
-export type SessionDifficulty = 'normal' | 'punctuation' | 'numbers'
+export type SessionDifficulty = 'normal' | 'punctuation' | 'numbers' | 'punctuation-numbers'
+
+/** The difficulty a test's text was dressed at. */
+export const difficultyOf = ({ punctuation, numbers }: { readonly punctuation: boolean; readonly numbers: boolean }): SessionDifficulty =>
+  punctuation && numbers ? 'punctuation-numbers' : punctuation ? 'punctuation' : numbers ? 'numbers' : 'normal'
 export type KeyboardLayout = 'qwerty' | 'dvorak' | 'colemak'
 /** BCP 47 language tag for the practice text. */
 export type LanguageCode = string

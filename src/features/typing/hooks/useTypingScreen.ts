@@ -10,7 +10,12 @@
 
 import { useMemo } from 'react'
 
-import { DEFAULT_SESSION_CONTEXT, type SessionContext, type SessionService } from '@core/sessions'
+import {
+  DEFAULT_SESSION_CONTEXT,
+  type SessionContext,
+  type SessionDifficulty,
+  type SessionService,
+} from '@core/sessions'
 import {
   compareToBaseline,
   type DrillComparison,
@@ -62,6 +67,13 @@ export interface TypingScreenOptions {
    * the test is saved as, and the hooks it takes part through.
    */
   readonly training?: { readonly mode: 'hover' | 'time' | 'syllable'; readonly hooks: SessionModeHooks } | undefined
+  /** How the text is dressed, recorded with the test. Normal when absent. */
+  readonly difficulty?: SessionDifficulty | undefined
+  /**
+   * What makes this text itself, beyond its provider: a change is new material,
+   * so the test starts again on it.
+   */
+  readonly textKey?: string | undefined
 }
 
 export interface TypingScreen extends TypingSessionController {
@@ -85,6 +97,8 @@ export const useTypingScreen = ({
   drill = null,
   wordCountPreference,
   training,
+  difficulty = 'normal',
+  textKey,
 }: TypingScreenOptions = {}): TypingScreen => {
   // One provider for the life of the screen. Swapping in quotes or pasted text
   // later is a change here and nowhere else.
@@ -102,9 +116,11 @@ export const useTypingScreen = ({
       sequence !== null
         ? { ...DEFAULT_SESSION_CONTEXT, mode: 'drill', targetSequence: sequence }
         : trainingMode !== null
-          ? { ...DEFAULT_SESSION_CONTEXT, mode: trainingMode }
-          : DEFAULT_SESSION_CONTEXT,
-    [sequence, trainingMode],
+          ? { ...DEFAULT_SESSION_CONTEXT, mode: trainingMode, difficulty }
+          : difficulty === 'normal'
+            ? DEFAULT_SESSION_CONTEXT
+            : { ...DEFAULT_SESSION_CONTEXT, difficulty },
+    [difficulty, sequence, trainingMode],
   )
 
   const session = useTypingSession(
@@ -114,6 +130,7 @@ export const useTypingScreen = ({
     context,
     wordCountPreference,
     training?.hooks,
+    textKey,
   )
 
   const baselineMs = drill?.baselineMs ?? null

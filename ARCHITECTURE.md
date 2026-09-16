@@ -1019,6 +1019,19 @@ shell rather than rebuilt in it. Its token plan is in
   practice page is the Hover Mode screen over it, so focusing, repetition,
   saving and writing outcomes back to the nuggets are the machinery that already
   exists. The session is Hover Mode with source `golden-nuggets`.
+- **Punctuation and numbers dress words; they never change how many.** The
+  common-words provider draws its words as always and `dressWords`
+  (`core/text/dress.ts`) attaches marks and swaps in figures, so a word count is
+  still the count chosen and the engine sees ordinary text. The choice is two
+  preferences; the session records it as its `difficulty`, the field the model
+  had reserved for this. A change reaches the session as a text key, which makes
+  a new engine and new material the same way a change of test shape does.
+- **The Syllable Trainer's rhythm is read once, after the last key.**
+  `readRhythm` (`core/syllables/reading.ts`) takes the finished result's
+  keystrokes and the syllable layout, keeps the clean transitions by telemetry's
+  own rules, and compares the median gap inside a syllable with the median gap at
+  a break. The screen asks for it on the engine's `finished` event; nothing runs
+  while typing.
 - **Type is Geist, self-hosted.** Geist for everything read and Geist Mono for
   everything typed or counted, as two variable fonts from `@fontsource-variable`
   whose Latin files are about 52 kB together and fetched only for the shell. The

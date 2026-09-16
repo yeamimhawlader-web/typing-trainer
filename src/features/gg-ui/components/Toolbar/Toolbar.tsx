@@ -35,7 +35,7 @@ import {
 import type { SoundPreference } from '@features/sound'
 import type { WordCount } from '@features/typing'
 
-import { PillGroup, Separator, type PillOption } from '../controls/controls.tsx'
+import { PillGroup, Separator, TogglePill, type PillOption } from '../controls/controls.tsx'
 import { HoverSelector, type GGMode } from '../HoverSelector/HoverSelector.tsx'
 import { PaceSelector } from '../PaceSelector/PaceSelector.tsx'
 import { SoundSelector } from '../SoundSelector/SoundSelector.tsx'
@@ -88,6 +88,16 @@ export interface ToolbarProps {
   /** The master volume, 0–100. */
   readonly soundVolume: number
   readonly onSoundVolumeChange: (volume: number) => void
+  /**
+   * How ordinary practice's text is dressed: punctuation, numbers, both or
+   * neither. Null where the text is not ordinary practice's to dress.
+   */
+  readonly dress?: {
+    readonly punctuation: boolean
+    readonly numbers: boolean
+    readonly onPunctuation: (on: boolean) => void
+    readonly onNumbers: (on: boolean) => void
+  } | null
   /** The pace caret: which of the typist's speeds, what those speeds are, and the one kept now. */
   readonly pace: PaceChoice
   readonly onPaceChange: (pace: PaceChoice) => void
@@ -110,6 +120,7 @@ export const Toolbar = ({
   onPaceChange,
   paceTargets,
   paceWpm,
+  dress = null,
 }: ToolbarProps) => (
   <BranchTreesScope>
   <div className={styles.toolbar}>
@@ -131,6 +142,26 @@ export const Toolbar = ({
             onTime={shape.onTime}
             timeOffered={shape.timeOffered ?? true}
           />
+        </>
+      )}
+
+      {dress !== null && (
+        <>
+          <Separator />
+          <div role="group" aria-label="Text" className={styles.dress}>
+            <TogglePill
+              label="Punctuation"
+              description="Sentences, with capitals and commas"
+              checked={dress.punctuation}
+              onChange={dress.onPunctuation}
+            />
+            <TogglePill
+              label="Numbers"
+              description="Figures among the words"
+              checked={dress.numbers}
+              onChange={dress.onNumbers}
+            />
+          </div>
         </>
       )}
     </div>

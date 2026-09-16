@@ -1,0 +1,118 @@
+/*
+ * Your rhythm: a small piece of glass above the result. Two bars on one scale —
+ * the break drawn in the accent, the keys inside a syllable quieter — that grow
+ * to their lengths once, as the card appears, by transform alone.
+ */
+
+/* As wide as the result beneath it, so the two read as one column. */
+.card {
+  position: relative;
+  max-width: 46rem;
+  margin-bottom: 20px;
+  padding: 16px 20px 18px;
+  border: 1px solid var(--gg-glass-border);
+  border-radius: 16px;
+  background-color: var(--gg-glass-fill-strong);
+  box-shadow:
+    inset 0 1px 0 var(--gg-glass-highlight),
+    var(--gg-glass-depth),
+    var(--gg-glass-shadow);
+  backdrop-filter: var(--gg-glass-filter);
+  -webkit-backdrop-filter: var(--gg-glass-filter);
+}
+
+.title {
+  margin: 0 0 12px;
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gg-muted);
+}
+
+.timings {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.timing {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.timing dt {
+  font-size: var(--gg-text-pill);
+  color: var(--gg-muted);
+}
+
+.timing dd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+}
+
+.bar {
+  flex: 0 1 18rem;
+  height: 6px;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-passed);
+  opacity: 0.55;
+  transform: scaleX(var(--gg-rhythm-share));
+  transform-origin: left center;
+  animation: gg-rhythm-grow 520ms var(--gg-ease-touch) both;
+}
+
+.timing[data-break] .bar {
+  background-color: var(--gg-accent);
+  opacity: 0.85;
+}
+
+@keyframes gg-rhythm-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.value {
+  flex: none;
+  font-family: var(--gg-font-mono);
+  font-size: var(--gg-text-control);
+  font-variant-numeric: tabular-nums;
+  color: var(--gg-fg);
+}
+
+.difference {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-accent-tint);
+  font-family: var(--gg-font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--gg-fg);
+}
+
+.says {
+  margin: 0;
+  font-size: var(--gg-text-control);
+  line-height: 1.5;
+  color: var(--gg-fg);
+}
+
+@media (max-width: 520px) {
+  .timing {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+  }
+}

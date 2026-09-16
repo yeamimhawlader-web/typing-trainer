@@ -96,6 +96,18 @@ const history = (...speeds: readonly number[]) =>
     Promise.resolve(),
   )
 
+const keepNugget = (word: string) =>
+  nuggets.recordFocus({ reason: 'mistakes', word, language: 'en', cleared: false, mistakes: 5, at: 1_000, testId: 't' })
+
+/** A seeded stand-in for Math.random, so dressed text is the same every run. */
+const seedRandom = (seed: number) => {
+  let state = seed
+  vi.spyOn(Math, 'random').mockImplementation(() => {
+    state = (state * 1103515245 + 12345) & 0x7fffffff
+    return state / 0x7fffffff
+  })
+}
+
 const renderAt = async (path: string) => {
   render(
     <MemoryRouter initialEntries={[path]}>
@@ -110,6 +122,11 @@ const renderAt = async (path: string) => {
             element={<GGNuggetPracticePage goldenNuggets={nuggets} service={sessions} telemetry={telemetry} />}
           />
           <Route path={ROUTES.ggNuggets} element={<GGGoldenNuggetsPage service={nuggets} />} />
+          {/* Ordinary practice on its own words, which punctuation and numbers dress. */}
+          <Route
+            path="/gg/plain"
+            element={<GGPracticePage service={sessions} telemetry={telemetry} goldenNuggets={nuggets} />}
+          />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -217,6 +234,75 @@ describe('the pace caret', () => {
     typeText(stream().textContent ?? '')
 
     expect(caret()).toHaveAttribute('data-shown', 'false')
+  })
+})
+
+describe('punctuation and numbers', () => {
+  const toggle = (name: RegExp) => screen.getByRole('checkbox', { name })
+
+  it('are offered beside the length of an ordinary test, off to begin with', async () => {
+    await renderAt('/gg/plain')
+    await screen.findByRole('region', { name: 'Words to type' })
+
+    const text = screen.getByRole('group', { name: 'Text' })
+    expect(within(text).getByRole('checkbox', { name: /^Punctuation/ })).not.toBeChecked()
+    expect(within(text).getByRole('checkbox', { name: /^Numbers/ })).not.toBeChecked()
+    expect(stream().textContent).toMatch(/^[a-z ]+$/)
+  })
+
+  it('dress the words as sentences once punctuation is on, starting a new test on them, and remember it', async () => {
+    seedRandom(11)
+    prefer({ practiceWordCount: 60 })
+    await renderAt('/gg/plain')
+    await screen.findByRole('region', { name: 'Words to type' })
+
+    act(() => {
+      fireEvent.click(toggle(/^Punctuation/))
+    })
+
+    const text = stream().textContent ?? ''
+    expect(text).toMatch(/^[A-Z]/)
+    expect(text).toMatch(/[.?]$/)
+    expect(text.split(' ')).toHaveLength(60)
+    expect(settingsStore.getState().preferences.punctuation).toBe(true)
+    expect(screen.getByText('Common words, with punctuation')).toBeInTheDocument()
+  })
+
+  it('put figures among the words once numbers are on', async () => {
+    seedRandom(12)
+    prefer({ practiceWordCount: 60 })
+    await renderAt('/gg/plain')
+    await screen.findByRole('region', { name: 'Words to type' })
+
+    act(() => {
+      fireEvent.click(toggle(/^Numbers/))
+    })
+
+    expect(stream().textContent).toMatch(/\d/)
+    expect(settingsStore.getState().preferences.numbers).toBe(true)
+  })
+
+  it('are recorded with the test, so history says it was a harder one', async () => {
+    seedRandom(13)
+    prefer({ punctuation: true, numbers: true })
+    await renderAt('/gg/plain')
+    await screen.findByRole('region', { name: 'Words to type' })
+
+    typeText(stream().textContent ?? '')
+
+    await waitFor(async () => {
+      expect(await sessions.getAll()).toHaveLength(1)
+    })
+    const [stored] = await sessions.getAll()
+    expect(stored?.context.difficulty).toBe('punctuation-numbers')
+  })
+
+  it('are not offered where the text is not ordinary practice', async () => {
+    await keepNugget('because')
+    await renderAt(ROUTES.ggHoverNuggets)
+    await screen.findByRole('region', { name: 'Words to type' })
+
+    expect(screen.queryByRole('group', { name: 'Text' })).not.toBeInTheDocument()
   })
 })
 

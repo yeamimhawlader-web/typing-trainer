@@ -30,7 +30,7 @@ import type {
 } from './types.ts'
 
 const MODES: readonly SessionMode[] = ['words', 'time', 'quote', 'drill', 'hover', 'syllable']
-const DIFFICULTIES: readonly SessionDifficulty[] = ['normal', 'punctuation', 'numbers']
+const DIFFICULTIES: readonly SessionDifficulty[] = ['normal', 'punctuation', 'numbers', 'punctuation-numbers']
 const LAYOUTS: readonly KeyboardLayout[] = ['qwerty', 'dvorak', 'colemak']
 const STATUSES = ['completed', 'abandoned'] as const
 

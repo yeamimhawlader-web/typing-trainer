@@ -29,6 +29,14 @@
   margin-top: 14px;
 }
 
+/* Punctuation and Numbers: two pills that are each on or off. */
+.dress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
 /* Without separators, groups need their own spacing once they wrap. */
 @media (max-width: 720px) {
   .toolbar {

@@ -265,4 +265,56 @@ describe('the Syllable Trainer', () => {
       })
     })
   })
+
+  describe('the rhythm, read afterwards', () => {
+    /** Types the whole test: `withinMs` between keys of a syllable, `breakMs` at a syllable break. */
+    const typeInRhythm = (withinMs: number, breakMs: number) => {
+      // A break is the first letter of any syllable but a word's first.
+      const breaks = new Set(
+        Array.from(stream().querySelectorAll('[data-syllable]:not(:first-child)')).map((syllable) =>
+          Number(syllable.querySelector<HTMLElement>('[data-i]')?.dataset.i),
+        ),
+      )
+      Array.from(fullText()).forEach((character, index) => {
+        act(() => {
+          const around = character === ' ' || fullText()[index - 1] === ' '
+          now += index === 0 ? 0 : around ? 160 : breaks.has(index) ? breakMs : withinMs
+          field().dispatchEvent(
+            new InputEvent('beforeinput', { bubbles: true, cancelable: true, inputType: 'insertText', data: character }),
+          )
+        })
+      })
+    }
+
+    it('shows, as the test ends, the typical gap inside a syllable and at a break, and what they say', async () => {
+      await renderTrainer()
+
+      typeInRhythm(80, 200)
+
+      const card = await screen.findByRole('region', { name: 'Your rhythm' })
+      expect(within(card).getByText('Inside a syllable').nextElementSibling).toHaveTextContent('80 ms')
+      expect(within(card).getByText('At a break').nextElementSibling).toHaveTextContent('200 ms+120 ms')
+      expect(card).toHaveTextContent('You breathe at the breaks')
+    })
+
+    it('says so plainly when the words were still typed as single blocks', async () => {
+      await renderTrainer()
+
+      typeInRhythm(90, 90)
+
+      expect(await screen.findByRole('region', { name: 'Your rhythm' })).toHaveTextContent('still single blocks')
+    })
+
+    it('is gone when the next test starts', async () => {
+      await renderTrainer()
+      typeInRhythm(80, 200)
+      await screen.findByRole('region', { name: 'Your rhythm' })
+
+      act(() => {
+        fireEvent.keyDown(field(), { key: 'Tab' })
+      })
+
+      expect(screen.queryByRole('region', { name: 'Your rhythm' })).not.toBeInTheDocument()
+    })
+  })
 })

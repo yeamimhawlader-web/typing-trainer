@@ -5,6 +5,7 @@
  * - `IconCircle` — an icon action, transparent until hovered or active.
  * - `IconLink` — the same shape, for navigation.
  * - `PillLink` — a pill for navigation, such as choosing a mode.
+ * - `TogglePill` — a pill that is on or off, as a native checkbox.
  * - `Separator` — the hairline between groups.
  *
  * Choices use native radio inputs rather than buttons with ARIA: arrow keys,
@@ -117,6 +118,32 @@ export const PillLink = ({ to, label, description, current, onClick }: PillLinkP
       <span className="visually-hidden">: {description}</span>
     </span>
   </Link>
+)
+
+// --- Toggle pill -------------------------------------------------------
+
+export interface TogglePillProps {
+  readonly label: string
+  /** Said after the label, and shown as a tooltip. */
+  readonly description: string
+  readonly checked: boolean
+  readonly onChange: (checked: boolean) => void
+}
+
+/** The pill face over a native checkbox: Space toggles it, and it is announced as checked or not. */
+export const TogglePill = ({ label, description, checked, onChange }: TogglePillProps) => (
+  <label className={styles.pill} title={description}>
+    <input
+      type="checkbox"
+      className={styles.nativeInput}
+      checked={checked}
+      onChange={(event) => onChange(event.target.checked)}
+      aria-label={`${label}: ${description}`}
+    />
+    <span className={styles.pillFace} aria-hidden="true">
+      {label}
+    </span>
+  </label>
 )
 
 // --- Separator ---------------------------------------------------------

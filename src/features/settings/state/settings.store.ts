@@ -52,6 +52,8 @@ export interface SettingsState {
   readonly setSound: (sound: SoundPreference) => Promise<void>
   readonly setSoundVolume: (volume: number) => Promise<void>
   readonly setPace: (pace: PaceChoice) => Promise<void>
+  readonly setPunctuation: (punctuation: boolean) => Promise<void>
+  readonly setNumbers: (numbers: boolean) => Promise<void>
 }
 
 /**
@@ -76,6 +78,8 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
     sound?: SoundPreference
     soundVolume?: number
     pace?: PaceChoice
+    punctuation?: boolean
+    numbers?: boolean
   } = {}
 
   // A theme the registry knows, or one of the two themes earlier versions
@@ -110,6 +114,9 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
 
   const pace = PACE_CHOICES.find((option) => option === record['pace'])
   if (pace !== undefined) result.pace = pace
+
+  if (typeof record['punctuation'] === 'boolean') result.punctuation = record['punctuation']
+  if (typeof record['numbers'] === 'boolean') result.numbers = record['numbers']
 
   return result
 }
@@ -166,6 +173,10 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
       setSoundVolume: (soundVolume) => persist({ ...get().preferences, soundVolume }),
 
       setPace: (pace) => persist({ ...get().preferences, pace }),
+
+      setPunctuation: (punctuation) => persist({ ...get().preferences, punctuation }),
+
+      setNumbers: (numbers) => persist({ ...get().preferences, numbers }),
     }
   })
 

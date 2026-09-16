@@ -148,6 +148,7 @@ export const useTypingSession = (
   context: SessionContext = DEFAULT_SESSION_CONTEXT,
   preference?: WordCountPreference,
   mode?: SessionModeHooks,
+  textKey?: string,
 ): TypingSessionController => {
   /*
    * The idle cap is a rule of word-count practice: see IDLE_GAP_CAP_MS. State
@@ -169,7 +170,8 @@ export const useTypingSession = (
     })
   }
 
-  const shape = mode?.key ?? 'default'
+  // The shape of test, and the text it is typed on: either changing is a new test.
+  const shape = `${mode?.key ?? 'default'}|${textKey ?? ''}`
   const [engineState, setEngineState] = useState(() => ({ shape, engine: build(mode) }))
   const { engine } = engineState
 

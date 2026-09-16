@@ -61,10 +61,10 @@ import { Link } from 'react-router'
 import { PRACTICE_PATH, ROUTES } from '@app/routes.ts'
 import { computeWordRanges, toCharacters } from '@core/engine'
 import { goldenNuggetService, type GoldenNuggetService } from '@core/nuggets'
-import { DEFAULT_SESSION_CONTEXT, sessionService } from '@core/sessions'
+import { DEFAULT_SESSION_CONTEXT, difficultyOf, sessionService } from '@core/sessions'
 import { paceFor } from '@core/statistics'
-import { layoutSyllables } from '@core/syllables'
-import { createSyllableWordsProvider } from '@core/text'
+import { layoutSyllables, readRhythm, type RhythmReading as Reading } from '@core/syllables'
+import { createCommonWordsProvider, createSyllableWordsProvider } from '@core/text'
 import type { HoverDifficulty, PaceChoice, Timestamp } from '@core/types'
 import { createHoverController, keepTroublesomeWords, newTestId, recordGoldenNuggets } from '@features/ggtyping'
 import { createTimedMode, SYLLABLE_MODE } from '@features/typing'
@@ -81,6 +81,7 @@ import {
 
 import { ControlRow } from '../components/ControlRow/ControlRow.tsx'
 import { InputField } from '../components/InputField/InputField.tsx'
+import { RhythmReading } from '../components/SyllableTrainer/RhythmReading.tsx'
 import { SyllableIntro } from '../components/SyllableTrainer/SyllableIntro.tsx'
 import { Toolbar, type GGMode } from '../components/Toolbar/Toolbar.tsx'
 import { WordStream } from '../components/WordStream/WordStream.tsx'
@@ -140,7 +141,28 @@ export const GGTypingScreen = ({
             : undefined,
     [hover, syllable, timedMode],
   )
-  const screen = useTypingScreen({ ...options, provider: options.provider ?? syllableProvider, training })
+  /*
+   * Punctuation and numbers dress ordinary practice's words — words or time,
+   * not a drill, Hover Mode or a trainer, whose text is theirs. A change is new
+   * material, so the test starts again on it.
+   */
+  const dressable = mode === 'standard' && (options.drill ?? null) === null
+  const punctuation = useSettingsStore((state) => state.preferences.punctuation) && dressable
+  const numbers = useSettingsStore((state) => state.preferences.numbers) && dressable
+  const dressedProvider = useMemo(
+    () => (punctuation || numbers ? createCommonWordsProvider({ punctuation, numbers }) : undefined),
+    [numbers, punctuation],
+  )
+  const setPunctuation = useSettingsStore((state) => state.setPunctuation)
+  const setNumbers = useSettingsStore((state) => state.setNumbers)
+
+  const screen = useTypingScreen({
+    ...options,
+    provider: options.provider ?? syllableProvider ?? dressedProvider,
+    training,
+    difficulty: difficultyOf({ punctuation, numbers }),
+    textKey: `${punctuation ? 'p' : ''}${numbers ? 'n' : ''}`,
+  })
   const {
     engine,
     target,
@@ -160,6 +182,23 @@ export const GGTypingScreen = ({
   const wordTotal = useMemo(() => computeWordRanges(toCharacters(target.text)).length, [target])
   // Where every word's syllables are: worked out once per text, never per key.
   const syllables = useMemo(() => (syllable ? layoutSyllables(target.text) : undefined), [syllable, target])
+
+  // The Syllable Trainer's reading of the rhythm: taken from the finished test's
+  // own keystrokes, once, as it ends, and gone when the next one starts.
+  const [rhythm, setRhythm] = useState<Reading | null>(null)
+  useEffect(
+    () =>
+      syllable
+        ? engine.on((event) => {
+            if (event.type === 'finished' && event.status === 'completed') {
+              setRhythm(readRhythm(event.result.keystrokes, event.result.target.text))
+            } else if (event.type === 'started' || event.type === 'reset') {
+              setRhythm(null)
+            }
+          })
+        : undefined,
+    [engine, syllable],
+  )
 
   useEffect(() => hover?.connect(engine), [engine, hover])
 
@@ -336,7 +375,7 @@ export const GGTypingScreen = ({
    * a group, and a control that is itself typed into or dragged — the custom
    * time, the volume — which keeps the focus it was just given.
    */
-  const KEEPS_FOCUS = 'input:not([type="radio"]), textarea, [contenteditable="true"]'
+  const KEEPS_FOCUS = 'input:not([type="radio"]):not([type="checkbox"]), textarea, [contenteditable="true"]'
   const returnFocusAfterClick = (event: MouseEvent) => {
     if (event.detail === 0) return
     if ((event.target as HTMLElement | null)?.closest(KEEPS_FOCUS) !== null) return
@@ -380,6 +419,20 @@ export const GGTypingScreen = ({
           onSoundChange={changeSound}
           soundVolume={soundVolume}
           onSoundVolumeChange={changeSoundVolume}
+          dress={
+            dressable && drillSequence === null
+              ? {
+                  punctuation,
+                  numbers,
+                  onPunctuation: (on) => {
+                    void setPunctuation(on)
+                  },
+                  onNumbers: (on) => {
+                    void setNumbers(on)
+                  },
+                }
+              : null
+          }
           pace={paceChoice}
           onPaceChange={changePace}
           paceTargets={paceTargets}
@@ -430,6 +483,7 @@ export const GGTypingScreen = ({
 
       {lastSession !== null && (
         <div className={styles.result}>
+          {rhythm !== null && <RhythmReading reading={rhythm} />}
           <TestResult
             session={lastSession}
             saveState={saveState}

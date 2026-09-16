@@ -28,6 +28,8 @@ export {
 export type { SyllableWordsProviderOptions } from './providers/syllable-words.provider.ts'
 
 export { createWordText } from './generator.ts'
+export { DRESS_RULES, dressWords, numberWord } from './dress.ts'
+export type { DressOptions } from './dress.ts'
 export type { RandomSource, WordTextOptions } from './generator.ts'
 
 export {

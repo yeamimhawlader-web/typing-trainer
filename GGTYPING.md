@@ -296,6 +296,16 @@ trace. A real movement of the mouse brings it all forward at once, the next key
 lets it recede again, and anything that takes the keyboard's focus comes forward
 by itself. Opacity only: nothing moves and nothing is hidden from a screen reader.
 
+**Punctuation and numbers.** Two pills beside an ordinary test's length. Punctuation
+dresses the words as sentences — a capital to start, a full stop, question or
+exclamation to end, commas where a breath goes, the occasional semicolon or colon —
+four to twelve words long; numbers put figures in place of about one word in eight:
+counts, amounts, years, decimals, percentages. The words are drawn as always and
+only dressed, so a word test is still the length chosen. A change starts a new test
+on the new text, and the test is recorded with it, so history names it —
+"Words · punctuation & numbers" — as the harder test it is. Ordinary practice only:
+Hover Mode, the Syllable Trainer and drills keep their own text.
+
 **Caps Lock.** Every key is compared exactly, so the field says when Caps Lock is
 on — a small note in its corner, spoken once — the moment the keyboard reports it.
 
@@ -330,6 +340,14 @@ test, fading after, never gone — and the next syllable's line arrives a beat
 later. A word typed right closes up into one block; a word with a letter wrong, or
 left with a space part-way through, stays open: it is over, not done. Nothing waits
 for a pause, and no pause is measured or scored.
+
+**Your rhythm.** When a Syllable Trainer test ends, a card above the result reads it
+back from the test's own keystrokes: the typical gap between keys inside a syllable,
+and at a break between syllables, drawn as two bars on one scale, with a sentence
+saying what they show — breaks clearly longer (chunking), a little longer (starting
+to show), or the same (still single blocks). Only clean transitions count: next to
+each other, both right, in the same word, never across a space. It reports and does
+not grade; it is gone when the next test starts.
 
 **What is recorded.** The same session, telemetry and Golden Nuggets as ordinary
 practice, over the same engine; the syllables are drawn over the text and never

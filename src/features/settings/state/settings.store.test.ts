@@ -16,6 +16,8 @@ const DEFAULTS: UserPreferences = {
   sound: 'off',
   soundVolume: 100,
   pace: 'off',
+  punctuation: false,
+  numbers: false,
 }
 
 describe('settings store', () => {
@@ -64,6 +66,8 @@ describe('settings store', () => {
       sound: 'click',
       soundVolume: 40,
       pace: 'push',
+      punctuation: true,
+      numbers: true,
     })
     const store = createSettingsStore(adapter)
 
@@ -79,6 +83,8 @@ describe('settings store', () => {
       sound: 'click',
       soundVolume: 40,
       pace: 'push',
+      punctuation: true,
+      numbers: true,
     })
     expect(store.getState().status).toBe('ready')
   })
@@ -187,6 +193,7 @@ describe('settings store', () => {
     await store.getState().setPracticeMode('time')
     await store.getState().setPracticeSeconds(45)
     await store.getState().setPace('average')
+    await store.getState().setPunctuation(true)
 
     await expect(adapter.read(STORAGE_KEYS.preferences)).resolves.toEqual({
       theme: 'classic',
@@ -198,6 +205,8 @@ describe('settings store', () => {
       sound: 'cream',
       soundVolume: 55,
       pace: 'average',
+      punctuation: true,
+      numbers: false,
     })
   })
 
@@ -212,6 +221,8 @@ describe('settings store', () => {
       sound: 'bongos',
       soundVolume: 999,
       pace: 'warp-speed',
+      punctuation: 'yes',
+      numbers: 1,
     })
     const store = createSettingsStore(adapter)
 
