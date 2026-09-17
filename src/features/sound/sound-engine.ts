@@ -40,6 +40,12 @@ export interface SoundEngine {
   readonly play: (voice: SoundVoice, options?: PlayOptions) => void
   /** One key from `id`, whether or not that is the pack in use: what a pack sounds like. */
   readonly preview: (id: SoundPackId) => void
+  /**
+   * Opens the audio device ahead of a choice, playing nothing. Asked for while
+   * the sound choices are open and still, so the first sound chosen does not
+   * spend the moment the choices fold away waking the device.
+   */
+  readonly prepare: () => void
   /** Gives the audio device back. The engine can be used again afterwards. */
   readonly close: () => void
 }
@@ -141,6 +147,10 @@ export const createSoundEngine = ({
     preview: (id) => {
       if (volume <= 0) return
       sound('key', id)
+    },
+
+    prepare: () => {
+      open()
     },
 
     close: () => {

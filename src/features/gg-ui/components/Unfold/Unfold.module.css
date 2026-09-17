@@ -233,6 +233,11 @@
   }
 }
 
+/* What sits beside the branches: moved with them by the unfolding, by transform and opacity. */
+.beside {
+  position: relative;
+}
+
 /* --- A branch --------------------------------------------------------- */
 
 .branch {

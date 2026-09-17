@@ -554,6 +554,23 @@ describe('the sound engine', () => {
     expect(sound.pack()).toBe('thock')
   })
 
+  it('readies the audio device when asked, before any choice, and plays nothing doing it', () => {
+    const { sound, contexts, latest } = withContext()
+
+    sound.prepare()
+
+    expect(contexts).toHaveLength(1)
+    // The master gain, and nothing else: no voice.
+    expect(sources(latest(), 'oscillator')).toHaveLength(0)
+    expect(sources(latest(), 'buffer-source')).toHaveLength(0)
+
+    // The choice that follows uses the same device.
+    sound.choose('cream')
+    sound.play('key')
+    expect(contexts).toHaveLength(1)
+    expect(sources(latest(), 'oscillator').length).toBeGreaterThan(0)
+  })
+
   it('gives the audio device back when it is closed', () => {
     const { sound, latest } = withContext()
     sound.choose(DEFAULT_SOUND_PACK)
@@ -611,6 +628,7 @@ const recorder = () => {
       played.push({ voice, step: options?.step })
     },
     preview: () => undefined,
+    prepare: () => undefined,
     close: () => undefined,
   } satisfies SoundEngine
   return { sound, played }

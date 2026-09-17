@@ -191,7 +191,10 @@ sitting there, and the node says which difficulty is on — and so does pressing
 the node again, pressing anywhere else, Escape, or leaving for another mode. One
 spring drives it: opening is fast (90% in about 160ms), settles 1.5% past and is
 at rest by 500ms; folding does not bounce, is heavier — 90% of the way home in
-about 185ms — and is at rest by 475ms.
+about 170ms — and is at rest by 440ms. Whatever sits beside the branches — the
+sound style and the volume — arrives after them and leaves first, faded and lifted
+towards them within the first tenth of a second of a fold, so nothing is left
+hanging over the page as the row closes.
 
 **One tree at a time.** Hover Mode's difficulties and the sound packs are two trees
 of one control, and only one is ever out. Pressing Sound while Hover Mode's

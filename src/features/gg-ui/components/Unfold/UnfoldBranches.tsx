@@ -158,7 +158,11 @@ export const UnfoldBranches = ({
           ))}
         </div>
 
-        {beside}
+        {beside !== undefined && (
+          <div data-part={BRANCH_PART.beside} className={styles.beside}>
+            {beside}
+          </div>
+        )}
       </div>
     </div>
   )

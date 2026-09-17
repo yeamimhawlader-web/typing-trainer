@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest'
 
 import { isAtRest, restMs, retarget, springAt, startTrajectory, trajectoryAt } from './spring.ts'
 import {
+  besidePose,
   branchPose,
   branchProgress,
   isStacked,
@@ -23,6 +24,7 @@ import {
   TOUCH_SPRING,
   UNFOLD_MOTION,
   UNFOLD_SPRINGS,
+  type Frame,
   type UnfoldGeometry,
 } from './unfold.motion.ts'
 
@@ -107,6 +109,22 @@ describe('the spring', () => {
     expect(windowMs).toBeGreaterThanOrEqual(delayMs)
     // By the time the new branches begin to move, the old ones are well on their way in.
     expect(folded).toBeLessThan(0.6)
+  })
+
+  it('folds what sits beside the branches away before them, and brings it in after them', () => {
+    const geometry = { rowHeight: 100, node: { x: 0, y: 0 }, branches: [{ left: 0, top: 18, width: 100, height: 42 }] }
+    const opacity = (frame: Frame) => Number(frame['opacity'])
+    const branchSeen = (x: number) => opacity(branchPose(x, 0, geometry))
+
+    expect(opacity(besidePose(1))).toBe(1)
+    expect(opacity(besidePose(0))).toBe(0)
+    expect(String(besidePose(0).transform)).toBe(`translateY(${-UNFOLD_MOTION.beside.liftPx}px)`)
+    // Folding: by the time the branch starts to fade, the strip beside it has gone.
+    const branchFadesFrom = [...Array(101).keys()].map((i) => 1 - i / 100).find((x) => branchSeen(x) < 1) as number
+    expect(opacity(besidePose(branchFadesFrom))).toBe(0)
+    // …and while the row still has most of its room, so nothing hangs over the page below.
+    const goneAt = UNFOLD_MOTION.beside.start
+    expect(Number.parseFloat(String(rowPose(goneAt, geometry).height))).toBeGreaterThan(75)
   })
 
   it('makes room once when a tree takes over: from the room the old one took, never from nothing', () => {

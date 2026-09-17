@@ -1008,7 +1008,11 @@ shell rather than rebuilt in it. Its token plan is in
   around mid-flight from where it is. Opening overshoots by a hair; folding is
   critically damped and a little heavier than opening, slower to get most of the
   way home. The shell keeps that state across pages, so the selector on the new
-  page carries on from the old one. Every frame is sampled into Web Animations keyframes played
+  page carries on from the old one. What sits beside a tree's branches — the
+  sound style and volume — is moved by the same spring on a window of its own,
+  leaving first, so a folding row never leaves it hanging over the page; and the
+  audio device is opened while the sound choices are out and still, not on the
+  frame a choice starts them folding. Every frame is sampled into Web Animations keyframes played
   on the compositor; nothing runs per frame in script, and nothing waits for the
   motion before it can be used.
 - **A pace caret is the typist's own speed, and costs a keystroke nothing.** The

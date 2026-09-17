@@ -104,6 +104,7 @@ const renderToolbar = (trees: BranchTrees = createBranchTrees()) => {
     isEnabled: () => true,
     play: (voice: string) => voices.push(voice),
     preview: () => undefined,
+    prepare: () => undefined,
     close: () => undefined,
   } as unknown as SoundEngine
   const onHoverDifficultyChange = vi.fn()
@@ -330,6 +331,21 @@ describe('the branch trees', () => {
       expect(phaseOf('pace')).toBe('closing')
       expect(phaseOf('hover')).toBe('opening')
       expect(paceNode()).toHaveAttribute('aria-expanded', 'false')
+    })
+
+    it('folds the sound style and volume with the sound tree, from where they are to gone, rather than leaving them hanging', () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      renderToolbar()
+      press(soundNode())
+      settle()
+
+      press(soundNode())
+
+      const beside = rowOf('sound')?.querySelector('[data-part="beside"]')
+      const folding = played.find((record) => record.element === beside && !record.cancelled)
+      expect(folding).toBeDefined()
+      expect(Number(folding?.keyframes[0]?.opacity)).toBe(1)
+      expect(Number(folding?.keyframes.at(-1)?.opacity)).toBe(0)
     })
 
     it('opens from nothing, at once, when no tree was out to take over from', () => {

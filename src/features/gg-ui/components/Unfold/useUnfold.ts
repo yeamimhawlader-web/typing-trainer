@@ -29,6 +29,7 @@ import type { BranchHandover, BranchTreeId, BranchTrees, RowBox } from './branch
 import { isAtRest, startTrajectory, trajectoryAt, type SpringState, type Trajectory } from './spring.ts'
 import { createUnfoldMemory, UnfoldMemoryContext, type UnfoldMemory } from './unfold-memory.ts'
 import {
+  besidePose,
   branchPose,
   buildPress,
   labelPose,
@@ -67,7 +68,7 @@ export interface UnfoldRefs {
 }
 
 /** A branch's moving parts, marked in the markup rather than referenced one by one. */
-export const BRANCH_PART = { text: 'text', light: 'light' } as const
+export const BRANCH_PART = { text: 'text', light: 'light', beside: 'beside' } as const
 
 const AT_REST = 0.001
 
@@ -293,6 +294,11 @@ export const useUnfold = (
       play(partOf(branch, BRANCH_PART.text), (x) => labelPose(x, index, geometry))
       play(partOf(branch, BRANCH_PART.light), (x) => lightPose(x))
     })
+    // Whatever sits beside the branches folds with them, leaving first.
+    play(
+      refs.inner.current?.querySelector(`[data-part="${BRANCH_PART.beside}"]`) ?? null,
+      (x) => besidePose(x),
+    )
 
     const timer = window.setTimeout(
       () => setMotion({ phase: phase === 'opening' ? 'open' : 'closed', trajectory, fromRow: null }),

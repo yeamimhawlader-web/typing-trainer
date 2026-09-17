@@ -31,7 +31,7 @@
  * about 160ms), settling 1.5% past its places and back, at rest by 500ms.
  * Folding is critically damped — an object closing does not bounce — and
  * heavier than opening: it takes longer to get most of the way home (90% at
- * about 185ms), so it reads as something set down under control rather than
+ * about 170ms), so it reads as something set down under control rather than
  * snatched back, and is still at rest before the opening would be.
  *
  * ## One tree at a time
@@ -64,7 +64,7 @@ export type Frame = { readonly offset?: number; readonly easing?: string } & Rea
 
 export const UNFOLD_SPRINGS = {
   open: { frequency: 19, damping: 0.8 },
-  close: { frequency: 21, damping: 1 },
+  close: { frequency: 23, damping: 1 },
 } as const satisfies Record<string, Spring>
 
 /** The spring `--gg-ease-touch` samples, for the record and its test. */
@@ -97,6 +97,12 @@ export const UNFOLD_MOTION = {
   label: { start: 0.45, end: 0.92, stagger: 0.04, slidePx: 6 },
   /** The chosen branch's inner light, last of all. */
   light: { start: 0.7, end: 1 },
+  /**
+   * What sits beside the branches — the sound style and the volume — arrives
+   * after them and, folding, leaves before them: gone while the row still has
+   * nearly all its room, so it never hangs over what is below as the row closes.
+   */
+  beside: { start: 0.68, end: 0.96, liftPx: 8 },
 
   /** The press on the node: a give, a flex past rest, a settle. */
   press: {
@@ -300,6 +306,15 @@ export const labelPose = (
 export const lightPose = (x: number, motion: UnfoldMotion = UNFOLD_MOTION): Frame => ({
   opacity: String(round(clamp(across(x, motion.light.start, motion.light.end), 0, 1))),
 })
+
+/** What sits beside the branches: faded and lifted towards them while the tree is not fully out. */
+export const besidePose = (x: number, motion: UnfoldMotion = UNFOLD_MOTION): Frame => {
+  const q = clamp(across(x, motion.beside.start, motion.beside.end), 0, 1)
+  return {
+    transform: `translateY(${round(-motion.beside.liftPx * (1 - q), 2)}px)`,
+    opacity: String(round(q)),
+  }
+}
 
 // --- Sampling ------------------------------------------------------------
 

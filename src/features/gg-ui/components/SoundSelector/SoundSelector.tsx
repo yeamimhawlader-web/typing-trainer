@@ -11,13 +11,18 @@
  * again, so the branches are never left taking up the page. Nothing is applied
  * later or on a confirmation: the choice is the preview.
  *
+ * The audio device is opened once the choices are out and still — opening the
+ * sound choices is asking for sound — so that the first choice plays straight
+ * away instead of spending the moment the branches fold waking the device.
+ * Sound off and never looked at opens nothing.
+ *
  * It is one of the branch trees (Unfold/branch-trees.ts), so it is never open
  * alongside Hover Mode's: pressing one while the other is out folds the other
  * as this one grows, in the same row beneath the toolbar. Its motion is kept
  * by the shell with the trees, so a page change mid-fold carries on folding.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   categoryOf,
@@ -119,6 +124,18 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
     layoutKey: style,
   })
 
+  // Out and still: ready the audio device now, when nothing is moving.
+  useEffect(() => {
+    if (phase !== 'open' || sound === null) return undefined
+    const idle = globalThis.requestIdleCallback
+    if (typeof idle === 'function') {
+      const handle = idle(() => sound.prepare(), { timeout: 400 })
+      return () => globalThis.cancelIdleCallback(handle)
+    }
+    const timer = window.setTimeout(() => sound.prepare(), 0)
+    return () => window.clearTimeout(timer)
+  }, [phase, sound])
+
   const toggle = useCallback(() => {
     press('node')
     trees.toggle('sound', performance.now())
@@ -126,11 +143,12 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
 
   const choose = useCallback(
     (next: string) => {
+      // Folded away first — the choice is made — then kept and heard: the
+      // branches start moving on the next frame whatever the rest costs.
+      trees.close('sound')
       onChange(next)
       // Heard as it is chosen, in the pack chosen — the description no words give.
       if (next !== 'off') sound?.preview(next as Parameters<NonNullable<typeof sound>['preview']>[0])
-      // And folded away again: the choice is made.
-      trees.close('sound')
     },
     [onChange, sound, trees],
   )
