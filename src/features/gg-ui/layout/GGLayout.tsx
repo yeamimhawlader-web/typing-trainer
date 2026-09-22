@@ -44,7 +44,7 @@
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Outlet } from 'react-router'
+import { Outlet, useLocation, useNavigationType } from 'react-router'
 
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { createSoundEngine, soundChoiceFromStored, SoundContext } from '@features/sound'
@@ -69,7 +69,39 @@ import styles from './GGLayout.module.css'
 
 const MAIN_ID = 'main-content'
 
+/**
+ * A new page starts at the top.
+ *
+ * Every page is inside this one shell, so moving between them never reloads
+ * the document and the browser keeps the position the last page was left at.
+ * Following a link from the foot of the front page would open a typing screen
+ * already scrolled past the words.
+ *
+ * Going back is left alone: the position the browser restores there is the one
+ * the typist wants, which is the whole point of going back.
+ *
+ * The document's own scroll is moved rather than the window's, because that is
+ * what the shell scrolls, and it is written before paint so no one sees the
+ * page at the old position first.
+ */
+const useTopOfNewPage = (): void => {
+  const { pathname } = useLocation()
+  const navigation = useNavigationType()
+
+  useLayoutEffect(
+    () => {
+      if (navigation === 'POP') return
+      document.documentElement.scrollTop = 0
+    },
+    // The path is what this reacts to rather than something it reads: a new
+    // page is a new path, and the same path twice is the same page.
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
+    [navigation, pathname],
+  )
+}
+
 export const GGLayout = () => {
+  useTopOfNewPage()
   const ready = useSettingsStore((state) => state.status === 'ready')
   const themeId = useSettingsStore((state) => themeIdFromStored(state.preferences.theme) ?? DEFAULT_THEME_ID)
   const setTheme = useSettingsStore((state) => state.setTheme)

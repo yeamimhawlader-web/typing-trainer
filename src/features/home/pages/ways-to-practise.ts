@@ -33,6 +33,13 @@ export const WAYS_TO_PRACTISE: InteractiveListItem[] = [
     href: ROUTES.ggSyllables,
   },
   {
+    client: 'Your texts',
+    platform: 'Your own words',
+    services: 'Quotes, goals, and the words you actually use',
+    img: unsplash('photo-1455390582262-044cdead277a'),
+    href: ROUTES.ggTexts,
+  },
+  {
     client: 'Golden Nuggets',
     platform: 'Your trouble words',
     services: 'The words that keep getting away',

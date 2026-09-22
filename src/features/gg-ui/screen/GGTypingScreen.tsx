@@ -104,6 +104,11 @@ export interface GGTypingScreenProps extends Omit<TypingScreenOptions, 'training
   readonly goldenNuggets?: GoldenNuggetService
   /** What Hover Mode is running over, said beside its name. */
   readonly hoverDescription?: string
+  /**
+   * The text is the test — one of the typist's own passages — so its length is
+   * not a choice and the length control is not offered.
+   */
+  readonly fixedText?: boolean
 }
 
 export const GGTypingScreen = ({
@@ -113,6 +118,7 @@ export const GGTypingScreen = ({
   onHoverDifficultyChange,
   goldenNuggets = goldenNuggetService,
   hoverDescription = 'Target mistakes and repeat them',
+  fixedText = false,
   ...options
 }: GGTypingScreenProps) => {
   const [hover] = useState(() => (mode === 'hover' ? createHoverController({ difficulty: hoverDifficulty }) : null))
@@ -419,14 +425,16 @@ export const GGTypingScreen = ({
             focusInput()
           }}
           shape={
-            drillSequence === null && hover === null
+            drillSequence === null && hover === null && !fixedText
               ? {
                   mode: practiceMode,
                   words: wordCount,
                   seconds: practiceSeconds,
                   onWords: changeWordCount,
                   onTime: changeTime,
-                  timeOffered: !syllable,
+                  // Only ordinary practice runs on the clock (see `timed`);
+                  // offering a time anywhere else would change nothing.
+                  timeOffered: mode === 'standard',
                 }
               : null
           }

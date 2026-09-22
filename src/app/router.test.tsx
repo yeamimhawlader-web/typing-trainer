@@ -5,7 +5,7 @@
  * import or a crashing page fails here rather than in the browser.
  */
 
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { describe, expect, it } from 'vitest'
@@ -104,6 +104,48 @@ describe('application routes', () => {
       (waiting: Promise<void>, path) => waiting.then(() => onEveryPage(path)),
       Promise.resolve(),
     )
+  })
+
+  it('renders your own texts, and the screen that types one', async () => {
+    renderAt(ROUTES.ggTexts)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Your texts' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Copy the prompt' })).toBeInTheDocument()
+  })
+})
+
+describe('where a new page starts', () => {
+  /*
+   * The shell is never replaced, so without this the browser leaves the next
+   * page at the position the last one was scrolled to: a link at the foot of
+   * the front page opened a typing screen already scrolled past the words.
+   */
+  it('puts a page opened from a link at the top', async () => {
+    const user = userEvent.setup()
+    renderAt(ROUTES.home)
+    await screen.findByRole('heading', { level: 1, name: 'Hover Typing' })
+
+    document.documentElement.scrollTop = 400
+    await user.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'History' }))
+    await screen.findByRole('heading', { level: 1, name: 'History' })
+
+    expect(document.documentElement.scrollTop).toBe(0)
+  })
+
+  it('leaves going back where the typist had it', async () => {
+    const user = userEvent.setup()
+    const router = createMemoryRouter(routeConfig, { initialEntries: [ROUTES.home] })
+    render(<RouterProvider router={router} />)
+    await screen.findByRole('heading', { level: 1, name: 'Hover Typing' })
+
+    await user.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'History' }))
+    await screen.findByRole('heading', { level: 1, name: 'History' })
+
+    // Where the browser would have restored the front page to.
+    document.documentElement.scrollTop = 400
+    await act(() => router.navigate(-1))
+
+    expect(document.documentElement.scrollTop).toBe(400)
   })
 })
 

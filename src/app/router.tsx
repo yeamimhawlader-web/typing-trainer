@@ -33,6 +33,7 @@ import {
 import { HistoryPage } from '@features/history/pages/HistoryPage.tsx'
 import { historyStore } from '@features/history/state/history.store.ts'
 import { HomePage } from '@features/home/pages/HomePage.tsx'
+import { LibraryPage, LibraryPracticePage } from '@features/library'
 import { SessionDetailPage } from '@features/results'
 import { StatisticsPage } from '@features/statistics'
 import { PracticePage } from '@features/practice/pages/PracticePage.tsx'
@@ -51,6 +52,9 @@ export const routeConfig: RouteObject[] = [
       { path: ROUTES.ggNuggets, element: <GGGoldenNuggetsPage /> },
       { path: ROUTES.ggDrill, element: <GGDrillPage /> },
       { path: ROUTES.ggSignIn, element: <GGSignInPage /> },
+      // The typist's own texts, and typing one of them.
+      { path: ROUTES.ggTexts, element: <LibraryPage /> },
+      { path: ROUTES.ggText, element: <LibraryPracticePage /> },
       // The application's own pages. The classic practice and drill screens
       // stay, over the same session, until the typing screens replace them.
       { path: ROUTES.history, element: <HistoryPage /> },

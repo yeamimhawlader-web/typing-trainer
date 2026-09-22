@@ -27,6 +27,7 @@ export {
 export const STORAGE_KEYS = {
   preferences: 'preferences',
   goldenNuggets: 'golden-nuggets',
+  libraryTexts: 'library-texts',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]

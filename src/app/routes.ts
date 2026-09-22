@@ -32,6 +32,10 @@ export const ROUTES = {
   ggDrill: '/gg/drill/:sequence',
   /** Sign in, as it will look: there are no accounts yet, and the page says so. */
   ggSignIn: '/gg/sign-in',
+  /** Your own texts: quotes, goals, and the words you actually use. */
+  ggTexts: '/gg/texts',
+  /** Pattern for the router; build real paths with `textPath`. */
+  ggText: '/gg/texts/:textId',
 } as const
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
@@ -53,6 +57,14 @@ export const sessionDetailPath = (sessionId: string): string =>
  */
 export const drillPath = (sequence: string): string =>
   `/gg/drill/${encodeURIComponent(sequence)}`
+
+/**
+ * Typing one of your own texts.
+ *
+ * Encoded like the others: the id is generated, but nothing about a stored id
+ * guarantees it is safe in a path.
+ */
+export const textPath = (textId: string): string => `/gg/texts/${encodeURIComponent(textId)}`
 
 /** The same drill on the classic screen, for direct access while both exist. */
 export const classicDrillPath = (sequence: string): string =>

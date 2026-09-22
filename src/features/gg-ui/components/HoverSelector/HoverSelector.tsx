@@ -40,11 +40,12 @@ import { useUnfold } from '../Unfold/useUnfold.ts'
 
 import styles from './HoverSelector.module.css'
 
-export type GGMode = 'standard' | 'hover' | 'syllable'
+export type GGMode = 'standard' | 'hover' | 'syllable' | 'library'
 
 const STANDARD_DESCRIPTION = 'Words, typed straight through'
 const HOVER_DESCRIPTION = 'Target mistakes and repeat them'
 const SYLLABLE_DESCRIPTION = 'Train long words as rhythm, not as one block'
+const LIBRARY_DESCRIPTION = 'Quotes, goals, and the words you actually use'
 
 /** How persistent each difficulty is: its beads, and how much accent it carries. */
 const TONES: Readonly<Record<HoverDifficulty, Pick<UnfoldItem, 'marks' | 'tone'>>> = {
@@ -130,6 +131,16 @@ export const HoverSelector = ({ mode, difficulty, onDifficultyChange }: HoverSel
           label="Standard"
           description={STANDARD_DESCRIPTION}
           current={mode === 'standard'}
+          onClick={pressOther}
+        />
+
+        {/* The typist's own material, beside the vocabularies the application
+            brings: the way in is here, where a mode is chosen. */}
+        <PillLink
+          to={ROUTES.ggTexts}
+          label="Your texts"
+          description={LIBRARY_DESCRIPTION}
+          current={mode === 'library'}
           onClick={pressOther}
         />
 

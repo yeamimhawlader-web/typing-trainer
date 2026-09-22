@@ -175,6 +175,46 @@ tokens, and the shell's token bridge (GGLayout.module.css) draws them in the
 theme. The classic shell that used to hold them is gone; its skip link is in
 this one.
 
+One consequence had to be paid for: the document is never reloaded, so the
+browser keeps the scroll position the last page was left at, and a link at the
+foot of the front page opened a typing screen already scrolled past the words.
+The shell puts a new page back at the top before paint (`useTopOfNewPage`), and
+leaves going back alone — the position restored there is the one the typist
+asked for.
+
+### Your own texts
+
+A quote, the goals someone reads every morning, the rules they hold themselves
+to, the words they actually use: `@core/library` keeps them, and `/gg/texts` is
+where they are written, edited and practised. Three decisions carry it:
+
+- **Whatever arrives is made typeable, once, on the way in.** Text pasted from a
+  document or an AI carries curly quotes, em dashes, tabs, zero-width
+  characters and emoji, and the engine compares keystrokes to characters
+  exactly — a character nobody can type is a test nobody can finish. So
+  `text.ts` normalises whitespace first, maps the punctuation a word processor
+  substitutes back to the keys a keyboard has, and drops the rest. Whitespace
+  goes first for a reason: dropping a line break instead of turning it into a
+  space runs the end of one line into the start of the next and makes a word
+  nobody wrote.
+- **A passage is typed as written; a word list is drawn from.** The two kinds
+  are one provider (`provider.ts`) with one difference: a passage ignores the
+  requested length and hands back the body, because being exactly that text is
+  the point of keeping it. So the typing screen is told `fixedText` and offers
+  no length control, and neither kind is dressed with punctuation, numbers or
+  the Advanced vocabulary, or run against the clock. Both record the source
+  `your-text`, so history can say where a test came from without keeping a copy
+  of the text beside every session.
+- **The prompt for an AI is carried by the typist, not sent.** The page shows a
+  prompt to copy into whichever assistant someone talks to — "the 150 words I
+  use most often" — and a field to paste the answer back, which becomes a word
+  list. Nothing leaves the browser, no key is held, and what comes back is
+  treated as text to clean, never as an instruction.
+
+Storage is one key holding the list, like Golden Nuggets: a few dozen short
+records, writes serialised, a malformed record dropped while the rest are kept,
+and the oldest let go past sixty texts.
+
 ### Liquid glass on every control
 
 Every button is liquid glass, after `src/components/ui/liquid-glass-button.tsx`:

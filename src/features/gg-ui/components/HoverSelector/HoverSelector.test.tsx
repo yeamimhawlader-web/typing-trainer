@@ -394,12 +394,14 @@ describe("Hover Mode's selector", () => {
   })
 
   describe('from the keyboard', () => {
-    it('is reached in order — Standard, the node, the Syllable Trainer — and arrow keys choose once it is open', async () => {
+    it('is reached in order — Standard, Your texts, the node, the Syllable Trainer — and arrow keys choose once it is open', async () => {
       const user = userEvent.setup()
       const { onDifficultyChange } = renderModes(ROUTES.ggHover, createUnfoldMemory(), 'standard')
 
       await user.tab()
       expect(standard()).toHaveFocus()
+      await user.tab()
+      expect(screen.getByRole('link', { name: /^Your texts/ })).toHaveFocus()
       await user.tab()
       expect(node()).toHaveFocus()
 
@@ -417,6 +419,7 @@ describe("Hover Mode's selector", () => {
       const user = userEvent.setup()
       renderModes(ROUTES.gg)
 
+      await user.tab()
       await user.tab()
       await user.tab()
       expect(node()).toHaveFocus()

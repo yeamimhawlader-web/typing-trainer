@@ -1,0 +1,26 @@
+/* Every value is a token reference. No literals. */
+
+.notice {
+  max-width: 40rem;
+  padding-block: var(--space-8);
+}
+
+.title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+}
+
+.link {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}

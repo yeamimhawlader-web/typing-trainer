@@ -55,6 +55,7 @@ describe('the front page', () => {
       ['Typing Test', ROUTES.gg],
       ['Hover Mode', ROUTES.ggHover],
       ['Syllable Trainer', ROUTES.ggSyllables],
+      ['Your texts', ROUTES.ggTexts],
       ['Golden Nuggets', ROUTES.ggNuggets],
       ['History', ROUTES.history],
       ['Statistics', ROUTES.statistics],
