@@ -30,6 +30,8 @@ export const ROUTES = {
   ggNuggets: '/gg/nuggets',
   /** Pattern for the router; build real paths with `drillPath`. */
   ggDrill: '/gg/drill/:sequence',
+  /** Sign in, as it will look: there are no accounts yet, and the page says so. */
+  ggSignIn: '/gg/sign-in',
 } as const
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]

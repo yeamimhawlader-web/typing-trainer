@@ -23,6 +23,7 @@ import {
   GGLayout,
   GGNuggetPracticePage,
   GGPracticePage,
+  GGSignInPage,
   GGSyllablePage,
 } from '@features/gg-ui'
 import { HistoryPage } from '@features/history/pages/HistoryPage.tsx'
@@ -47,6 +48,7 @@ export const routeConfig: RouteObject[] = [
       { path: ROUTES.ggSyllables, element: <GGSyllablePage /> },
       { path: ROUTES.ggNuggets, element: <GGGoldenNuggetsPage /> },
       { path: ROUTES.ggDrill, element: <GGDrillPage /> },
+      { path: ROUTES.ggSignIn, element: <GGSignInPage /> },
     ],
   },
   {

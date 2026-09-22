@@ -159,7 +159,7 @@ describe('Hover Mode on the GG.Typing screen', () => {
 
       expect(await screen.findByRole('heading', { level: 1, name: 'Hover Mode' })).toBeInTheDocument()
       expect(screen.getByText('Target mistakes and repeat them', { selector: 'span' })).toBeInTheDocument()
-      expect(document.title).toBe('Hover Mode · GG.Typing')
+      expect(document.title).toBe('Hover Mode · Hover Typing')
     })
 
     it('leads to Golden Nuggets from Hover Mode only, not from ordinary practice or the top bar', async () => {
@@ -520,7 +520,7 @@ describe('Hover Mode on the GG.Typing screen', () => {
       expect(item).toHaveTextContent('Met in 1 test')
       expect(item).toHaveTextContent('Last difficulty: Standard')
       expect(item).toHaveTextContent('Still unresolved')
-      expect(document.title).toBe('Golden Nuggets · GG.Typing')
+      expect(document.title).toBe('Golden Nuggets · Hover Typing')
     })
 
     it('say how to get some when there are none', async () => {

@@ -7,6 +7,10 @@ import { useEffect, useLayoutEffect, useState } from 'react'
 
 import { createStreamCursor, type CursorSource, type StreamCursor } from './stream-cursor.ts'
 
+/**
+ * `size` is anything whose change moves the characters — the text size, and
+ * the typeface with it — so a change of either is measured before paint.
+ */
 export const useStreamCursor = (source: CursorSource, text: string, size: string): StreamCursor => {
   const [cursor] = useState(createStreamCursor)
 

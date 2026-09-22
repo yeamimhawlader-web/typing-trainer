@@ -17,6 +17,10 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   practiceMode: 'words',
   practiceSeconds: 30,
   textSize: 'sm',
+  // The slab face, open and even at speed; the others are a press away.
+  streamFont: 'slab',
+  // The frequent words: where every typist starts.
+  vocabulary: 'normal',
   // The least persistent: a word is repeated for one cycle and let go.
   hoverDifficulty: 'standard',
   // Silence until it is asked for, and at the level the packs were made at.

@@ -1060,7 +1060,9 @@ describe('GG.Typing on the real typing session', () => {
       await firstTest(wordsProvider().provider)
       const page = document.body.textContent ?? ''
 
-      expect(page).not.toMatch(/guest|level|online|typing now|english|advanced|normal/i)
+      // Normal and Advanced are no longer on this list: they are the vocabulary
+      // now, and wired (gg-fonts-vocabulary.integration.test.tsx).
+      expect(page).not.toMatch(/guest|level|online|typing now|english/i)
       expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
       for (const name of ['Mode', 'Presets', 'Feedback', 'View']) {
         expect(screen.queryByRole('group', { name })).not.toBeInTheDocument()
@@ -1097,7 +1099,7 @@ describe('a GG.Typing drill', () => {
     expect(screen.queryByRole('radiogroup', { name: 'Test length in time' })).not.toBeInTheDocument()
     // The title follows the drill once its material is ready, not before.
     await waitFor(() => {
-      expect(document.title).toBe('Drill: in · GG.Typing')
+      expect(document.title).toBe('Drill: in · Hover Typing')
     })
   })
 
@@ -1136,6 +1138,6 @@ describe('a GG.Typing drill', () => {
     expect(await screen.findByRole('heading', { name: 'No drill for that sequence' })).toBeInTheDocument()
     expect(screen.getByText(/inventing words/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Go to practice' })).toHaveAttribute('href', '/gg')
-    expect(screen.getByRole('link', { name: 'GG.Typing' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Hover Typing' })).toBeInTheDocument()
   })
 })

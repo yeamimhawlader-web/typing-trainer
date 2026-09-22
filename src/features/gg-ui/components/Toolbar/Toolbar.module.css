@@ -29,6 +29,31 @@
   margin-top: 14px;
 }
 
+/* The typefaces' "Aa"s, each set in the face it chooses, a size up from the
+   other pills so the four can be told apart. */
+.font-slab,
+.font-mono,
+.font-sans,
+.font-serif {
+  font-size: 0.9375rem;
+}
+
+.font-slab {
+  font-family: var(--gg-font-slab);
+}
+
+.font-mono {
+  font-family: var(--gg-font-mono);
+}
+
+.font-sans {
+  font-family: var(--gg-font-sans);
+}
+
+.font-serif {
+  font-family: var(--gg-font-serif);
+}
+
 /* Punctuation and Numbers: two pills that are each on or off. */
 .dress {
   display: flex;

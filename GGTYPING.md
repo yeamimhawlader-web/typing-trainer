@@ -326,6 +326,20 @@ on the new text, and the test is recorded with it, so history names it —
 "Words · punctuation & numbers" — as the harder test it is. Ordinary practice only:
 Hover Mode, the Syllable Trainer and drills keep their own text.
 
+**Advanced words.** Normal and Advanced, beside Punctuation and Numbers. Normal is
+the two hundred most frequent English words; Advanced is a wider everyday vocabulary
+of about eleven hundred — half as long again on average, sharing no word with
+Normal — so it reaches the letter combinations the frequent words never do. The
+control row names the source ("Advanced words"), the test is recorded as its own
+source, so history tells the two apart, and it dresses with punctuation and numbers
+like Normal. Ordinary practice only, as the dressing is.
+
+**Typefaces.** Four "Aa"s at the start of the settings row, each set in the face it
+chooses: Roboto Slab (the default — open, even letters, set light), Geist Mono,
+Inter and Lora. Remembered like the size. Only the letters change: the block keeps
+its height and lines, and the caret measures the new letters before the next paint.
+The chrome is set in Inter, plain and light.
+
 **Caps Lock.** Every key is compared exactly, so the field says when Caps Lock is
 on — a small note in its corner, spoken once — the moment the keyboard reports it.
 

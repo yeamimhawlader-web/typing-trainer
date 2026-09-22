@@ -3,7 +3,7 @@
  *
  * The GG.Typing interface over the application's real typing session: a shell
  * (top bar, theme panel) around a typing screen (control row, toolbar, word
- * stream, input), with seven themes. It owns no typing, scoring, storage or
+ * stream, input), with eleven themes. It owns no typing, scoring, storage or
  * settings of its own — those are `@features/typing`, `@core/sessions`,
  * `@core/telemetry` and the settings store, the same ones the classic screens
  * use. The token plan and the decisions behind it are in TOKEN_PLAN.md beside
@@ -21,6 +21,7 @@ export type { GGDrillPageProps } from './pages/GGDrillPage.tsx'
 export { GGNuggetPracticePage } from './pages/GGNuggetPracticePage.tsx'
 export type { GGNuggetPracticePageProps } from './pages/GGNuggetPracticePage.tsx'
 export { GGPracticePage } from './pages/GGPracticePage.tsx'
+export { ACCOUNTS_NOT_YET, GGSignInPage } from './pages/GGSignInPage.tsx'
 export { GGSyllablePage } from './pages/GGSyllablePage.tsx'
 export type { GGSyllablePageProps } from './pages/GGSyllablePage.tsx'
 export type { GGPracticePageProps } from './pages/GGPracticePage.tsx'

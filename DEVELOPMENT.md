@@ -86,6 +86,25 @@ than a literal to a component. Define it for both themes.
 
 Compose class names with `cx()` from `@shared/lib`.
 
+**shadcn/ui and Tailwind components** are the one exception, and they live in
+one place: `src/components/ui`. That folder is shadcn's default (see
+`components.json`), and it matters that it is exactly that path — components
+added with `npx shadcn@latest add …`, or pasted from galleries built on shadcn,
+import each other and their helper as `@/components/ui/…` and `@/lib/utils`,
+so keeping the folder where they expect it means they work without their
+imports being rewritten. The application's own UI stays in CSS Modules
+(`src/shared/ui` and each feature).
+
+Tailwind (`src/styles/tailwind.css`) is set up so it cannot touch anything
+else: it generates classes only from `src/components/ui` and the pages that
+place those components (add a page with `@source` there), it has no preflight
+(the app's `reset.css` is the reset), and its utilities are unlayered so they
+still beat the reset's element rules. So a pasted component that counts on
+preflight for something — inputs with no border, say — needs that stated in its
+classes (`border-0`). Colours are the app's semantic tokens, mapped to shadcn's
+names (`bg-primary`, `text-muted-foreground`, `border-border`…), so these
+components follow the chosen theme.
+
 **Tests** live next to what they test (`thing.ts` → `thing.test.ts`). Vitest
 globals are off — import `describe`, `it`, `expect` explicitly.
 

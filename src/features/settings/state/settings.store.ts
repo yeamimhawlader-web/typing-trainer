@@ -19,15 +19,19 @@ import {
   PACE_CHOICES,
   PRACTICE_MODES,
   PRACTICE_WORD_COUNTS,
+  STREAM_FONTS,
   TEXT_SIZES,
+  VOCABULARIES,
   type HoverDifficulty,
   type PaceChoice,
   type PracticeMode,
   type PracticeWordCount,
   type SoundPreference,
+  type StreamFont,
   type TextSize,
   type ThemePreference,
   type UserPreferences,
+  type Vocabulary,
 } from '@core/types'
 // The theme registry itself, not the GG.Typing feature's entry point: a leaf
 // module with no imports, so settings and the shell cannot form a cycle.
@@ -48,6 +52,8 @@ export interface SettingsState {
   readonly setPracticeMode: (mode: PracticeMode) => Promise<void>
   readonly setPracticeSeconds: (seconds: number) => Promise<void>
   readonly setTextSize: (size: TextSize) => Promise<void>
+  readonly setStreamFont: (font: StreamFont) => Promise<void>
+  readonly setVocabulary: (vocabulary: Vocabulary) => Promise<void>
   readonly setHoverDifficulty: (difficulty: HoverDifficulty) => Promise<void>
   readonly setSound: (sound: SoundPreference) => Promise<void>
   readonly setSoundVolume: (volume: number) => Promise<void>
@@ -74,6 +80,8 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
     practiceMode?: PracticeMode
     practiceSeconds?: number
     textSize?: TextSize
+    streamFont?: StreamFont
+    vocabulary?: Vocabulary
     hoverDifficulty?: HoverDifficulty
     sound?: SoundPreference
     soundVolume?: number
@@ -99,6 +107,12 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
 
   const size = TEXT_SIZES.find((option) => option === record['textSize'])
   if (size !== undefined) result.textSize = size
+
+  const font = STREAM_FONTS.find((option) => option === record['streamFont'])
+  if (font !== undefined) result.streamFont = font
+
+  const vocabulary = VOCABULARIES.find((option) => option === record['vocabulary'])
+  if (vocabulary !== undefined) result.vocabulary = vocabulary
 
   const difficulty = HOVER_DIFFICULTIES.find((option) => option === record['hoverDifficulty'])
   if (difficulty !== undefined) result.hoverDifficulty = difficulty
@@ -165,6 +179,10 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
         persist({ ...get().preferences, practiceSeconds: clampTime(practiceSeconds) }),
 
       setTextSize: (textSize) => persist({ ...get().preferences, textSize }),
+
+      setStreamFont: (streamFont) => persist({ ...get().preferences, streamFont }),
+
+      setVocabulary: (vocabulary) => persist({ ...get().preferences, vocabulary }),
 
       setHoverDifficulty: (hoverDifficulty) => persist({ ...get().preferences, hoverDifficulty }),
 

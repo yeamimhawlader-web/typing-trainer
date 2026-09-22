@@ -83,11 +83,11 @@ const colours = (theme: GGTheme) => {
 }
 
 describe('GG themes', () => {
-  it('are the seven the design names: Classic Milk and three more light, three dark', () => {
+  it('are the eleven: Classic Milk and five more light, five dark', () => {
     const names = (scheme: string) => GG_THEMES.filter((theme) => theme.scheme === scheme).map((theme) => theme.name)
 
-    expect(names('light')).toEqual(['Classic Milk', 'Default (Light)', 'Classic', 'Lemondrop'])
-    expect(names('dark')).toEqual(['Default (Dark)', 'Glow', 'Valentine'])
+    expect(names('light')).toEqual(['Classic Milk', 'Default (Light)', 'Classic', 'Lemondrop', 'Lavender Sky', 'Mint'])
+    expect(names('dark')).toEqual(['Default (Dark)', 'Glow', 'Nord', 'Midnight', 'Valentine'])
   })
 
   it('opens a fresh installation in Classic Milk, and falls back to it for an unknown id', () => {

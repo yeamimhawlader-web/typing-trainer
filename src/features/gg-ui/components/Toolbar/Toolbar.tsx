@@ -25,12 +25,16 @@
 
 import type { PaceTargets } from '@core/statistics'
 import {
+  STREAM_FONTS,
   TEXT_SIZES,
+  VOCABULARIES,
   type HoverDifficulty,
   type PaceChoice,
   type PracticeMode,
   type PracticeWordCount,
+  type StreamFont,
   type TextSize,
+  type Vocabulary,
 } from '@core/types'
 import type { SoundPreference } from '@features/sound'
 import type { WordCount } from '@features/typing'
@@ -58,6 +62,34 @@ const SIZE_OPTIONS: readonly PillOption<TextSize>[] = TEXT_SIZES.map((size) => (
   accessibleLabel: SIZE_NAMES[size],
 }))
 
+/** Each typeface's name, spoken, and shown when the pointer rests on its "Aa". */
+const FONT_NAMES: Readonly<Record<StreamFont, string>> = {
+  slab: 'Roboto Slab',
+  mono: 'Geist Mono',
+  sans: 'Inter',
+  serif: 'Lora',
+}
+
+// Each shows itself: "Aa", set in the face it chooses.
+const FONT_OPTIONS: readonly PillOption<StreamFont>[] = STREAM_FONTS.map((font) => ({
+  value: font,
+  label: 'Aa',
+  accessibleLabel: FONT_NAMES[font],
+  faceClassName: styles[`font-${font}`] ?? '',
+}))
+
+const VOCABULARY_NAMES: Readonly<Record<Vocabulary, string>> = { normal: 'Normal', advanced: 'Advanced' }
+const VOCABULARY_DESCRIPTIONS: Readonly<Record<Vocabulary, string>> = {
+  normal: 'Normal: the two hundred most frequent words',
+  advanced: 'Advanced: a wider vocabulary of longer words',
+}
+
+const VOCABULARY_OPTIONS: readonly PillOption<Vocabulary>[] = VOCABULARIES.map((vocabulary) => ({
+  value: vocabulary,
+  label: VOCABULARY_NAMES[vocabulary],
+  accessibleLabel: VOCABULARY_DESCRIPTIONS[vocabulary],
+}))
+
 export type { GGMode }
 
 export interface ToolbarProps {
@@ -69,6 +101,9 @@ export interface ToolbarProps {
   readonly onHoverDifficultyChange?: ((difficulty: HoverDifficulty) => void) | undefined
   readonly size: TextSize
   readonly onSizeChange: (size: TextSize) => void
+  /** The typeface the words are set in, and how to change it. */
+  readonly font: StreamFont
+  readonly onFontChange: (font: StreamFont) => void
   /**
    * What ends a test — a word count or a time — and the two lengths it
    * remembers. Null for a drill, which is the material it was built as.
@@ -97,6 +132,9 @@ export interface ToolbarProps {
     readonly numbers: boolean
     readonly onPunctuation: (on: boolean) => void
     readonly onNumbers: (on: boolean) => void
+    /** The vocabulary the words are drawn from: normal, or advanced. */
+    readonly vocabulary: Vocabulary
+    readonly onVocabulary: (vocabulary: Vocabulary) => void
   } | null
   /** The pace caret: which of the typist's speeds, what those speeds are, and the one kept now. */
   readonly pace: PaceChoice
@@ -111,6 +149,8 @@ export const Toolbar = ({
   onHoverDifficultyChange,
   size,
   onSizeChange,
+  font,
+  onFontChange,
   shape,
   sound,
   onSoundChange,
@@ -129,6 +169,9 @@ export const Toolbar = ({
     )}
 
     <div className={styles.settings}>
+      <PillGroup name="gg-font" label="Typeface" options={FONT_OPTIONS} value={font} onChange={onFontChange} />
+
+      <Separator />
       <PillGroup name="gg-size" label="Text size" options={SIZE_OPTIONS} value={size} onChange={onSizeChange} />
 
       {shape !== null && (
@@ -147,6 +190,14 @@ export const Toolbar = ({
 
       {dress !== null && (
         <>
+          <Separator />
+          <PillGroup
+            name="gg-vocabulary"
+            label="Vocabulary"
+            options={VOCABULARY_OPTIONS}
+            value={dress.vocabulary}
+            onChange={dress.onVocabulary}
+          />
           <Separator />
           <div role="group" aria-label="Text" className={styles.dress}>
             <TogglePill

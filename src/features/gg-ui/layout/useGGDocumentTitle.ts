@@ -1,14 +1,16 @@
 /**
- * Names the tab for a GG.Typing screen: "Typing Test · GG.Typing".
+ * Names the tab for a screen in the typing shell: "Typing Test · Hover Typing".
  *
  * The same rule as the application's `useDocumentTitle` — the page's own name
  * first, and nothing restored on unmount, because every route sets its own —
- * with the shell's name in place of the application's.
+ * and the same name: the shell is the application, to the typist.
  */
 
 import { useEffect } from 'react'
 
-export const GG_TITLE_SUFFIX = 'GG.Typing'
+import { appConfig } from '@config'
+
+export const GG_TITLE_SUFFIX = appConfig.appName
 
 export const useGGDocumentTitle = (title: string): void => {
   useEffect(() => {

@@ -160,6 +160,36 @@ export const GG_THEMES = [
     glass: LIGHT_GLASS,
   },
   {
+    // Pale sky and lavender, the look of a well-known typing test, with the
+    // lavender taken dark enough to be read as text.
+    id: 'lavender-sky',
+    name: 'Lavender Sky',
+    scheme: 'light',
+    colors: {
+      bg: '#e6f1f8',
+      surface: '#f5fafd',
+      fg: '#1d2430',
+      muted: '#535d6c',
+      accent: '#6a3fbf',
+      error: '#c0262d',
+    },
+    glass: LIGHT_GLASS,
+  },
+  {
+    id: 'mint',
+    name: 'Mint',
+    scheme: 'light',
+    colors: {
+      bg: '#eaf6ef',
+      surface: '#f7fcf9',
+      fg: '#15241c',
+      muted: '#4d6157',
+      accent: '#0b7650',
+      error: '#c0262d',
+    },
+    glass: LIGHT_GLASS,
+  },
+  {
     id: 'default-dark',
     name: 'Default (Dark)',
     scheme: 'dark',
@@ -184,6 +214,35 @@ export const GG_THEMES = [
       muted: '#83918a',
       accent: '#3dffa8',
       error: '#ff5d6c',
+    },
+    glass: DARK_GLASS,
+  },
+  {
+    // Arctic slate: a blue-grey page, frost-blue accent.
+    id: 'nord',
+    name: 'Nord',
+    scheme: 'dark',
+    colors: {
+      bg: '#2e3440',
+      surface: '#3b4252',
+      fg: '#eceff4',
+      muted: '#b4bcc9',
+      accent: '#88c0d0',
+      error: '#ff8a8a',
+    },
+    glass: DARK_GLASS,
+  },
+  {
+    id: 'midnight',
+    name: 'Midnight',
+    scheme: 'dark',
+    colors: {
+      bg: '#0d0f1e',
+      surface: '#171a2e',
+      fg: '#e7e8f6',
+      muted: '#9a9dbd',
+      accent: '#a78bfa',
+      error: '#ff6b81',
     },
     glass: DARK_GLASS,
   },

@@ -65,6 +65,30 @@ export type PaceChoice = (typeof PACE_CHOICES)[number]
 export const TEXT_SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const
 export type TextSize = (typeof TEXT_SIZES)[number]
 
+/**
+ * The typefaces the typing text can be set in.
+ *
+ * - `slab`: Roboto Slab — open, even letters with a slab serif at each end.
+ * - `mono`: Geist Mono — every letter the same width.
+ * - `sans`: Inter — plain and quick to read.
+ * - `serif`: Lora — a book face.
+ *
+ * Which font file each is, is the typing screen's business; only the choice is
+ * kept here.
+ */
+export const STREAM_FONTS = ['slab', 'mono', 'sans', 'serif'] as const
+export type StreamFont = (typeof STREAM_FONTS)[number]
+
+/**
+ * The words ordinary practice draws from.
+ *
+ * - `normal`: the two hundred most frequent English words.
+ * - `advanced`: a wider vocabulary — longer, less frequent words, with the
+ *   letter combinations the frequent ones never reach.
+ */
+export const VOCABULARIES = ['normal', 'advanced'] as const
+export type Vocabulary = (typeof VOCABULARIES)[number]
+
 export interface UserPreferences {
   readonly theme: ThemePreference
   /**
@@ -75,6 +99,10 @@ export interface UserPreferences {
   readonly practiceWordCount: PracticeWordCount
   /** The size of the typing text on the GG.Typing screen. */
   readonly textSize: TextSize
+  /** The typeface of the typing text on the GG.Typing screen. */
+  readonly streamFont: StreamFont
+  /** Whether ordinary practice is the most frequent words or a wider vocabulary. */
+  readonly vocabulary: Vocabulary
   /** Whether practice ends on a word count or on the clock. */
   readonly practiceMode: PracticeMode
   /**

@@ -45,7 +45,7 @@ import {
   type SyllableLayout,
   type SyllableRange,
 } from '@core/syllables'
-import type { TextSize } from '@core/types'
+import type { StreamFont, TextSize } from '@core/types'
 import { useWordJumps, type HoverController, type WordJumpController } from '@features/ggtyping'
 import { useEngineValue } from '@features/typing'
 import { cx } from '@shared/lib'
@@ -212,6 +212,8 @@ export interface WordStreamProps {
   /** The loaded test's text, exactly as the engine was given it. */
   readonly text: string
   readonly size: TextSize
+  /** The typeface the words are set in. */
+  readonly font?: StreamFont
   readonly onActivate?: () => void
   /** Hover Mode's controller, when the stream is Hover Mode's. */
   readonly hover?: HoverController | undefined
@@ -221,7 +223,16 @@ export interface WordStreamProps {
   readonly pace?: number | null | undefined
 }
 
-export const WordStream = ({ engine, text, size, onActivate, hover, syllables, pace = null }: WordStreamProps) => {
+export const WordStream = ({
+  engine,
+  text,
+  size,
+  font = 'mono',
+  onActivate,
+  hover,
+  syllables,
+  pace = null,
+}: WordStreamProps) => {
   const characters = useMemo(() => toCharacters(text), [text])
   const words = useMemo(() => computeWordRanges(characters), [characters])
   // Hover Mode reacts to a word's first mistake itself, so the jump on the third
@@ -229,7 +240,8 @@ export const WordStream = ({ engine, text, size, onActivate, hover, syllables, p
   const jumps = useWordJumps(engine, undefined, hover === undefined)
   const [view] = useState(() => (hover === undefined ? null : createHoverView(engine)))
   const source = useMemo(() => view ?? engineCursorSource(engine), [engine, view])
-  const cursor = useStreamCursor(source, text, size)
+  // A new typeface moves every character, as a new size does.
+  const cursor = useStreamCursor(source, text, `${size} ${font}`)
   const { attachViewport, attachContent, attachCursor } = cursor
   const status = useEngineValue(engine, (snapshot) => snapshot.status)
 
@@ -245,6 +257,7 @@ export const WordStream = ({ engine, text, size, onActivate, hover, syllables, p
     <section
       className={styles.block}
       data-size={size}
+      data-font={font}
       data-status={status}
       data-syllables={syllables === undefined ? undefined : true}
       style={syllables === undefined ? undefined : SYLLABLE_TIMING}

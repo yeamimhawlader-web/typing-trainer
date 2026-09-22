@@ -102,8 +102,13 @@
    * text (layout imports them). The system faces behind them are what shows for
    * the moment before they arrive, and wherever they cannot.
    */
-  --gg-font-ui: 'Geist Variable', var(--font-sans);
+  /* The chrome: Inter, plain and light. */
+  --gg-font-ui: 'Inter Variable', 'Geist Variable', var(--font-sans);
   --gg-font-mono: 'Geist Mono Variable', var(--font-mono);
+  /* The typefaces the words can be set in (WordStream.module.css). */
+  --gg-font-slab: 'Roboto Slab Variable', 'Roboto Slab', Georgia, serif;
+  --gg-font-sans: 'Inter Variable', var(--font-sans);
+  --gg-font-serif: 'Lora Variable', Georgia, serif;
   --gg-text-nav: 0.9375rem;
   --gg-text-control: 0.9375rem;
   --gg-text-pill: 0.8125rem;

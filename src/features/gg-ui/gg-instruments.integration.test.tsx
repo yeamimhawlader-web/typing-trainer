@@ -406,9 +406,14 @@ describe('Golden Nuggets practice', () => {
 
     typeText(stream().textContent ?? '')
 
-    await waitFor(async () => {
-      expect(await sessions.getAll()).toHaveLength(1)
-    })
+    // A whole test typed and saved: longer than waitFor's default second when
+    // the full suite is running alongside.
+    await waitFor(
+      async () => {
+        expect(await sessions.getAll()).toHaveLength(1)
+      },
+      { timeout: 5000 },
+    )
     const [stored] = await sessions.getAll()
     expect(stored?.context.mode).toBe('hover')
     expect(stored?.textSourceId).toBe('golden-nuggets')

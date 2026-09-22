@@ -149,19 +149,26 @@ export const GGTypingScreen = ({
   const dressable = mode === 'standard' && (options.drill ?? null) === null
   const punctuation = useSettingsStore((state) => state.preferences.punctuation) && dressable
   const numbers = useSettingsStore((state) => state.preferences.numbers) && dressable
+  // The vocabulary is ordinary practice's too: Normal, or Advanced's wider words.
+  const chosenVocabulary = useSettingsStore((state) => state.preferences.vocabulary)
+  const vocabulary = dressable ? chosenVocabulary : 'normal'
   const dressedProvider = useMemo(
-    () => (punctuation || numbers ? createCommonWordsProvider({ punctuation, numbers }) : undefined),
-    [numbers, punctuation],
+    () =>
+      punctuation || numbers || vocabulary === 'advanced'
+        ? createCommonWordsProvider({ punctuation, numbers, vocabulary })
+        : undefined,
+    [numbers, punctuation, vocabulary],
   )
   const setPunctuation = useSettingsStore((state) => state.setPunctuation)
   const setNumbers = useSettingsStore((state) => state.setNumbers)
+  const setVocabulary = useSettingsStore((state) => state.setVocabulary)
 
   const screen = useTypingScreen({
     ...options,
     provider: options.provider ?? syllableProvider ?? dressedProvider,
     training,
     difficulty: difficultyOf({ punctuation, numbers }),
-    textKey: `${punctuation ? 'p' : ''}${numbers ? 'n' : ''}`,
+    textKey: `${punctuation ? 'p' : ''}${numbers ? 'n' : ''}${vocabulary === 'advanced' ? 'a' : ''}`,
   })
   const {
     engine,
@@ -278,6 +285,8 @@ export const GGTypingScreen = ({
 
   const size = useSettingsStore((state) => state.preferences.textSize)
   const setSize = useSettingsStore((state) => state.setTextSize)
+  const font = useSettingsStore((state) => state.preferences.streamFont)
+  const setFont = useSettingsStore((state) => state.setStreamFont)
   const setPracticeMode = useSettingsStore((state) => state.setPracticeMode)
   const setPracticeSeconds = useSettingsStore((state) => state.setPracticeSeconds)
 
@@ -403,6 +412,11 @@ export const GGTypingScreen = ({
           onHoverDifficultyChange={hover === null ? undefined : changeHoverDifficulty}
           size={size}
           onSizeChange={changeSize}
+          font={font}
+          onFontChange={(next) => {
+            void setFont(next)
+            focusInput()
+          }}
           shape={
             drillSequence === null && hover === null
               ? {
@@ -430,6 +444,10 @@ export const GGTypingScreen = ({
                   onNumbers: (on) => {
                     void setNumbers(on)
                   },
+                  vocabulary,
+                  onVocabulary: (next) => {
+                    void setVocabulary(next)
+                  },
                 }
               : null
           }
@@ -447,6 +465,7 @@ export const GGTypingScreen = ({
           engine={engine}
           text={target.text}
           size={size}
+          font={font}
           onActivate={focusInput}
           hover={hover ?? undefined}
           syllables={syllables}

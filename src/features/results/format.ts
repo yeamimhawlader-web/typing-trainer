@@ -85,6 +85,7 @@ export const formatMode = (session: TypingSession): string => {
 
 const SOURCE_LABELS: Record<string, string> = {
   'common-words': 'Common words',
+  'advanced-words': 'Advanced words',
   'syllable-words': 'Common words, in syllables',
   'golden-nuggets': 'Golden Nuggets',
 }

@@ -1,0 +1,69 @@
+/* The notice: a piece of glass above the bottom of the page, over the form. */
+.live {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 24px;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  padding-inline: var(--gg-gutter);
+  pointer-events: none;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 34rem;
+  margin: 0;
+  padding: 10px 10px 10px 18px;
+  border: 1px solid var(--gg-glass-border);
+  border-radius: var(--gg-radius-input);
+  background-color: var(--gg-glass-fill-strong);
+  box-shadow:
+    inset 0 1px 0 var(--gg-glass-highlight),
+    var(--gg-glass-depth),
+    var(--gg-glass-shadow-lifted);
+  backdrop-filter: var(--gg-glass-filter);
+  -webkit-backdrop-filter: var(--gg-glass-filter);
+  font-size: var(--gg-text-pill);
+  line-height: 1.5;
+  color: var(--gg-fg);
+  pointer-events: auto;
+  animation: arrive 320ms var(--gg-ease-out) both;
+}
+
+.dismiss {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--gg-radius-pill);
+  font-size: 1.125rem;
+  line-height: 1;
+  color: var(--gg-muted);
+}
+
+.dismiss:hover {
+  color: var(--gg-fg);
+}
+
+.dismiss:focus-visible {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 1px;
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice {
+    animation: none;
+  }
+}

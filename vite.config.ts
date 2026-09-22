@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url'
 
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import type { Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
@@ -20,9 +21,12 @@ const firstPaint = (): Plugin => ({
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), firstPaint()],
+  plugins: [react(), tailwindcss(), firstPaint()],
   resolve: {
     alias: {
+      // shadcn/ui's convention: components it adds, and ones written for it,
+      // import each other as '@/components/ui/…' and '@/lib/utils'.
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
       '@app': resolveSrc('app'),
       '@config': resolveSrc('config'),
       '@core': resolveSrc('core'),

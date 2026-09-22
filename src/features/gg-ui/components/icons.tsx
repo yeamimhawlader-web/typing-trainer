@@ -37,6 +37,14 @@ export const LogoGlyph = (props: IconProps) => (
   </Icon>
 )
 
+/** A person: the way in, for signing in. */
+export const SignInIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <circle cx="12" cy="8.5" r="3.5" />
+    <path d="M5.5 19.5c1.1-3.1 3.6-5 6.5-5s5.4 1.9 6.5 5" />
+  </Icon>
+)
+
 export const PaletteIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-1.3-1.1-1.6-1.1-2.7 0-1 .8-1.6 1.8-1.6h2.1c2.4 0 3.9-1.6 3.9-4C20.5 6.6 16.7 3.5 12 3.5Z" />

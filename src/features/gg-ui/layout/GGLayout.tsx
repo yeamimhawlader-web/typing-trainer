@@ -54,6 +54,11 @@ import { DEFAULT_THEME_ID, themeById, themeIdFromStored, type GGThemeId } from '
 
 import '@fontsource-variable/geist/wght.css'
 import '@fontsource-variable/geist-mono/wght.css'
+// Declared here, fetched only when used: a browser downloads a face the first
+// time text is set in it.
+import '@fontsource-variable/inter/wght.css'
+import '@fontsource-variable/lora/wght.css'
+import '@fontsource-variable/roboto-slab/wght.css'
 import '../styles/gg-foundation.css'
 import styles from './GGLayout.module.css'
 

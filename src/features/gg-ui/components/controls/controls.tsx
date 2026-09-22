@@ -25,6 +25,8 @@ export interface PillOption<T extends string | number> {
   readonly label: string
   /** Spoken name when the visible label is terse, e.g. "60 words" for "60". */
   readonly accessibleLabel?: string
+  /** A class for the label's face, where the label shows what it chooses — a typeface set in itself. */
+  readonly faceClassName?: string
 }
 
 export interface PillGroupProps<T extends string | number> {
@@ -59,7 +61,11 @@ export const PillGroup = <T extends string | number>({
           onChange={() => onChange(option.value)}
           aria-label={option.accessibleLabel}
         />
-        <span className={styles.pillFace} aria-hidden={option.accessibleLabel === undefined ? undefined : true}>
+        <span
+          className={option.faceClassName === undefined ? styles.pillFace : `${styles.pillFace} ${option.faceClassName}`}
+          aria-hidden={option.accessibleLabel === undefined ? undefined : true}
+          title={option.accessibleLabel}
+        >
           {option.label}
         </span>
       </label>

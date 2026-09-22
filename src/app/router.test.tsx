@@ -23,7 +23,7 @@ describe('application routes', () => {
     renderAt(ROUTES.home)
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Typing Trainer' }),
+      await screen.findByRole('heading', { level: 1, name: 'Hover Typing' }),
     ).toBeInTheDocument()
   })
 
@@ -59,10 +59,10 @@ describe('application routes', () => {
 
     expect(await screen.findByRole('region', { name: 'Words to type' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'Typing test' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'GG.Typing' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Hover Typing' })).toBeInTheDocument()
     // Its own top bar, not the application's navigation.
     expect(screen.queryByRole('navigation', { name: 'Primary' })).not.toBeInTheDocument()
-    expect(document.title).toBe('Typing Test · GG.Typing')
+    expect(document.title).toBe('Typing Test · Hover Typing')
   })
 
   it('renders a GG.Typing drill beneath it', async () => {
@@ -132,17 +132,17 @@ describe('getting around by keyboard', () => {
 
 describe('document titles', () => {
   it.each([
-    [ROUTES.home, 'Typing Trainer'],
-    [ROUTES.practice, 'Practice · Typing Trainer'],
-    [ROUTES.history, 'History · Typing Trainer'],
-    [ROUTES.statistics, 'Statistics · Typing Trainer'],
-    [ROUTES.settings, 'Settings · Typing Trainer'],
-    ['/no-such-page', 'Not found · Typing Trainer'],
-    ['/drill/in', 'Drill: in · Typing Trainer'],
-    ['/drill/zq', 'No drill for that sequence · Typing Trainer'],
-    [ROUTES.gg, 'Typing Test · GG.Typing'],
-    ['/gg/drill/in', 'Drill: in · GG.Typing'],
-    ['/gg/drill/zq', 'No drill for that sequence · GG.Typing'],
+    [ROUTES.home, 'Hover Typing'],
+    [ROUTES.practice, 'Practice · Hover Typing'],
+    [ROUTES.history, 'History · Hover Typing'],
+    [ROUTES.statistics, 'Statistics · Hover Typing'],
+    [ROUTES.settings, 'Settings · Hover Typing'],
+    ['/no-such-page', 'Not found · Hover Typing'],
+    ['/drill/in', 'Drill: in · Hover Typing'],
+    ['/drill/zq', 'No drill for that sequence · Hover Typing'],
+    [ROUTES.gg, 'Typing Test · Hover Typing'],
+    ['/gg/drill/in', 'Drill: in · Hover Typing'],
+    ['/gg/drill/zq', 'No drill for that sequence · Hover Typing'],
   ])('names the tab after the page at %s', async (path, title) => {
     renderAt(path)
 
@@ -155,13 +155,13 @@ describe('document titles', () => {
     const user = userEvent.setup()
     renderAt(ROUTES.statistics)
     await waitFor(() => {
-      expect(document.title).toBe('Statistics · Typing Trainer')
+      expect(document.title).toBe('Statistics · Hover Typing')
     })
 
     await user.click(screen.getByRole('link', { name: 'History' }))
 
     await waitFor(() => {
-      expect(document.title).toBe('History · Typing Trainer')
+      expect(document.title).toBe('History · Hover Typing')
     })
   })
 })

@@ -34,7 +34,17 @@ export type {
   PracticeWordCount,
   TextSize,
   SoundPreference,
+  StreamFont,
   ThemePreference,
   UserPreferences,
+  Vocabulary,
 } from './preferences.ts'
-export { HOVER_DIFFICULTIES, PACE_CHOICES, PRACTICE_MODES, PRACTICE_WORD_COUNTS, TEXT_SIZES } from './preferences.ts'
+export {
+  HOVER_DIFFICULTIES,
+  PACE_CHOICES,
+  PRACTICE_MODES,
+  PRACTICE_WORD_COUNTS,
+  STREAM_FONTS,
+  TEXT_SIZES,
+  VOCABULARIES,
+} from './preferences.ts'

@@ -12,6 +12,8 @@ const DEFAULTS: UserPreferences = {
   practiceMode: 'words',
   practiceSeconds: 30,
   textSize: 'sm',
+  streamFont: 'slab',
+  vocabulary: 'normal',
   hoverDifficulty: 'standard',
   sound: 'off',
   soundVolume: 100,
@@ -62,6 +64,8 @@ describe('settings store', () => {
       practiceMode: 'time',
       practiceSeconds: 45,
       textSize: 'lg',
+      streamFont: 'serif',
+      vocabulary: 'advanced',
       hoverDifficulty: 'tired',
       sound: 'click',
       soundVolume: 40,
@@ -79,6 +83,8 @@ describe('settings store', () => {
       practiceMode: 'time',
       practiceSeconds: 45,
       textSize: 'lg',
+      streamFont: 'serif',
+      vocabulary: 'advanced',
       hoverDifficulty: 'tired',
       sound: 'click',
       soundVolume: 40,
@@ -194,6 +200,8 @@ describe('settings store', () => {
     await store.getState().setPracticeSeconds(45)
     await store.getState().setPace('average')
     await store.getState().setPunctuation(true)
+    await store.getState().setStreamFont('sans')
+    await store.getState().setVocabulary('advanced')
 
     await expect(adapter.read(STORAGE_KEYS.preferences)).resolves.toEqual({
       theme: 'classic',
@@ -201,6 +209,8 @@ describe('settings store', () => {
       practiceMode: 'time',
       practiceSeconds: 45,
       textSize: 'xs',
+      streamFont: 'sans',
+      vocabulary: 'advanced',
       hoverDifficulty: 'tired',
       sound: 'cream',
       soundVolume: 55,
@@ -217,6 +227,8 @@ describe('settings store', () => {
       practiceMode: 'vibes',
       practiceSeconds: 9000,
       textSize: 'huge',
+      streamFont: 'comic-sans',
+      vocabulary: 'klingon',
       hoverDifficulty: 'exhausted',
       sound: 'bongos',
       soundVolume: 999,
@@ -229,6 +241,18 @@ describe('settings store', () => {
     await store.getState().hydrate()
 
     expect(store.getState().preferences).toEqual(DEFAULTS)
+  })
+
+  it('remembers the typeface and the vocabulary across a reload', async () => {
+    const store = createSettingsStore(adapter)
+    await store.getState().setStreamFont('mono')
+    await store.getState().setVocabulary('advanced')
+    const reloaded = createSettingsStore(adapter)
+
+    await reloaded.getState().hydrate()
+
+    expect(reloaded.getState().preferences.streamFont).toBe('mono')
+    expect(reloaded.getState().preferences.vocabulary).toBe('advanced')
   })
 
   it('remembers the pace chosen across a reload', async () => {

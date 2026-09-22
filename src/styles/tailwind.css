@@ -1,0 +1,153 @@
+/**
+ * Tailwind CSS, for the components in src/components/ui.
+ *
+ * The application styles itself with CSS modules and design tokens
+ * (index.css). Tailwind is here so that components written for shadcn/ui —
+ * added with its CLI (components.json) or pasted from galleries built on it —
+ * work as they were written. Three choices keep it from touching anything else:
+ *
+ *   - It reads only src/components/ui, and the pages that place those
+ *     components. No utility is generated for a class name nothing there uses,
+ *     so a stray word in the rest of the source cannot become a style.
+ *
+ *   - Its preflight (its reset) is left out. The application has its own,
+ *     reset.css, which already does most of what preflight does; the rest —
+ *     headings losing their size, every element losing its border and
+ *     padding — would change pages that count on the browser's defaults.
+ *     A component that relies on preflight for one of those states it
+ *     outright instead (the sign-in inputs carry `border-0`).
+ *
+ *   - Its utilities are not in a cascade layer. reset.css is unlayered, and an
+ *     unlayered `button { background: none }` beats a layered utility whatever
+ *     the utility's specificity — the sign-in button would lose its colour.
+ *     Unlayered, a utility (a class) wins over the reset (an element) on
+ *     specificity, as it would with preflight.
+ *
+ * Colours are the application's semantic tokens, so these components follow
+ * whichever theme is on: the GG theme inside the GG shell, which bridges the
+ * tokens to it (GGLayout.module.css), and the classic palette elsewhere. They
+ * are inlined into the utilities rather than kept as variables on :root, so
+ * each is read where it is used, inside the shell, and not fixed at the root.
+ * No literal colour here: the design-token guard (tokens.test.ts) reads this
+ * file too.
+ */
+
+@layer theme;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tw-animate-css';
+
+@tailwind utilities source(none);
+@source '../components/ui';
+@source '../features/gg-ui/pages/GGSignInPage.tsx';
+
+/* `dark:` follows the theme's scheme, which the settings keep on <html>. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  --color-background: var(--color-bg-base);
+  --color-foreground: var(--color-text-primary);
+  --color-card: var(--color-bg-raised);
+  --color-card-foreground: var(--color-text-primary);
+  --color-popover: var(--color-bg-raised);
+  --color-popover-foreground: var(--color-text-primary);
+  --color-muted: var(--color-bg-inset);
+  --color-muted-foreground: var(--color-text-secondary);
+  --color-primary: var(--color-accent-base);
+  --color-primary-foreground: var(--color-text-on-accent);
+  --color-secondary: var(--color-bg-hover);
+  --color-secondary-foreground: var(--color-text-primary);
+  --color-accent: var(--color-bg-hover);
+  --color-accent-foreground: var(--color-text-primary);
+  --color-destructive: var(--color-status-danger);
+  --color-border: var(--color-border-strong);
+  --color-input: var(--color-border-strong);
+  --color-ring: var(--color-accent-base);
+
+  --font-geist: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* --- The sign-in form's entrance ---------------------------------------- */
+/*
+ * Each part rises out of a slight blur in turn, the delays staggering them
+ * (`animate-delay-300` waits 300ms). With reduced motion everything is simply
+ * there.
+ */
+
+@keyframes fadeSlideIn {
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0px);
+  }
+}
+
+@keyframes slideRightIn {
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateX(0px);
+  }
+}
+
+@keyframes testimonialIn {
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0px) scale(1);
+  }
+}
+
+@utility animate-element {
+  opacity: 0;
+  filter: blur(4px);
+  transform: translateY(12px);
+  animation: fadeSlideIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    animation: none;
+  }
+}
+
+@utility animate-slide-right {
+  opacity: 0;
+  filter: blur(4px);
+  transform: translateX(-24px);
+  animation: slideRightIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    animation: none;
+  }
+}
+
+@utility animate-testimonial {
+  opacity: 0;
+  filter: blur(4px);
+  transform: translateY(16px) scale(0.96);
+  animation: testimonialIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    animation: none;
+  }
+}
+
+@utility animate-delay-* {
+  animation-delay: calc(--value(integer) * 1ms);
+}
+
+/* A native checkbox in the theme's accent: its own tick, its own focus. */
+@utility custom-checkbox {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  accent-color: var(--color-accent-base);
+  cursor: pointer;
+}

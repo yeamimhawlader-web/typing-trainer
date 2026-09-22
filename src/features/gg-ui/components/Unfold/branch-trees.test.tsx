@@ -117,6 +117,8 @@ const renderToolbar = (trees: BranchTrees = createBranchTrees()) => {
       onHoverDifficultyChange={onHoverDifficultyChange}
       size="sm"
       onSizeChange={() => undefined}
+      font="slab"
+      onFontChange={() => undefined}
       shape={null}
       sound="thock"
       onSoundChange={onSoundChange}

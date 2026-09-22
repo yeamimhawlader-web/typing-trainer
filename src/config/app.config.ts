@@ -19,13 +19,18 @@ export interface PersistenceConfig {
 }
 
 export interface AppConfig {
+  /**
+   * The name a typist sees: the top bars, every tab title. Code keeps its own
+   * names — `gg` for the typing shell, `typing-trainer` for storage keys, which
+   * stay as they are so nothing saved is lost.
+   */
   readonly appName: string
   readonly environment: Environment
   readonly persistence: PersistenceConfig
 }
 
 export const appConfig: AppConfig = {
-  appName: 'Typing Trainer',
+  appName: 'Hover Typing',
   environment: env.environment,
   persistence: {
     driver: env.persistenceDriver,

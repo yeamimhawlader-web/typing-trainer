@@ -40,7 +40,7 @@ describe('the first paint', () => {
   })
 
   it('stays dark for anyone who chose a dark theme, including the old "dark"', () => {
-    expect(darkThemeValues()).toEqual(['dark', 'default-dark', 'glow', 'valentine'])
+    expect(darkThemeValues()).toEqual(['dark', 'default-dark', 'glow', 'nord', 'midnight', 'valentine'])
     for (const theme of darkThemeValues()) {
       save({ theme })
       expect(run()).toBe('dark')

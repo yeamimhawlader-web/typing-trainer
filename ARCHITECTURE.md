@@ -80,6 +80,71 @@ Typing-specific tokens (`--color-char-*`, `--font-size-typing`, `--caret`) are
 first-class, not afterthoughts. They are the most-looked-at pixels in the
 product.
 
+### Tailwind only where shadcn components are
+
+The application is styled with CSS Modules and tokens. Tailwind v4 is here so
+components written for shadcn/ui work as written — the sign-in form
+(`src/components/ui/sign-in.tsx`) is the first — without Tailwind reaching the
+rest of the application:
+
+- **Scanned sources:** `source(none)`, then `@source` for `src/components/ui`
+  and the pages placing its components. No utility exists for a class name
+  anywhere else, so a word in some other file cannot become a style. Checked in
+  a browser: none of the elements across the ten existing routes carries a
+  Tailwind class.
+- **No preflight.** `reset.css` is the reset. Preflight's extra rules (headings
+  losing their size, every element losing its border and padding) would change
+  pages that rely on browser defaults.
+- **Unlayered utilities.** `reset.css` is unlayered, and an unlayered
+  `button { background: none }` beats any layered utility regardless of
+  specificity. Unlayered, a utility wins on specificity, as with preflight.
+- **Theme variables** that Tailwind puts on `:root` (in `@layer theme`) share
+  no name with a token here except the font weights, where the unlayered token
+  wins and the values agree.
+- **Colours** are shadcn's names mapped, inline, onto the semantic tokens, so
+  they are read where they are used — inside the GG shell, the GG theme.
+
+### One name for the typist, older names in the code
+
+The application is called Hover Typing — after Hover Mode, the thing it does
+that others don't. That name is `appConfig.appName`, and everything a typist
+reads takes it from there: both top bars, the home page, every tab title
+(`useDocumentTitle` and the shell's `useGGDocumentTitle` share it) and
+`index.html`'s title. The code's own names are left alone — renaming `gg`
+through a thousand identifiers would change nothing anyone sees — and so are
+the storage keys (`typing-trainer:v1:…`), because renaming those would lose
+every saved session.
+
+### The front page lists every way to practise
+
+`/` is where a shared link lands, so it lists the ways in — Typing Test, Hover
+Mode, the Syllable Trainer, Golden Nuggets, History and Statistics — in a
+hover list (`src/components/ui/interactive-list-preview.tsx`, animated with
+GSAP) that opens a photograph as each row is hovered or focused. The rows are
+data (`features/home/pages/ways-to-practise.ts`); the photographs are Unsplash's,
+loaded from its CDN. Each name is a plain link stretched over its row, so the
+component needs no router; the page hands a plain press on one to the router,
+and leaves a press meant for a new tab to the browser. On a touch screen the
+list is cards instead, photograph beside the words, and with reduced motion
+the photograph fades in rather than opening and following the pointer.
+
+### Eleven themes, one button to find them
+
+Four themes joined the seven — Lavender Sky and Mint (light), Nord and Midnight
+(dark) — each one object in `themes.ts`, each held by `themes.test.ts` to the same
+contrast floor as the rest, on the page and through its glass. The top bar's theme
+button is drawn to be found: a tinted pill with its name and the colours of the
+theme on now, rather than a grey icon.
+
+### Sign in, without accounts
+
+`/gg/sign-in` is the sign-in form as it will look. There are no accounts and no
+server, so every action on it shows one notice saying so, and the form is never
+submitted — left alone, a form with no action reloads the page with the email
+and password in its address. Practice needs no account: everything is kept in
+the browser. Testimonials, which the component supports, are left out: there is
+nobody to quote.
+
 ### Persistence is an interface, not a database
 
 `StorageAdapter` is a five-method key/value contract. Two adapters implement it

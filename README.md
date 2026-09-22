@@ -1,4 +1,9 @@
-# Typing Trainer
+# Hover Typing
+
+(Named after its Hover Mode. Inside the code the typing shell is still `gg` —
+`src/features/gg-ui`, `--gg-*` tokens, the `/gg` routes — and storage keys keep
+the old `typing-trainer` prefix, so nothing anyone has saved is lost. The name
+people see lives in one place: `appName` in `src/config/app.config.ts`.)
 
 A typing-training platform built for daily deliberate practice.
 

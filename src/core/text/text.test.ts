@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { ADVANCED_WORDS } from './advanced-words.ts'
 import { createWordText } from './generator.ts'
 import { createCommonWordsProvider } from './providers/common-words.provider.ts'
 import { COMMON_WORDS } from './word-list.ts'
@@ -100,7 +101,46 @@ describe('COMMON_WORDS', () => {
   })
 })
 
+describe('ADVANCED_WORDS', () => {
+  it('is a vocabulary of its own: large, plain, without repeats', () => {
+    expect(ADVANCED_WORDS.length).toBeGreaterThan(1000)
+    for (const word of ADVANCED_WORDS) expect(word).toMatch(/^[a-z]+$/u)
+    expect(ADVANCED_WORDS.filter((word, index) => ADVANCED_WORDS.indexOf(word) !== index)).toEqual([])
+  })
+
+  it('shares no word with the normal vocabulary: choosing it is choosing different words', () => {
+    const normal = new Set(COMMON_WORDS)
+
+    expect(ADVANCED_WORDS.filter((word) => normal.has(word))).toEqual([])
+  })
+
+  it('is longer words than the normal vocabulary, by half again on average', () => {
+    const mean = (words: readonly string[]) => words.reduce((sum, word) => sum + word.length, 0) / words.length
+
+    expect(mean(ADVANCED_WORDS)).toBeGreaterThan(mean(COMMON_WORDS) * 1.5)
+  })
+})
+
 describe('common words provider', () => {
+  it('gives advanced words when asked, as a source of its own that history can tell apart', () => {
+    const provider = createCommonWordsProvider({ vocabulary: 'advanced' })
+    const advanced = new Set(ADVANCED_WORDS)
+
+    const target = provider.provide({ wordCount: 40 })
+
+    expect(target.text.split(' ').every((word) => advanced.has(word))).toBe(true)
+    expect(target.sourceId).toBe('advanced-words')
+    expect(provider.label).toBe('Advanced words')
+    expect(createCommonWordsProvider({ vocabulary: 'advanced', punctuation: true }).label).toBe(
+      'Advanced words, with punctuation',
+    )
+  })
+
+  it('stays on the normal vocabulary unless asked', () => {
+    expect(createCommonWordsProvider({ vocabulary: 'normal' }).id).toBe('common-words')
+    expect(createCommonWordsProvider().label).toBe('Common words')
+  })
+
   it('returns a target the engine can accept', () => {
     const provider = createCommonWordsProvider()
 

@@ -5,8 +5,32 @@
  */
 .block {
   height: var(--gg-stream-block);
-  font-family: var(--gg-font-mono);
+  font-family: var(--gg-stream-font, var(--gg-font-mono));
+  font-weight: var(--gg-stream-weight, 400);
   cursor: text;
+}
+
+/*
+ * The typefaces (gg-foundation.css names them). The slab is set light and a
+ * little open, as the words read best at speed in it; the others at their
+ * regular weight. Each keeps the block's height and lines: only the letters
+ * change.
+ */
+.block[data-font='slab'] {
+  --gg-stream-font: var(--gg-font-slab);
+  --gg-stream-weight: 340;
+}
+
+.block[data-font='mono'] {
+  --gg-stream-font: var(--gg-font-mono);
+}
+
+.block[data-font='sans'] {
+  --gg-stream-font: var(--gg-font-sans);
+}
+
+.block[data-font='serif'] {
+  --gg-stream-font: var(--gg-font-serif);
 }
 
 .block[data-size='xs'] {

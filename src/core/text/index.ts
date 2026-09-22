@@ -9,6 +9,7 @@
 export type { TextProvider, TextRequest } from './types.ts'
 
 export {
+  ADVANCED_WORDS_PROVIDER_ID,
   COMMON_WORDS_PROVIDER_ID,
   createCommonWordsProvider,
 } from './providers/common-words.provider.ts'
@@ -45,3 +46,4 @@ export {
 export type { DrillOptions, DrillPlan, DrillProvider } from './drill.ts'
 
 export { COMMON_WORDS } from './word-list.ts'
+export { ADVANCED_WORDS } from './advanced-words.ts'
