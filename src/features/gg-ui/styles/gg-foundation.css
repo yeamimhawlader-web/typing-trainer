@@ -80,6 +80,43 @@
   ),
   linear-gradient(to top, var(--gg-glass-surface-tint), transparent 70%);
 
+  /*
+   * Liquid glass — the controls' material: every button, node, branch and
+   * chosen pill (after src/components/ui/liquid-glass-button.tsx). A nearly
+   * clear lens whose rim catches the light, sharp along its edges and softly
+   * darker just inside them. The rim is drawn in the theme's own text colour,
+   * so it is dark on a light page and light on a dark one, as the button's is
+   * in each scheme. The accent lights a chosen one from within.
+   *
+   * Two rims: the button's own, for the tall branches, and a finer one for
+   * controls a pill high, where the full rim would fill the whole face.
+   */
+  --gg-liquid-edge: var(--gg-fg);
+  --gg-liquid-fill: color-mix(in oklab, var(--gg-surface) 45%, transparent);
+  --gg-liquid-fill-strong: color-mix(in oklab, var(--gg-surface) 75%, transparent);
+  --gg-liquid-fill-chosen: color-mix(in oklab, var(--gg-accent) 12%, var(--gg-liquid-fill-strong));
+  --gg-liquid-rim:
+    inset 3px 3px 0.5px -3px color-mix(in oklab, var(--gg-liquid-edge) 90%, transparent),
+    inset -3px -3px 0.5px -3px color-mix(in oklab, var(--gg-liquid-edge) 85%, transparent),
+    inset 1px 1px 1px -0.5px color-mix(in oklab, var(--gg-liquid-edge) 60%, transparent),
+    inset -1px -1px 1px -0.5px color-mix(in oklab, var(--gg-liquid-edge) 60%, transparent),
+    inset 0 0 6px 6px color-mix(in oklab, var(--gg-liquid-edge) 12%, transparent),
+    inset 0 0 2px 2px color-mix(in oklab, var(--gg-liquid-edge) 6%, transparent);
+  --gg-liquid-rim-fine:
+    inset 2px 2px 0.5px -2px color-mix(in oklab, var(--gg-liquid-edge) 80%, transparent),
+    inset -2px -2px 0.5px -2px color-mix(in oklab, var(--gg-liquid-edge) 75%, transparent),
+    inset 1px 1px 1px -0.5px color-mix(in oklab, var(--gg-liquid-edge) 45%, transparent),
+    inset -1px -1px 1px -0.5px color-mix(in oklab, var(--gg-liquid-edge) 45%, transparent),
+    inset 0 0 3px 2px color-mix(in oklab, var(--gg-liquid-edge) 8%, transparent),
+    inset 0 0 1px 1px color-mix(in oklab, var(--gg-liquid-edge) 5%, transparent);
+  /* Set on the page, not printed on it: a breath of shade under, light around. */
+  --gg-liquid-lift:
+    0 0 6px color-mix(in oklab, var(--gg-glass-shade) 3%, transparent),
+    0 2px 6px color-mix(in oklab, var(--gg-glass-shade) 8%, transparent),
+    0 0 12px var(--gg-glass-highlight);
+  --gg-liquid-shadow: var(--gg-liquid-rim), var(--gg-liquid-lift);
+  --gg-liquid-shadow-fine: var(--gg-liquid-rim-fine), var(--gg-liquid-lift);
+
   /* The page's light: a soft glow from above and a warm trace low in one corner.
      Zero in themes with no ambient light, and never under the contrast floors. */
   --gg-atmosphere:
@@ -176,6 +213,8 @@
     --gg-glass-fill: var(--gg-surface);
     --gg-glass-fill-strong: var(--gg-surface);
     --gg-glass-filter: none;
+    --gg-liquid-fill: var(--gg-surface);
+    --gg-liquid-fill-strong: var(--gg-surface);
   }
 }
 

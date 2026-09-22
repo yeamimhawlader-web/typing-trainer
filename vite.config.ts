@@ -87,6 +87,7 @@ export default defineConfig({
             'src/app/**/*.test.{ts,tsx}',
             'src/features/**/*.test.{ts,tsx}',
             'src/shared/**/*.test.{ts,tsx}',
+            'src/components/**/*.test.{ts,tsx}',
           ],
         },
       },

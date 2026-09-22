@@ -5,8 +5,22 @@
 }
 
 .range {
+  /*
+   * Liquid glass (after src/components/ui/liquid-glass-button.tsx): a rim that
+   * catches the light, drawn in the text colour — dark on a light page, light
+   * on a dark one. Declared here, on the control, so it takes the text colour
+   * the control sits in: inside the GG shell, the theme's (GGLayout.module.css).
+   */
+  --liquid-rim:
+    inset 2px 2px 0.5px -2px color-mix(in oklab, var(--color-text-primary) 80%, transparent),
+    inset -2px -2px 0.5px -2px color-mix(in oklab, var(--color-text-primary) 75%, transparent),
+    inset 1px 1px 1px -0.5px color-mix(in oklab, var(--color-text-primary) 45%, transparent),
+    inset -1px -1px 1px -0.5px color-mix(in oklab, var(--color-text-primary) 45%, transparent),
+    inset 0 0 3px 2px color-mix(in oklab, var(--color-text-primary) 8%, transparent),
+    0 2px 6px color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+
   padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   font-size: var(--font-size-sm);
   color: var(--color-text-tertiary);
   transition: color var(--duration-fast) var(--ease-standard);
@@ -16,8 +30,10 @@
   color: var(--color-text-primary);
 }
 
+/* The range shown: a piece of liquid glass. */
 .rangeSelected {
   color: var(--color-accent-base);
+  box-shadow: var(--liquid-rim);
 }
 
 /* --- Headline ------------------------------------------------------------ */

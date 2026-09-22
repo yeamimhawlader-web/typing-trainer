@@ -28,15 +28,15 @@
   border-radius: var(--gg-radius-full);
 }
 
+/* Liquid glass (gg-foundation.css): nearly clear, its rim catching the light.
+   The border stays, transparent, so every piece keeps the size the unfolding
+   measured. */
 .nodeGlass,
 .glass {
   position: relative;
-  background-color: var(--gg-glass-fill);
-  border: 1px solid var(--gg-glass-border);
-  box-shadow:
-    inset 0 1px 0 var(--gg-glass-highlight),
-    var(--gg-glass-depth),
-    var(--gg-glass-shadow);
+  background-color: var(--gg-liquid-fill);
+  border: 1px solid transparent;
+  box-shadow: var(--gg-liquid-shadow-fine);
   backdrop-filter: var(--gg-glass-filter);
   -webkit-backdrop-filter: var(--gg-glass-filter);
   transition: transform var(--gg-duration-touch) var(--gg-ease-touch);
@@ -133,7 +133,7 @@
 }
 
 .node[data-open='true'] .nodeGlass {
-  background-color: var(--gg-glass-fill-strong);
+  background-color: var(--gg-liquid-fill-chosen);
   color: var(--gg-fg);
   font-weight: var(--font-weight-semibold);
 }
@@ -260,7 +260,9 @@
   cursor: pointer;
 }
 
+/* A branch is as tall as the button the rim was drawn for: the full rim. */
 .glass {
+  box-shadow: var(--gg-liquid-shadow);
   display: flex;
   flex: 1;
   align-items: center;
@@ -360,8 +362,7 @@
 /* --- Chosen ----------------------------------------------------------- */
 
 .nativeInput:checked + .glass {
-  background-color: var(--gg-glass-fill-strong);
-  border-color: var(--gg-glass-active-border);
+  background-color: var(--gg-liquid-fill-strong);
 }
 
 .nativeInput:checked + .glass .light {

@@ -343,6 +343,10 @@ The chrome is set in Inter, plain and light.
 **Caps Lock.** Every key is compared exactly, so the field says when Caps Lock is
 on — a small note in its corner, spoken once — the moment the keyboard reports it.
 
+**Liquid glass.** Every control is a nearly clear lens with a rim that catches the
+light, in the theme's own text colour. Buttons are always glass; a choice is glass
+when chosen or pointed at, and plain text otherwise (ARCHITECTURE.md).
+
 **The toolbar.** Two rows: the glass on the first — the modes on the left, Pace and
 Sound on the right — and the test's own settings on the second. A branch tree
 unfolds between them, under the nodes it grows from. On a phone the nodes stack.

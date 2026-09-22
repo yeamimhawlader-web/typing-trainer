@@ -136,6 +136,34 @@ contrast floor as the rest, on the page and through its glass. The top bar's the
 button is drawn to be found: a tinted pill with its name and the colours of the
 theme on now, rather than a grey icon.
 
+### Liquid glass on every control
+
+Every button is liquid glass, after `src/components/ui/liquid-glass-button.tsx`:
+a nearly clear lens whose rim catches the light. Inside the GG shell it is a
+material in `gg-foundation.css` (`--gg-liquid-*`), built like the rest of the
+glass from the theme's six colours — the rim is drawn in the text colour, so it
+is dark on a light theme and light on a dark one, as the button's own rim is in
+each scheme — and used by the pills, toggles, icon buttons, nodes and branches.
+Buttons that act (restart, settings, Sign in, Themes, the nodes) are always
+glass; choices are glass when chosen or pointed at, and text otherwise. Outside
+the shell, the application's shared `Button` carries the same rim drawn from the
+classic tokens. The front page's and the sign-in form's buttons are the
+component itself. Checked in a browser: typing holds 60 frames a second with it.
+
+The component as published could not be a link (`asChild` put several children
+into a Slot that takes one); it uses Radix's `Slottable` for that now, and its
+distortion layer follows the rim's shape rather than a square's.
+
+### The front page opens through a letter
+
+The front page's opening is a Glyph Portal (`src/components/ui/glyph-portal.tsx`):
+HOVER, set large in Inter Black, is a window onto keycaps, and scrolling flies
+into one of its letters until the page is inside it — what the application is
+for, and the way to start. Pointing at a letter first chooses the one to go in by.
+It measures the letters' ink, so it is mounted once the face has loaded; before
+that, and wherever it cannot run (tests have no layout), the same words stand
+still. Its colours are the page's tokens with paper and ink swapped inside.
+
 ### Sign in, without accounts
 
 `/gg/sign-in` is the sign-in form as it will look. There are no accounts and no

@@ -6,13 +6,14 @@
  * (::before) whose opacity fades — transform and opacity only, on the
  * compositor, inside the 150ms hover budget.
  *
- * A chosen pill is a small piece of glass: the same material as the nodes,
- * lifted off the page by its edge, its top light and a shadow no one would
- * notice missing — so what is on reads as an object, and what is not stays
- * text. A press gives a little under the finger, on the touch spring.
+ * Every control is liquid glass (gg-foundation.css): an icon button always,
+ * a pill when it is chosen or pointed at — so what is on reads as an object,
+ * and what is not stays text until the pointer asks. The glass is a layer
+ * (::before) whose opacity fades; its colours never animate. A press gives a
+ * little under the finger, on the touch spring.
  */
 
-/* --- Shared tint layer ------------------------------------------------ */
+/* --- Shared glass layer ----------------------------------------------- */
 
 .pillFace::before,
 .iconCircle::before {
@@ -20,10 +21,18 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background-color: var(--gg-accent-tint);
+  background-color: var(--gg-liquid-fill-chosen);
+  box-shadow: var(--gg-liquid-shadow-fine);
   opacity: 0;
   transition: opacity var(--gg-duration-hover) var(--gg-ease-out);
   pointer-events: none;
+  /* Behind the label, inside the control: the face isolates it (below). */
+  z-index: -1;
+}
+
+.pillFace,
+.iconCircle {
+  isolation: isolate;
 }
 
 /* --- Pill: text until active ----------------------------------------- */
@@ -72,16 +81,10 @@
 .nativeInput:checked + .pillFace {
   color: var(--gg-fg);
   font-weight: var(--font-weight-semibold);
-  background-color: var(--gg-glass-fill-strong);
-  box-shadow:
-    inset 0 0 0 1px var(--gg-glass-border),
-    inset 0 1px 0 var(--gg-glass-highlight),
-    var(--gg-glass-depth),
-    var(--gg-glass-shadow);
 }
 
 .nativeInput:checked + .pillFace::before {
-  opacity: 0.6;
+  opacity: 1;
 }
 
 .pill:active .pillFace,
@@ -114,16 +117,10 @@
 .pillLink[aria-current='page'] .pillFace {
   color: var(--gg-fg);
   font-weight: var(--font-weight-semibold);
-  background-color: var(--gg-glass-fill-strong);
-  box-shadow:
-    inset 0 0 0 1px var(--gg-glass-border),
-    inset 0 1px 0 var(--gg-glass-highlight),
-    var(--gg-glass-depth),
-    var(--gg-glass-shadow);
 }
 
 .pillLink[aria-current='page'] .pillFace::before {
-  opacity: 0.6;
+  opacity: 1;
 }
 
 .pillLink:focus-visible {
@@ -154,6 +151,18 @@
   position: relative;
 }
 
+/* A button, not a choice: its glass is always there, clear until it is used. */
+.iconCircle::before {
+  background-color: var(--gg-liquid-fill);
+  opacity: 1;
+}
+
+.iconCircle:hover::before,
+.iconCircle[aria-pressed='true']::before,
+.iconCircle[aria-expanded='true']::before {
+  background-color: var(--gg-liquid-fill-chosen);
+}
+
 .iconCircle:active {
   transform: scale(0.92);
 }
@@ -168,10 +177,6 @@
 
 .iconCircle:hover {
   color: var(--gg-fg);
-}
-
-.iconCircle:hover::before {
-  opacity: 0.45;
 }
 
 .iconCircle[aria-pressed='true'],

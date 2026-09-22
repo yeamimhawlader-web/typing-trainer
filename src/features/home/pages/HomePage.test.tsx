@@ -37,6 +37,16 @@ const renderHome = () =>
 const ways = () => within(screen.getByRole('region', { name: 'Ways to practise' }))
 
 describe('the front page', () => {
+  it('opens with its name and a way in, a button of liquid glass, where the portal cannot run', () => {
+    // jsdom has no layout or font loading, so the opening stands still here.
+    renderHome()
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Hover Typing' })).toBeInTheDocument()
+    const start = screen.getByRole('link', { name: 'Start practising' })
+    expect(start).toHaveAttribute('href', ROUTES.gg)
+    expect(start).toHaveAttribute('data-slot', 'button')
+  })
+
   it('lists every way to practise, each leading to its own page', () => {
     renderHome()
 

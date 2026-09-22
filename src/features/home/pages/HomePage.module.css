@@ -1,23 +1,8 @@
-.actions {
+/* The page's rhythm, as the shared page frame keeps it: one column, well spaced. */
+.page {
   display: flex;
-  gap: var(--space-3);
-  align-items: center;
-}
-
-.cta {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--space-3) var(--space-6);
-  border-radius: var(--radius-md);
-  background-color: var(--color-accent-base);
-  color: var(--color-text-on-accent);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
-  transition: background-color var(--duration-fast) var(--ease-standard);
-}
-
-.cta:hover {
-  background-color: var(--color-accent-hover);
+  flex-direction: column;
+  gap: var(--space-12);
 }
 
 .note {
@@ -44,4 +29,10 @@
   letter-spacing: var(--letter-spacing-wide);
   text-transform: uppercase;
   color: var(--color-text-secondary);
+}
+
+/* Rounded like the opening above it. */
+.list {
+  border-radius: var(--radius-xl);
+  overflow: clip;
 }

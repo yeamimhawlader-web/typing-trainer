@@ -1,0 +1,154 @@
+/*
+ * The front page's opening. The portal's layers (glyph-portal.tsx) are
+ * positioned against the word it measures: --gp-word-top and --gp-word-bottom
+ * are where HOVER's ink begins and ends.
+ */
+
+/* A piece of the page with rounded corners, not the page's full width. */
+.portal {
+  border-radius: var(--radius-xl);
+  overflow: clip;
+}
+
+/* What the letters are windows onto: keycaps, under the ink colour. */
+.field {
+  position: absolute;
+  inset: 0;
+  transform: scale(var(--gp-field-scale, 1));
+  background-image:
+    linear-gradient(
+      color-mix(in oklab, var(--color-text-primary) 70%, transparent),
+      color-mix(in oklab, var(--color-text-primary) 86%, transparent)
+    ),
+    var(--hero-photo);
+  background-size: cover;
+  background-position: center;
+}
+
+/* --- The opening frame ------------------------------------------------ */
+
+.title {
+  position: absolute;
+  inset: auto 24px calc(100% - var(--gp-word-top, 35%) + 28px);
+  margin: 0;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.support {
+  position: absolute;
+  inset: calc(var(--gp-word-bottom, 50%) + 28px) 24px auto;
+  margin: 0;
+  text-align: center;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-secondary);
+}
+
+.start {
+  position: absolute;
+  inset: calc(var(--gp-word-bottom, 50%) + 76px) 0 auto;
+  display: flex;
+  justify-content: center;
+}
+
+/* --- Inside ------------------------------------------------------------- */
+
+.inside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-8);
+  width: min(100%, 60rem);
+  margin: auto;
+}
+
+.insideTitle {
+  margin: 0;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-tight);
+  color: inherit;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-8);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feature {
+  padding-top: var(--space-4);
+  border-top: var(--border-width-thin) solid color-mix(in oklab, currentColor 28%, transparent);
+}
+
+.featureName {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: inherit;
+}
+
+.featureNumber {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
+.featureText {
+  margin: var(--space-2) 0 0;
+  line-height: var(--line-height-normal);
+  opacity: 0.85;
+}
+
+.insideLink {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.insideLink:hover {
+  text-decoration-thickness: 2px;
+}
+
+@media (max-width: 48rem) {
+  .features {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Standing still ----------------------------------------------------- */
+
+.still {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: var(--layout-reading-width);
+}
+
+.stillTitle {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.stillLede {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-secondary);
+}

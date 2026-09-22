@@ -40,7 +40,9 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: var(--gg-radius-pill);
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-liquid-fill);
+  box-shadow: var(--gg-liquid-shadow-fine);
   font-size: 1.125rem;
   line-height: 1;
   color: var(--gg-muted);

@@ -1,6 +1,7 @@
 import React, { useId, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
+import { LiquidButton } from '@/components/ui/liquid-glass-button';
 import { cn } from '@/lib/utils';
 
 // --- HELPER COMPONENTS (ICONS) ---
@@ -113,9 +114,9 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                 <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-primary transition-colors">Reset password</a>
               </div>
 
-              <button type="submit" className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
+              <LiquidButton type="submit" size="xl" className="animate-element animate-delay-600 w-full rounded-full bg-primary font-medium text-primary-foreground hover:bg-primary/90">
                 Sign In
-              </button>
+              </LiquidButton>
             </form>
 
             <div className="animate-element animate-delay-700 relative flex items-center justify-center">
@@ -123,10 +124,12 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               <span className="px-4 text-sm text-muted-foreground bg-background absolute">Or continue with</span>
             </div>
 
-            <button type="button" onClick={onGoogleSignIn} className="animate-element animate-delay-800 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-4 hover:bg-secondary transition-colors">
-                <GoogleIcon />
-                Continue with Google
-            </button>
+            <LiquidButton type="button" size="xl" onClick={onGoogleSignIn} className="animate-element animate-delay-800 w-full rounded-full text-foreground">
+                <span className="flex items-center justify-center gap-3">
+                  <GoogleIcon />
+                  Continue with Google
+                </span>
+            </LiquidButton>
 
             <p className="animate-element animate-delay-900 text-center text-sm text-muted-foreground">
               New to our platform? <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-primary hover:underline transition-colors">Create Account</a>
