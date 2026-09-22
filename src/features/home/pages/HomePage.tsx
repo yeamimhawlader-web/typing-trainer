@@ -43,8 +43,9 @@ export const HomePage = () => {
         <h2 id="ways-to-practise" className={styles.waysTitle}>
           Ways to practise
         </h2>
+        <p className={styles.waysLede}>Six ways in. Point at one to see it.</p>
         <div onClick={goInside} className={styles.list}>
-          <InteractiveListPreview items={WAYS_TO_PRACTISE} imageSize={0.62} />
+          <InteractiveListPreview items={WAYS_TO_PRACTISE} imageSize={0.95} />
         </div>
       </section>
 

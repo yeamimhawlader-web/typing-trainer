@@ -460,7 +460,7 @@ export default function InteractiveListPreview({
                   onFocus={(event) => onRowEnter(event.currentTarget, index)}
                   onBlur={() => onRowLeave(index)}
                 >
-                  <td className="overflow-hidden text-ellipsis whitespace-nowrap px-6 py-3 text-xs uppercase tracking-widest">
+                  <td className="overflow-hidden text-ellipsis whitespace-nowrap px-8 py-5 text-sm uppercase tracking-widest">
                     {item.href ? (
                       <a href={item.href} className={`${STRETCHED_LINK} focus-visible:outline-none`}>
                         {item.client}
@@ -470,15 +470,15 @@ export default function InteractiveListPreview({
                     )}
                   </td>
 
-                  <td className="overflow-hidden text-ellipsis whitespace-nowrap px-6 py-3 text-xs uppercase tracking-widest">
+                  <td className="overflow-hidden text-ellipsis whitespace-nowrap px-8 py-5 text-sm uppercase tracking-widest">
                     {item.platform}
                   </td>
 
-                  <td className="whitespace-nowrap px-6 py-3 text-center text-xs uppercase tracking-widest">
+                  <td className="whitespace-nowrap px-8 py-5 text-center text-sm uppercase tracking-widest">
 
                   </td>
 
-                  <td className="overflow-hidden text-ellipsis whitespace-nowrap px-6 py-3 text-xs uppercase tracking-widest">
+                  <td className="overflow-hidden text-ellipsis whitespace-nowrap px-8 py-5 text-sm uppercase tracking-widest">
                     {item.services}
                   </td>
                 </tr>

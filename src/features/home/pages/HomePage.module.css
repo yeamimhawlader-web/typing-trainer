@@ -24,10 +24,16 @@
 }
 
 .waysTitle {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: var(--letter-spacing-wide);
-  text-transform: uppercase;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-text-primary);
+}
+
+.waysLede {
+  margin-top: calc(-1 * var(--space-1));
+  font-size: var(--font-size-md);
   color: var(--color-text-secondary);
 }
 

@@ -43,8 +43,8 @@ export const SettingsPage = () => {
         </div>
 
         <p className={styles.hint}>
-          Dark is the default: this is a tool for long, focused sessions. The same
-          themes are in the palette on the typing screen.
+          Classic Milk is the default. The same themes are in the palette in the
+          top bar, on every page.
         </p>
       </fieldset>
     </Page>

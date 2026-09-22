@@ -136,6 +136,16 @@ contrast floor as the rest, on the page and through its glass. The top bar's the
 button is drawn to be found: a tinted pill with its name and the colours of the
 theme on now, rather than a grey icon.
 
+### One shell, every page
+
+The shell's route has no path of its own and every page is a child of it, so
+moving between the front page, the typing screens, history, statistics and
+settings never replaces it: the theme is applied once and stays, and the chrome
+never changes shape. The application's older pages keep their own markup and
+tokens, and the shell's token bridge (GGLayout.module.css) draws them in the
+theme. The classic shell that used to hold them is gone; its skip link is in
+this one.
+
 ### Liquid glass on every control
 
 Every button is liquid glass, after `src/components/ui/liquid-glass-button.tsx`:
@@ -947,13 +957,13 @@ future effects have a pattern to copy. The conventions are in
 
 ### GG.Typing is a second presentation of the same typing session
 
-`@features/gg-ui` is the GG.Typing interface: a shell (top bar, theme panel) at
-`/gg`, outside `AppLayout`, around a typing screen (control row, toolbar, word
-stream, input), with practice at `/gg` and drills at `/gg/drill/:sequence`.
-Every link to practice or to a drill leads there. The classic practice and drill
-screens stay at `/practice` and `/drill/:sequence`, and history, statistics,
-session detail and settings are the application's own pages, reached from the
-shell rather than rebuilt in it. Its token plan is in
+`@features/gg-ui` is the interface: one shell (top bar, theme panel) around
+every page, and a typing screen (control row, toolbar, word stream, input) with
+practice at `/gg` and drills at `/gg/drill/:sequence`. Every link to practice or
+to a drill leads there. The classic practice and drill screens stay at
+`/practice` and `/drill/:sequence`, and history, statistics, session detail and
+settings are the application's own pages — drawn in the classic tokens the shell
+maps onto the theme, so they are inside it rather than beside it. Its token plan is in
 `src/features/gg-ui/TOKEN_PLAN.md`.
 
 - **One session, two screens.** `useTypingScreen` composes the session, text

@@ -1,6 +1,11 @@
 /**
- * The GG.Typing shell around its routes: top bar, the routed page, and the
- * theme panel.
+ * The shell around every page: top bar, the routed page, and the theme panel.
+ *
+ * One shell for the whole application — the front page, the typing screens,
+ * history, statistics and settings — so the chrome, the theme and the glass are
+ * the same wherever anyone is. The pages that predate it are drawn in the
+ * application's classic tokens, which this shell maps onto the theme (below),
+ * so they arrive themed without a line of their own changing.
  *
  * ## The theme is a preference
  *
@@ -62,6 +67,8 @@ import '@fontsource-variable/roboto-slab/wght.css'
 import '../styles/gg-foundation.css'
 import styles from './GGLayout.module.css'
 
+const MAIN_ID = 'main-content'
+
 export const GGLayout = () => {
   const ready = useSettingsStore((state) => state.status === 'ready')
   const themeId = useSettingsStore((state) => themeIdFromStored(state.preferences.theme) ?? DEFAULT_THEME_ID)
@@ -101,7 +108,7 @@ export const GGLayout = () => {
     if (ready) applyTheme(themeById(themeId))
   }, [ready, themeId])
 
-  useEffect(() => () => removeTheme(), [])
+  useLayoutEffect(() => () => removeTheme(), [])
 
   const selectTheme = useCallback(
     (id: GGThemeId) => {
@@ -133,9 +140,24 @@ export const GGLayout = () => {
       <TypingFocusContext value={typingFocus}>
       <div ref={attachApp} className={styles.app}>
         <div inert={themesOpen}>
+          {/* First in the tab order, hidden until focused, so a keyboard user can
+              pass the bar's links on every page. Focus is moved by hand rather
+              than by following the fragment, which the router would read as a
+              navigation. */}
+          <a
+            href={`#${MAIN_ID}`}
+            className={styles.skipLink}
+            onClick={(event) => {
+              event.preventDefault()
+              document.getElementById(MAIN_ID)?.focus()
+            }}
+          >
+            Skip to content
+          </a>
+
           <TopBar themesOpen={themesOpen} onOpenThemes={() => setThemesOpen(true)} themesButtonRef={themesButton} />
 
-          <main className={styles.main}>
+          <main id={MAIN_ID} tabIndex={-1} className={styles.main}>
             <Outlet />
           </main>
         </div>

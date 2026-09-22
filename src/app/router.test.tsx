@@ -54,14 +54,13 @@ describe('application routes', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders GG.Typing practice at its own route, outside the application layout', async () => {
+  it('renders the typing test at its own route, in the one shell', async () => {
     renderAt(ROUTES.gg)
 
     expect(await screen.findByRole('region', { name: 'Words to type' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: 'Typing test' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Hover Typing' })).toBeInTheDocument()
-    // Its own top bar, not the application's navigation.
-    expect(screen.queryByRole('navigation', { name: 'Primary' })).not.toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
     expect(document.title).toBe('Typing Test · Hover Typing')
   })
 
@@ -85,18 +84,26 @@ describe('application routes', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Drill: in' })).toBeInTheDocument()
   })
 
-  it('leads every way into practice to GG.Typing', async () => {
+  it('leads every way into practice to the typing test', async () => {
     renderAt(ROUTES.history)
 
-    const nav = await screen.findByRole('navigation', { name: 'Primary' })
-    expect(within(nav).getByRole('link', { name: 'Practice' })).toHaveAttribute('href', '/gg')
+    const nav = await screen.findByRole('navigation', { name: 'Main' })
+    expect(within(nav).getByRole('link', { name: 'Typing Test' })).toHaveAttribute('href', '/gg')
   })
 
-  it('keeps the primary navigation on every page', async () => {
-    renderAt(ROUTES.practice)
+  it('keeps one shell, and its bar, on every page', async () => {
+    const onEveryPage = async (path: string) => {
+      const { unmount } = renderAt(path)
 
-    const nav = await screen.findByRole('navigation', { name: 'Primary' })
-    expect(nav).toBeInTheDocument()
+      expect(await screen.findByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Hover Typing' })).toBeInTheDocument()
+      unmount()
+    }
+
+    await [ROUTES.home, ROUTES.gg, ROUTES.history, ROUTES.statistics, ROUTES.settings].reduce(
+      (waiting: Promise<void>, path) => waiting.then(() => onEveryPage(path)),
+      Promise.resolve(),
+    )
   })
 })
 
@@ -123,7 +130,7 @@ describe('getting around by keyboard', () => {
 
     await user.tab()
 
-    expect(screen.getByRole('navigation', { name: 'Primary' })).not.toContainElement(
+    expect(screen.getByRole('navigation', { name: 'Main' })).not.toContainElement(
       document.activeElement as HTMLElement,
     )
     expect(screen.getByRole('main')).toContainElement(document.activeElement as HTMLElement)

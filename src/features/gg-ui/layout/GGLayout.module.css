@@ -97,6 +97,31 @@
   background-color: var(--gg-accent-tint-strong);
 }
 
+/* Off screen until it has keyboard focus, then over the bar's top-left corner. */
+.skipLink {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 40;
+  padding: 8px 12px;
+  border-radius: var(--gg-radius-pill);
+  background-color: var(--gg-surface);
+  box-shadow: var(--gg-liquid-shadow-fine);
+  font-size: var(--gg-text-pill);
+  color: var(--gg-fg);
+  transform: translateY(-200%);
+}
+
+.skipLink:focus {
+  transform: none;
+}
+
+/* The landing point for the skip link, not a control: the next Tab lands on
+   the page's first real control, which shows its own focus. */
+.main:focus {
+  outline: none;
+}
+
 .main {
   max-width: var(--gg-column);
   margin-inline: auto;

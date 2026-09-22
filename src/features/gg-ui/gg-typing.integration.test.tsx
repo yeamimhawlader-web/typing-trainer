@@ -1051,7 +1051,9 @@ describe('GG.Typing on the real typing session', () => {
       expect(within(nav).getByRole('link', { name: 'Typing Test' })).toHaveAttribute('href', '/gg')
       expect(within(nav).getByRole('link', { name: 'History' })).toHaveAttribute('href', ROUTES.history)
       expect(within(nav).getByRole('link', { name: 'Statistics' })).toHaveAttribute('href', ROUTES.statistics)
-      expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', ROUTES.settings)
+      expect(within(nav).getByRole('link', { name: 'Settings' })).toHaveAttribute('href', ROUTES.settings)
+      // And the gear beside the test's own figures, where it always was.
+      expect(screen.getAllByRole('link', { name: 'Settings' })).toHaveLength(2)
     })
   })
 

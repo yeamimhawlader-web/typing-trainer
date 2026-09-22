@@ -37,6 +37,7 @@ const NAV = [
   { to: PRACTICE_PATH, label: 'Typing Test', end: true },
   { to: ROUTES.history, label: 'History', end: false },
   { to: ROUTES.statistics, label: 'Statistics', end: false },
+  { to: ROUTES.settings, label: 'Settings', end: false },
 ] as const
 
 export const TopBar = ({ themesOpen, onOpenThemes, themesButtonRef }: TopBarProps) => (
