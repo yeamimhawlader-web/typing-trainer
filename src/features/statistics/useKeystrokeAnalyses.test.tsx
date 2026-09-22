@@ -25,7 +25,7 @@ import { createTimeRange } from '@core/statistics'
 import { createTelemetryServiceOver, type TelemetryService } from '@core/telemetry'
 import { timestamp } from '@core/types'
 
-import { usePersistentSequences } from './hooks/usePersistentSequences.ts'
+import { useKeystrokeAnalyses } from './hooks/useKeystrokeAnalyses.ts'
 
 let storage: StorageAdapter
 let sessions: SessionService
@@ -73,15 +73,27 @@ const DRILL: SessionContext = {
   targetSequence: 'in',
 }
 
-const analyse = async (all: readonly TypingSession[]) => {
+const analyseBoth = async (all: readonly TypingSession[]) => {
   const range = createTimeRange('allTime', Date.now())
-  const { result } = renderHook(() => usePersistentSequences(all, range, telemetry))
+  const { result } = renderHook(() => useKeystrokeAnalyses(all, range, telemetry))
 
   await waitFor(() => {
     expect(result.current).not.toBeNull()
   })
 
   return result.current!
+}
+
+const analyse = async (all: readonly TypingSession[]) => {
+  const range = createTimeRange('allTime', Date.now())
+  const { result } = renderHook(() => useKeystrokeAnalyses(all, range, telemetry))
+
+  await waitFor(() => {
+    expect(result.current).not.toBeNull()
+  })
+
+  // The sequences: the keys out of the same read have their own tests below.
+  return result.current!.sequences
 }
 
 describe('what the cross-session analysis looks at', () => {
@@ -134,5 +146,42 @@ describe('what the cross-session analysis looks at', () => {
     expect(report.sessionsAnalysed).toBe(0)
     expect(report.hasEnoughHistory).toBe(false)
     expect(report.candidates).toEqual([])
+  })
+})
+
+describe('what the same read says about single keys', () => {
+  it('counts every key of the sessions in range, and says which are missed', async () => {
+    // Every key typed correctly here: the engine is fed the text itself.
+    // Five sessions, so the common keys clear the minimum attempts a key needs
+    // before anything is said about it.
+    const text = 'in find into stop'
+    const all = await [1, 2, 3, 4, 5].reduce(
+      async (waiting: Promise<TypingSession[]>) => [...(await waiting), await record(text, 80, PRACTICE)],
+      Promise.resolve([]),
+    )
+
+    const { keys } = await analyseBoth(all)
+    const i = keys.keys.find((key) => key.key === 'i')
+
+    expect(keys.attempts).toBe(text.length * 5)
+    expect(i?.misses).toBe(0)
+    expect(i?.accuracy).toBe(1)
+    // Nothing was missed, so nothing is worth pointing at.
+    expect(keys.worst).toEqual([])
+  })
+
+  it('comes out of the same read as the sequences, for the same sessions', async () => {
+    const text = 'in find into stop'
+    const all = [
+      await record(text, 200, PRACTICE),
+      await record(text, 200, PRACTICE),
+      await record(text, 50, DRILL),
+    ]
+
+    const both = await analyseBoth(all)
+
+    expect(both.sequences.sessionsWithTelemetry).toBe(2)
+    // The drill is left out of both: the same session set, analysed twice.
+    expect(both.keys.attempts).toBe(text.length * 2)
   })
 })

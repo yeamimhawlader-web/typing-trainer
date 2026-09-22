@@ -1,0 +1,75 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-raised);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/*
+ * A key, tinted by how often it is missed: the page's own colour at nothing,
+ * the mistake colour at the ceiling. Every value is a token; the heat is a
+ * number the component sets.
+ */
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-inset);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.key[data-judged] {
+  background-color: color-mix(
+    in oklab,
+    var(--color-char-incorrect) calc(var(--key-heat, 0) * 100%),
+    var(--color-bg-inset)
+  );
+  color: var(--color-text-primary);
+}
+
+/* Once the tint is deep enough to carry text, the letter turns to read on it. */
+.key[data-hot] {
+  color: var(--color-text-on-accent);
+}
+
+.key[data-wide] {
+  width: 12rem;
+}
+
+.worst {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.worstKey {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+}
+
+.worstValue {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

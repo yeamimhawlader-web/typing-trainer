@@ -21,6 +21,7 @@ import {
   TIME_RANGE_LABELS,
   type TimeRangeKey,
   type TrendPoint,
+  streakOf,
 } from '@core/statistics'
 import { sessionService, type TypingSession } from '@core/sessions'
 import { formatCompletedAt } from '@features/results'
@@ -35,8 +36,11 @@ import {
   orDash,
 } from '../format.ts'
 import { ActivityChart } from '../components/ActivityChart.tsx'
+import { KEY_RULES } from '@core/telemetry'
+
+import { KeyboardHeatmap } from '../components/KeyboardHeatmap.tsx'
 import { PersistentSequences } from '../components/PersistentSequences.tsx'
-import { usePersistentSequences } from '../hooks/usePersistentSequences.ts'
+import { useKeystrokeAnalyses } from '../hooks/useKeystrokeAnalyses.ts'
 import { TrendChart } from '../components/TrendChart.tsx'
 
 import styles from './StatisticsPage.module.css'
@@ -105,7 +109,11 @@ export const StatisticsPage = () => {
    * Unconditional, because hooks are — the early returns below are all after
    * this point.
    */
-  const sequences = usePersistentSequences(sessions, range)
+  const analyses = useKeystrokeAnalyses(sessions, range)
+  const sequences = analyses?.sequences ?? null
+
+  /** Days in a row, from the whole history rather than the range on screen. */
+  const streak = useMemo(() => streakOf(sessions, loadedAt), [sessions, loadedAt])
 
   const rangeControls = (
     <div className={styles.ranges} role="group" aria-label="Time range">
@@ -201,6 +209,14 @@ export const StatisticsPage = () => {
             </dd>
             <dt className={styles.label}>accuracy</dt>
           </div>
+          {streak.days > 0 && (
+            <div className={styles.secondaryItem}>
+              <dd className={styles.secondaryValue}>{formatNumber(streak.days)}</dd>
+              <dt className={styles.label}>
+                {streak.days === 1 ? 'day’s streak' : 'day streak'}
+              </dt>
+            </div>
+          )}
         </dl>
       </div>
 
@@ -319,6 +335,21 @@ export const StatisticsPage = () => {
       )}
 
       <PersistentSequences report={sequences} />
+
+      {/* Which keys the hands actually miss — the simpler question under the
+          transitions above, and the one a keyboard answers at a glance. */}
+      {analyses !== null && analyses.keys.keys.length > 0 && (
+        <section className={styles.section} aria-labelledby="keys-heading">
+          <h2 id="keys-heading" className={styles.sectionTitle}>
+            Keys that cost you
+          </h2>
+          <p className={styles.sectionLede}>
+            Every key you have typed at least {KEY_RULES.minimumAttempts} times in this
+            range, the ones you miss most marked deepest.
+          </p>
+          <KeyboardHeatmap report={analyses.keys} />
+        </section>
+      )}
     </Page>
   )
 }

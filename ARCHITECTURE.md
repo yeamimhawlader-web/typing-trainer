@@ -136,6 +136,35 @@ contrast floor as the rest, on the page and through its glass. The top bar's the
 button is drawn to be found: a tinted pill with its name and the colours of the
 theme on now, rather than a grey icon.
 
+### What the keystrokes already knew
+
+Telemetry was captured from the first version and read by two analyses, both
+about transitions. Two more read it now, answering questions the numbers on
+screen could not:
+
+- **The shape of a test** (`core/telemetry/shape.ts`). Speed second by second
+  through the test just finished, with every mistake marked where it happened.
+  The speed is the speed of the moment — correct characters inside a window
+  ending at that second — because a running average flattens the dips that are
+  the whole lesson. Before the window is full it is measured over the test so
+  far, so the opening seconds read as what they were. Derived in the same pass
+  as the slow sequences, from telemetry already in hand, after the last
+  character; never during typing. Drawn on the result panel.
+- **The keys that cost you** (`core/telemetry/keys.ts`). Which single keys get
+  missed, counted by what was aimed at rather than what came out, with case
+  folded so Shift is not a key of its own. Shown as a keyboard on the
+  statistics page, tinted against a fixed ceiling rather than against the worst
+  key of the day, and only for keys typed enough times to judge. Both analyses
+  come out of one read of the stored detail (`useKeystrokeAnalyses`), because
+  decoding thirty sessions twice for two sections of one page would pay twice
+  for the same bytes.
+
+And one thing history knew and never said: the **streak**
+(`core/statistics/streak.ts`), days in a row with a test in them, on local
+calendar days as the activity chart is. It stands until midnight — a day with
+no test yet has not broken it — because the honest reading of "still yours
+today" is not "already lost".
+
 ### One shell, every page
 
 The shell's route has no path of its own and every page is a child of it, so

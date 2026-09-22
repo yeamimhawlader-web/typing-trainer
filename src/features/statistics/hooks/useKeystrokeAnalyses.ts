@@ -1,5 +1,8 @@
 /**
- * Loads keystroke detail for the sessions in range and analyses it.
+ * Loads keystroke detail for the sessions in range and analyses it, twice over:
+ * which transitions are persistently slow, and which keys get missed. Both come
+ * out of one read, because decoding thirty sessions twice to draw two sections
+ * of one page would be paying twice for the same bytes.
  *
  * Runs when the statistics page loads or its range changes — never while
  * typing. The typing screen does not import this, and nothing here is on the
@@ -17,8 +20,10 @@ import { isTrainingMode, type TypingSession } from '@core/sessions'
 import { filterSessionsByRange, isUsableSession, type TimeRange } from '@core/statistics'
 import {
   analysePersistentSequences,
+  keyCosts,
   MAX_SESSIONS_ANALYSED,
   telemetryService as defaultTelemetryService,
+  type KeyCostReport,
   type PersistentSequenceReport,
   type TelemetryService,
   type TelemetrySessionRef,
@@ -41,18 +46,27 @@ import {
  * that it needs more ordinary typing is far more use than one that silently
  * disappears.
  */
-const NOTHING_TO_ANALYSE = analysePersistentSequences([])
+const NOTHING_TO_ANALYSE: KeystrokeAnalyses = {
+  sequences: analysePersistentSequences([]),
+  keys: keyCosts([]),
+}
+
+/** What one read of the keystroke detail is worth. */
+export interface KeystrokeAnalyses {
+  readonly sequences: PersistentSequenceReport
+  readonly keys: KeyCostReport
+}
 
 interface Analysed {
   readonly refs: readonly TelemetrySessionRef[]
-  readonly report: PersistentSequenceReport
+  readonly analyses: KeystrokeAnalyses
 }
 
-export const usePersistentSequences = (
+export const useKeystrokeAnalyses = (
   sessions: readonly TypingSession[],
   range: TimeRange,
   telemetry: TelemetryService = defaultTelemetryService,
-): PersistentSequenceReport | null => {
+): KeystrokeAnalyses | null => {
   const [analysed, setAnalysed] = useState<Analysed | null>(null)
 
   /**
@@ -89,7 +103,14 @@ export const usePersistentSequences = (
     telemetry
       .getMany(refs)
       .then((entries) => {
-        if (active) setAnalysed({ refs, report: analysePersistentSequences(entries) })
+        if (!active) return
+        setAnalysed({
+          refs,
+          analyses: {
+            sequences: analysePersistentSequences(entries),
+            keys: keyCosts(entries.map((entry) => entry.telemetry)),
+          },
+        })
       })
       .catch((error: unknown) => {
         // Losing this section is a nuisance; it is not a reason to break a page
@@ -105,5 +126,5 @@ export const usePersistentSequences = (
 
   if (refs.length === 0) return NOTHING_TO_ANALYSE
 
-  return analysed !== null && analysed.refs === refs ? analysed.report : null
+  return analysed !== null && analysed.refs === refs ? analysed.analyses : null
 }

@@ -4,10 +4,10 @@
  * Detailed keystroke data for a finished session: what was typed, when, where,
  * and what became of every mistake.
  *
- * Two analyses read it, both experiments and both saying so: `sequences` ranks
- * the slowest transitions of a single test, and `persistent` asks which ones
- * are consistently slow across accumulated history. Neither recommends anything
- * to practise; no training mode is built yet.
+ * Four analyses read it: `sequences` ranks the slowest transitions of a single
+ * test, `persistent` asks which ones are consistently slow across accumulated
+ * history, `shape` reads one test's speed and mistakes second by second, and
+ * `keys` asks which single keys get missed.
  *
  * Raw telemetry is not spread through the application. The typing screen
  * captures and saves it and never reads it back; anything wanting to study it
@@ -60,6 +60,12 @@ export type {
   SessionTelemetryEntry,
   TypicalRange,
 } from './persistent.ts'
+
+export { keyCosts, KEY_RULES } from './keys.ts'
+export type { KeyCost, KeyCostReport } from './keys.ts'
+
+export { shapeOfTest, SHAPE_RULES } from './shape.ts'
+export type { TestShape, TestShapePoint } from './shape.ts'
 
 export { median, quantile, spreadOf } from './distribution.ts'
 export type { Spread } from './distribution.ts'

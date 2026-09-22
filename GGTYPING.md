@@ -343,6 +343,11 @@ The chrome is set in Inter, plain and light.
 **Caps Lock.** Every key is compared exactly, so the field says when Caps Lock is
 on — a small note in its corner, spoken once — the moment the keyboard reports it.
 
+**The shape of a test.** Under the result's figures, the speed of every second of
+the test just finished, with the mistakes marked where they happened — the
+difference between a steady sixty and a ninety that fell apart at the fourth word
+(ARCHITECTURE.md).
+
 **Liquid glass.** Every control is a nearly clear lens with a rim that catches the
 light, in the theme's own text colour. Buttons are always glass; a choice is glass
 when chosen or pointed at, and plain text otherwise (ARCHITECTURE.md).

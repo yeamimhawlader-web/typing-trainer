@@ -8,8 +8,8 @@
 
 import { ROUTES, sessionDetailPath } from '@app/routes.ts'
 import type { TypingSession } from '@core/sessions'
-import type { DrillComparison, DrillOutcome, SequenceReport } from '@core/telemetry'
-import { SessionSummary } from '@features/results'
+import type { DrillComparison, DrillOutcome, SequenceReport, TestShape } from '@core/telemetry'
+import { SessionSummary, TestShapeChart } from '@features/results'
 import { Button, ButtonLink } from '@shared/ui'
 
 import type { SaveState } from '../hooks/useTypingSession.ts'
@@ -23,6 +23,8 @@ export interface TestResultProps {
   readonly saveState: SaveState
   readonly onTryAgain: () => void
   readonly sequences: SequenceReport | null
+  /** How the test ran, second by second. Null for a test too short to have a shape. */
+  readonly shape?: TestShape | null
   /** Present only when the finished test was a targeted drill. */
   readonly drill?: { readonly outcome: DrillOutcome; readonly comparison: DrillComparison } | null
   /** Where "Back to practice" leads after a drill. The classic practice page by default. */
@@ -34,11 +36,14 @@ export const TestResult = ({
   saveState,
   onTryAgain,
   sequences,
+  shape = null,
   drill = null,
   practicePath = ROUTES.practice,
 }: TestResultProps) => (
   <div className={styles.panel}>
     <SessionSummary session={session} sequences={sequences} />
+
+    {shape !== null && <TestShapeChart shape={shape} />}
 
     {drill !== null && (
       <DrillResult outcome={drill.outcome} comparison={drill.comparison} />

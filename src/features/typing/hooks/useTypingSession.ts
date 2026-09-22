@@ -38,12 +38,14 @@ import {
 } from '@core/sessions'
 import {
   analyseSlowSequences,
+  shapeOfTest,
   deriveSessionTelemetry,
   measureDrill,
   telemetryService as defaultTelemetryService,
   type DrillOutcome,
   type SequenceReport,
   type TelemetryService,
+  type TestShape,
 } from '@core/telemetry'
 import type { TextProvider } from '@core/text'
 import {
@@ -135,6 +137,11 @@ export interface TypingSessionController {
    */
   readonly sequences: SequenceReport | null
   /**
+   * The finished test's speed second by second, with its mistakes. From the
+   * same derived telemetry as the sequences, in the same pass.
+   */
+  readonly shape: TestShape | null
+  /**
    * How the target transition went, when the finished test was a drill.
    * Null for ordinary practice, and null until a drill finishes.
    */
@@ -195,6 +202,7 @@ export const useTypingSession = (
   const [lastSession, setLastSession] = useState<TypingSession | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [sequences, setSequences] = useState<SequenceReport | null>(null)
+  const [testShape, setTestShape] = useState<TestShape | null>(null)
   const [drillOutcome, setDrillOutcome] = useState<DrillOutcome | null>(null)
   const initialWordCount = preference?.initial ?? DEFAULT_WORD_COUNT
   const [wordCount, setWordCountState] = useState<WordCount>(initialWordCount)
@@ -214,6 +222,7 @@ export const useTypingSession = (
     setLastSession(null)
     setSaveState('idle')
     setSequences(null)
+    setTestShape(null)
     setDrillOutcome(null)
   }
 
@@ -237,6 +246,7 @@ export const useTypingSession = (
       setLastSession(null)
       setSaveState('idle')
       setSequences(null)
+    setTestShape(null)
       setDrillOutcome(null)
     },
     [engine, provider],
@@ -392,6 +402,7 @@ export const useTypingSession = (
       )
 
       setSequences(analyseSlowSequences(derived))
+      setTestShape(shapeOfTest(derived))
 
       const drillTarget = contextRef.current.targetSequence
       setDrillOutcome(
@@ -415,6 +426,7 @@ export const useTypingSession = (
     lastSession,
     saveState,
     sequences,
+    shape: testShape,
     drillOutcome,
   }
 }

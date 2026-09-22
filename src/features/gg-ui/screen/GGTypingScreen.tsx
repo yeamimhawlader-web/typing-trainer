@@ -182,6 +182,7 @@ export const GGTypingScreen = ({
     lastSession,
     saveState,
     resultSequences,
+    resultShape,
     drillSequence,
     drillResult,
   } = screen
@@ -508,6 +509,7 @@ export const GGTypingScreen = ({
             saveState={saveState}
             onTryAgain={restartTest}
             sequences={resultSequences}
+            shape={resultShape}
             drill={drillResult}
             practicePath={PRACTICE_PATH}
           />

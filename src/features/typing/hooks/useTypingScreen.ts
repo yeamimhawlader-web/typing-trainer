@@ -22,6 +22,7 @@ import {
   type DrillOutcome,
   type SequenceReport,
   type TelemetryService,
+  type TestShape,
   type TypicalRange,
 } from '@core/telemetry'
 import { createCommonWordsProvider, type TextProvider } from '@core/text'
@@ -86,6 +87,8 @@ export interface TypingScreen extends TypingSessionController {
    * though it were a measurement of the typist.
    */
   readonly resultSequences: SequenceReport | null
+  /** The finished test's speed second by second. Null until one finishes. */
+  readonly resultShape: TestShape | null
   /** The drill's outcome against its baseline, once a drill has finished. */
   readonly drillResult: { readonly outcome: DrillOutcome; readonly comparison: DrillComparison } | null
 }
@@ -149,6 +152,7 @@ export const useTypingScreen = ({
     provider: activeProvider,
     drillSequence: sequence,
     resultSequences: sequence === null ? session.sequences : null,
+    resultShape: session.shape,
     drillResult,
   }
 }

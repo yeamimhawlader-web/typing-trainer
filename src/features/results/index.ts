@@ -13,6 +13,9 @@ export type { SessionSummaryProps } from './components/SessionSummary.tsx'
 
 export { SlowSequences } from './components/SlowSequences.tsx'
 
+export { TestShapeChart } from './components/TestShapeChart.tsx'
+export type { TestShapeChartProps } from './components/TestShapeChart.tsx'
+
 export { SessionDetailPage } from './pages/SessionDetailPage.tsx'
 
 export {

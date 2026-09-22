@@ -38,6 +38,7 @@ export const TypingTest = (props: TypingTestProps = {}) => {
     lastSession,
     saveState,
     resultSequences,
+    resultShape,
     drillSequence,
     drillResult,
   } = screen
@@ -81,6 +82,7 @@ export const TypingTest = (props: TypingTestProps = {}) => {
           saveState={saveState}
           onTryAgain={restart}
           sequences={resultSequences}
+          shape={resultShape}
           drill={drillResult}
         />
       )}
