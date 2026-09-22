@@ -7,11 +7,13 @@
  * is for, and the way to start. Pointing at a letter before scrolling chooses
  * the one to go in by.
  *
- * The portal measures the letters' ink, so it is mounted once their face —
- * Inter at its heaviest — has loaded; a face that arrived later would move the
- * ink under the camera. Until then, and wherever the portal cannot run (no
- * layout, no font loading), the same words stand still: the name, what it is,
- * and the way in.
+ * The portal measures the letters' ink, so it is mounted only once their face —
+ * Inter at its heaviest — has loaded: mounted with a face still on its way, it
+ * holds still for good rather than let the ink move under the camera. So until
+ * then the same words stand still — the name, what it is, the way in — and if
+ * the face fails, or is slow past a few seconds, the portal is set in a face
+ * every computer has instead. Wherever the portal cannot run at all (no layout,
+ * no font loading), the still words are the opening.
  *
  * Colours are the page's own tokens, the portal's two swapped: the letters are
  * windows onto the ink colour, and inside, the page is ink with paper for text.
@@ -30,9 +32,11 @@ import styles from './HomeHero.module.css'
 
 const WORD = 'HOVER'
 const FACE = '"Inter Variable", "Inter", Arial, sans-serif'
+/** Already on every computer, so never a face still loading. */
+const FALLBACK_FACE = '"Arial Black", Arial, sans-serif'
 const WEIGHT = 900
-/** How long to wait for the face before going in without the portal's motion. */
-const FACE_WAIT_MS = 1600
+/** How long to wait for the face before setting the portal in the fallback instead. */
+const FACE_WAIT_MS = 6000
 
 /** Colourful keycaps, from Unsplash, seen through the letters and inside them. */
 const INSIDE_PHOTO = 'https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&w=2000&q=70'
@@ -88,10 +92,10 @@ export const HomeHero = () => {
       settled = true
       setFace(value)
     }
-    const timeout = window.setTimeout(() => finish(FACE), FACE_WAIT_MS)
+    const timeout = window.setTimeout(() => finish(FALLBACK_FACE), FACE_WAIT_MS)
     document.fonts.load(`${WEIGHT} 100px "Inter Variable"`, WORD).then(
-      () => finish(FACE),
-      () => finish(FACE),
+      (faces) => finish(faces.length > 0 ? FACE : FALLBACK_FACE),
+      () => finish(FALLBACK_FACE),
     )
     return () => {
       settled = true
