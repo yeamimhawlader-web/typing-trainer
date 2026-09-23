@@ -128,9 +128,27 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-8);
-  width: min(100%, 60rem);
+  gap: var(--space-6);
+  width: min(100%, 64rem);
   margin: auto;
+}
+
+/*
+ * The inside is taller than the screen the camera lands on, and the field
+ * behind it is only one screen tall: past that the page's own paper shows
+ * through, and paper-coloured text on paper is nothing at all. So the content
+ * carries its own ground, clear where the photograph is still behind it and
+ * solid by the time it is not. Unconditional: while the camera is still
+ * flying the content is transparent, so there is nothing to see here yet.
+ */
+.portal[data-gp-motion='on'] :global([data-gp-content]) {
+  padding-block: clamp(var(--space-8), 6vh, var(--space-16));
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 28svh,
+    var(--gp-field) 76svh
+  );
 }
 
 .insideTitle {
@@ -144,8 +162,8 @@
 
 .features {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-8);
+  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+  gap: var(--space-6);
   width: 100%;
   margin: 0;
   padding: 0;
@@ -180,20 +198,165 @@
   opacity: 0.85;
 }
 
-.insideLink {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  text-decoration: underline;
-  text-underline-offset: 0.25em;
+.eyebrow {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.7;
 }
 
-.insideLink:hover {
-  text-decoration-thickness: 2px;
+.lede {
+  max-width: 44ch;
+  margin: 0;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-normal);
+  opacity: 0.9;
+}
+
+/* The one number on the page, with the assumption it rests on beside it. */
+.sum {
+  max-width: 44ch;
+  margin: 0;
+  padding-left: var(--space-5);
+  border-left: var(--border-width-base) solid color-mix(in oklab, currentColor 45%, transparent);
+  line-height: var(--line-height-relaxed);
+  opacity: 0.85;
+}
+
+.sum strong {
+  font-weight: var(--font-weight-semibold);
+  opacity: 1;
+}
+
+.close {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+/*
+ * The way in, at the end of the descent: paper on ink, so it is the brightest
+ * thing inside and cannot be mistaken for more reading.
+ */
+.insideStart {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-full);
+  background-color: var(--gp-foreground);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--gp-field);
+  text-decoration: none;
+  transition:
+    transform var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.insideStart > span {
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .insideStart:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .insideStart:hover > span {
+    transform: translateX(4px);
+  }
+}
+
+.insideStart:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.insideStart:focus-visible {
+  outline: var(--border-width-base) solid var(--gp-foreground);
+  outline-offset: 4px;
+}
+
+.terms {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  opacity: 0.7;
+}
+
+/* --- Arriving ----------------------------------------------------------
+ * Only while the camera is flying: everywhere else — held still, reduced
+ * motion, a browser that cannot run the portal — the inside is simply there,
+ * because it is the page, not a decoration on it.
+ */
+.portal[data-gp-motion='on'] .reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity var(--duration-slow) var(--ease-entrance),
+    transform var(--duration-slow) var(--ease-entrance);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.portal[data-gp-motion='on'][data-gp-entered='true'] .reveal {
+  opacity: 1;
+  transform: none;
+}
+
+/* The way in lands last, and lands hard: it should be the thing that moves. */
+.portal[data-gp-motion='on'] .insideStart {
+  opacity: 0;
+}
+
+.portal[data-gp-motion='on'][data-gp-entered='true'] .insideStart {
+  animation: land 620ms var(--ease-standard) 620ms both;
+}
+
+@keyframes land {
+  0% {
+    opacity: 0;
+    transform: translateY(26px) scale(0.94);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translateY(-7px) scale(1.03);
+  }
+
+  78% {
+    transform: translateY(2px) scale(0.99);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Four across where there is room; paired below that, rather than three and
+   a stranded fourth. */
+@media (max-width: 75rem) {
+  .features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 48rem) {
   .features {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal .reveal,
+  .portal .insideStart {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
   }
 }
 

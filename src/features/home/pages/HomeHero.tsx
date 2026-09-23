@@ -41,6 +41,7 @@ import { LiquidButton } from '@/components/ui/liquid-glass-button.tsx'
 import { PRACTICE_PATH } from '@app/routes.ts'
 import { appConfig } from '@config'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
+import { cx } from '@shared/lib'
 
 import '@fontsource-variable/inter/wght.css'
 import styles from './HomeHero.module.css'
@@ -65,10 +66,32 @@ const PORTAL_COLOURS: GlyphPortalStyle = {
 }
 
 const INSIDE: readonly { readonly name: string; readonly text: string }[] = [
-  { name: 'Hover Mode', text: 'A word you miss lifts out of the line and waits until you type it clean.' },
-  { name: 'Syllable Trainer', text: 'Long words, taken in the rhythm your hands can hold.' },
-  { name: 'Golden Nuggets', text: 'The words that keep getting away, kept and brought back to you.' },
+  {
+    name: 'Hover Mode',
+    text: 'A word you miss lifts out of the line and stays there until you type it clean. You practise your mistakes instead of your strengths.',
+  },
+  {
+    name: 'Syllable Trainer',
+    text: 'The long words your hands lunge at, taken in a rhythm they can hold, until the whole word arrives in one piece.',
+  },
+  {
+    name: 'Golden Nuggets',
+    text: 'The words that keep getting away are kept, and brought back to you until they stop costing you speed.',
+  },
+  {
+    name: 'Your own texts',
+    text: 'Quotes, goals, and the words you actually use — ask your AI for them and practise those, because those are the ones you keep typing.',
+  },
 ]
+
+/**
+ * How long after the camera lands a block waits its turn.
+ *
+ * The inside arrives as a sentence at a time rather than all at once, which is
+ * how it is read. The delays are the only thing that varies, so they are handed
+ * to CSS as a custom property instead of being animated from here.
+ */
+const delay = (ms: number): CSSProperties => ({ '--reveal-delay': `${ms}ms` }) as CSSProperties
 
 /** Whether this browser can run the portal at all: layout observers and font loading. */
 const portalCanRun = (): boolean =>
@@ -139,10 +162,29 @@ export const HomeHero = () => {
       }
     >
       <div className={styles.inside}>
-        <h2 className={styles.insideTitle}>Every miss becomes practice.</h2>
+        <p className={cx(styles.eyebrow, styles.reveal)}>Why bother</p>
+
+        <h2 className={cx(styles.insideTitle, styles.reveal)} style={delay(60)}>
+          You think at the speed you type.
+        </h2>
+
+        <p className={cx(styles.lede, styles.reveal)} style={delay(120)}>
+          Prompts, notes, messages, code, the reply you rewrite three times — the whole
+          day goes through a keyboard now. Every word your hands fumble is a thought you
+          have to think twice.
+        </p>
+
+        {/* Arithmetic the reader can check, with its assumption on the page:
+            claims about hours saved are worth nothing if they cannot be. */}
+        <p className={cx(styles.sum, styles.reveal)} style={delay(180)}>
+          Three hours a day at a keyboard, at forty words a minute. Type at eighty and the
+          same words take half as long — <strong>over five hundred hours a year</strong>,
+          on your own arithmetic rather than ours.
+        </p>
+
         <ol className={styles.features}>
           {INSIDE.map((item, index) => (
-            <li key={item.name} className={styles.feature}>
+            <li key={item.name} className={cx(styles.feature, styles.reveal)} style={delay(240 + index * 90)}>
               <h3 className={styles.featureName}>
                 <span className={styles.featureNumber}>{String(index + 1).padStart(2, '0')}</span>
                 {item.name}
@@ -151,9 +193,15 @@ export const HomeHero = () => {
             </li>
           ))}
         </ol>
-        <Link to={PRACTICE_PATH} className={styles.insideLink}>
-          Start typing <span aria-hidden="true">→</span>
-        </Link>
+
+        <div className={styles.close}>
+          <Link to={PRACTICE_PATH} className={styles.insideStart}>
+            Start typing <span aria-hidden="true">→</span>
+          </Link>
+          <p className={cx(styles.terms, styles.reveal)} style={delay(760)}>
+            No account, nothing to install, and the first test is fifteen words long.
+          </p>
+        </div>
       </div>
     </GlyphPortal>
   )
