@@ -68,5 +68,10 @@ export const env: Env = {
   accounts:
     environment === 'test'
       ? null
-      : parseAccounts(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY),
+      : parseAccounts(
+          import.meta.env.VITE_SUPABASE_URL,
+          // Whichever name the dashboard this was copied from uses.
+          import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          import.meta.env.VITE_SUPABASE_ANON_KEY,
+        ),
 }

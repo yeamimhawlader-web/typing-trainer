@@ -23,5 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment. Real values live in .env.local; only the example is committed.
+# (*.local above already covers .env.local — this says so on purpose, so the
+# glob can change without a project's keys following it into a commit.)
+.env
+.env.*
+!.env.example
+
 # Test coverage
 coverage

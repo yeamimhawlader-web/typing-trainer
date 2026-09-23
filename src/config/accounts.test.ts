@@ -15,8 +15,18 @@ describe('switching accounts on', () => {
     })
   })
 
+  it('takes the key under either name Supabase has used for it', () => {
+    // A project made now is given a publishable key; an older one has an anon
+    // key. Whichever the dashboard showed is what someone will paste.
+    expect(parseAccounts('https://project.supabase.co', 'sb_publishable_abc', undefined)?.anonKey).toBe(
+      'sb_publishable_abc',
+    )
+    expect(parseAccounts('https://project.supabase.co', undefined, 'legacy-anon')?.anonKey).toBe('legacy-anon')
+    expect(parseAccounts('https://project.supabase.co', '', 'legacy-anon')?.anonKey).toBe('legacy-anon')
+  })
+
   it('refuses half a configuration, at startup rather than at the first sign-in', () => {
-    expect(() => parseAccounts('https://project.supabase.co', undefined)).toThrow(/together/)
+    expect(() => parseAccounts('https://project.supabase.co', undefined, undefined)).toThrow(/together/)
     expect(() => parseAccounts(undefined, 'key')).toThrow(/together/)
   })
 
