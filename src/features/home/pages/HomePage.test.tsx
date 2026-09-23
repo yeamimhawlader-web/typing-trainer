@@ -8,9 +8,11 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useEffect } from 'react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { ROUTES } from '@app/routes.ts'
+import { DEFAULT_PREFERENCES } from '@config'
+import { settingsStore } from '@features/settings/state/settings.store.ts'
 
 import { HomePage } from './HomePage.tsx'
 import { WAYS_TO_PRACTISE } from './ways-to-practise.ts'
@@ -36,6 +38,10 @@ const renderHome = () =>
 
 const ways = () => within(screen.getByRole('region', { name: 'Ways to practise' }))
 
+beforeEach(() => {
+  settingsStore.setState({ preferences: DEFAULT_PREFERENCES, status: 'ready' })
+})
+
 describe('the front page', () => {
   it('opens with its name and a way in, a button of liquid glass, where the portal cannot run', () => {
     // jsdom has no layout or font loading, so the opening stands still here.
@@ -45,6 +51,18 @@ describe('the front page', () => {
     const start = screen.getByRole('link', { name: 'Start practising' })
     expect(start).toHaveAttribute('href', ROUTES.gg)
     expect(start).toHaveAttribute('data-slot', 'button')
+  })
+
+  it('opens through the letters by default, and goes straight in when asked to', () => {
+    // The opening is the one place the application says what it is for before
+    // being asked, so it is on until someone turns it off — and then it stays
+    // off, with the way in back on the first screen.
+    expect(DEFAULT_PREFERENCES.opening).toBe('portal')
+
+    settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES, opening: 'direct' }, status: 'ready' })
+    renderHome()
+
+    expect(screen.getByRole('link', { name: 'Start practising' })).toHaveAttribute('href', ROUTES.gg)
   })
 
   it('lists every way to practise, each leading to its own page', () => {

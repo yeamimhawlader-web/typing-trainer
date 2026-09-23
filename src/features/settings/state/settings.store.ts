@@ -16,6 +16,7 @@ import { DEFAULT_PREFERENCES } from '@config'
 import { STORAGE_KEYS, storage, type StorageAdapter } from '@core/persistence'
 import {
   HOVER_DIFFICULTIES,
+  OPENINGS,
   PACE_CHOICES,
   PRACTICE_MODES,
   PRACTICE_WORD_COUNTS,
@@ -23,6 +24,7 @@ import {
   TEXT_SIZES,
   VOCABULARIES,
   type HoverDifficulty,
+  type Opening,
   type PaceChoice,
   type PracticeMode,
   type PracticeWordCount,
@@ -60,6 +62,7 @@ export interface SettingsState {
   readonly setPace: (pace: PaceChoice) => Promise<void>
   readonly setPunctuation: (punctuation: boolean) => Promise<void>
   readonly setNumbers: (numbers: boolean) => Promise<void>
+  readonly setOpening: (opening: Opening) => Promise<void>
 }
 
 /**
@@ -87,6 +90,7 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
     soundVolume?: number
     pace?: PaceChoice
     punctuation?: boolean
+    opening?: Opening
     numbers?: boolean
   } = {}
 
@@ -131,6 +135,9 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
 
   if (typeof record['punctuation'] === 'boolean') result.punctuation = record['punctuation']
   if (typeof record['numbers'] === 'boolean') result.numbers = record['numbers']
+
+  const opening = OPENINGS.find((option) => option === record['opening'])
+  if (opening !== undefined) result.opening = opening
 
   return result
 }
@@ -195,6 +202,8 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
       setPunctuation: (punctuation) => persist({ ...get().preferences, punctuation }),
 
       setNumbers: (numbers) => persist({ ...get().preferences, numbers }),
+
+      setOpening: (opening) => persist({ ...get().preferences, opening }),
     }
   })
 

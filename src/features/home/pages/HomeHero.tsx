@@ -17,6 +17,20 @@
  *
  * Colours are the page's own tokens, the portal's two swapped: the letters are
  * windows onto the ink colour, and inside, the page is ink with paper for text.
+ *
+ * ## No way in from the opening frame
+ *
+ * There is no button on the first screen. A button there is the whole page:
+ * everyone presses it, nobody scrolls, and what the application actually does
+ * is never seen. So the opening says the name and what it is for, and the way
+ * on is the scroll — which arrives inside, where Hover Mode, the Syllable
+ * Trainer and Golden Nuggets are named and the way in is waiting.
+ *
+ * Nobody is trapped by that. The top bar goes straight to a test from any
+ * page; the foot of the opening keeps a plain link inside, which is also the
+ * escape for a keyboard; and anyone who would rather not see it again can turn
+ * the opening off in settings, which is what `opening: 'direct'` is — the same
+ * still hero as a browser that cannot run the portal.
  */
 
 import { useEffect, useState, type CSSProperties } from 'react'
@@ -26,6 +40,7 @@ import GlyphPortal, { type GlyphPortalStyle } from '@/components/ui/glyph-portal
 import { LiquidButton } from '@/components/ui/liquid-glass-button.tsx'
 import { PRACTICE_PATH } from '@app/routes.ts'
 import { appConfig } from '@config'
+import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 
 import '@fontsource-variable/inter/wght.css'
 import styles from './HomeHero.module.css'
@@ -82,6 +97,7 @@ const StillHero = () => (
 export const HomeHero = () => {
   // The face, once it is ready to be measured; null until then.
   const [face, setFace] = useState<string | null>(null)
+  const opening = useSettingsStore((state) => state.preferences.opening)
   const [canRun] = useState(portalCanRun)
 
   useEffect(() => {
@@ -103,7 +119,7 @@ export const HomeHero = () => {
     }
   }, [canRun])
 
-  if (face === null) return <StillHero />
+  if (face === null || opening === 'direct') return <StillHero />
 
   return (
     <GlyphPortal
@@ -119,9 +135,6 @@ export const HomeHero = () => {
         <>
           <h1 className={styles.title}>{appConfig.appName}</h1>
           <p className={styles.support}>Practise where your hands slow down.</p>
-          <div className={styles.start}>
-            <Start />
-          </div>
         </>
       }
     >

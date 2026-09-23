@@ -31,4 +31,5 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   // Plain words, as the application has always opened; the harder drill is chosen.
   punctuation: false,
   numbers: false,
+  opening: 'portal',
 }

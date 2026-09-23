@@ -256,6 +256,16 @@ them, so it stays still, which was the point. Reproduced and both directions
 checked by driving Brave over the DevTools protocol with frames held back and
 with a hidden tab; the reduced-motion path is unchanged.
 
+There is no button on the opening frame, and that is deliberate. A button there
+is the whole page: everyone presses it, nobody scrolls, and what the
+application actually does is never seen. The way on is the scroll, which
+arrives inside, where Hover Mode, the Syllable Trainer and Golden Nuggets are
+named and the way in is waiting. Nobody is trapped by it: the top bar goes
+straight to a test from any page, the foot of the opening keeps a plain link
+inside — which is also the keyboard's escape — and `opening: 'direct'` in
+settings replaces the whole opening with the still hero and its button, for
+anyone who has seen it and would now like to type.
+
 ### Accounts are an offer, not a gate
 
 Signing in adds one thing: a copy of the test history and the typist's own

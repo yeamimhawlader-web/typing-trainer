@@ -20,6 +20,7 @@ const DEFAULTS: UserPreferences = {
   pace: 'off',
   punctuation: false,
   numbers: false,
+  opening: 'portal',
 }
 
 describe('settings store', () => {
@@ -72,6 +73,7 @@ describe('settings store', () => {
       pace: 'push',
       punctuation: true,
       numbers: true,
+      opening: 'direct',
     })
     const store = createSettingsStore(adapter)
 
@@ -91,6 +93,7 @@ describe('settings store', () => {
       pace: 'push',
       punctuation: true,
       numbers: true,
+      opening: 'direct',
     })
     expect(store.getState().status).toBe('ready')
   })
@@ -217,7 +220,27 @@ describe('settings store', () => {
       pace: 'average',
       punctuation: true,
       numbers: false,
+      opening: 'portal',
     })
+  })
+
+  it('remembers that the opening has been seen once, and keeps it off', async () => {
+    const store = createSettingsStore(adapter)
+    await store.getState().hydrate()
+
+    // On by default: the opening is the only place the application says what it
+    // is for before being asked.
+    expect(store.getState().preferences.opening).toBe('portal')
+
+    await store.getState().setOpening('direct')
+
+    expect(store.getState().preferences.opening).toBe('direct')
+    const stored = await adapter.read<UserPreferences>(STORAGE_KEYS.preferences)
+    expect(stored?.opening).toBe('direct')
+
+    const next = createSettingsStore(adapter)
+    await next.getState().hydrate()
+    expect(next.getState().preferences.opening).toBe('direct')
   })
 
   it('ignores stored values this build does not recognise', async () => {
@@ -235,6 +258,7 @@ describe('settings store', () => {
       pace: 'warp-speed',
       punctuation: 'yes',
       numbers: 1,
+      opening: 'cinematic',
     })
     const store = createSettingsStore(adapter)
 

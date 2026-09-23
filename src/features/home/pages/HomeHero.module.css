@@ -66,13 +66,6 @@
   color: var(--color-text-secondary);
 }
 
-.start {
-  position: absolute;
-  inset: calc(var(--gp-word-bottom, 50%) + 76px) 0 auto;
-  display: flex;
-  justify-content: center;
-}
-
 /*
  * The foot of the opening: the way on, said plainly and kept in sight, because
  * a screen filled by a word says nothing about what is under it. The arrow

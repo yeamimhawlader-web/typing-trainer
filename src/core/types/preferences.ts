@@ -89,6 +89,18 @@ export type StreamFont = (typeof STREAM_FONTS)[number]
 export const VOCABULARIES = ['normal', 'advanced'] as const
 export type Vocabulary = (typeof VOCABULARIES)[number]
 
+/**
+ * How the front page opens.
+ *
+ * - `portal`: through the letters. The name fills the screen and scrolling
+ *   carries you into one of them, past what the application is for, to the way
+ *   in at the end of it.
+ * - `direct`: the name, a line about it, and a button. For anyone who has seen
+ *   the opening and would now like to type.
+ */
+export const OPENINGS = ['portal', 'direct'] as const
+export type Opening = (typeof OPENINGS)[number]
+
 export interface UserPreferences {
   readonly theme: ThemePreference
   /**
@@ -130,4 +142,6 @@ export interface UserPreferences {
   readonly punctuation: boolean
   /** Whether ordinary practice has figures among its words. */
   readonly numbers: boolean
+  /** Whether the front page opens through the letters, or goes straight in. */
+  readonly opening: Opening
 }

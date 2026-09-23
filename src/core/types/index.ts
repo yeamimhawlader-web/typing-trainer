@@ -29,6 +29,7 @@ export type {
 
 export type {
   HoverDifficulty,
+  Opening,
   PaceChoice,
   PracticeMode,
   PracticeWordCount,
@@ -41,6 +42,7 @@ export type {
 } from './preferences.ts'
 export {
   HOVER_DIFFICULTIES,
+  OPENINGS,
   PACE_CHOICES,
   PRACTICE_MODES,
   PRACTICE_WORD_COUNTS,
