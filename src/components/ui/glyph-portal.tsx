@@ -125,9 +125,25 @@ export default function GlyphPortal({
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d", { willReadFrequently: true });
     let disposed = false, raf = 0, dirty = true, active = true, ready = false;
+    let browserFrameSeen = false, pendingFace = false, slowFrames = false;
+    /*
+     * Two separate reasons to hold still, kept apart because only one of them
+     * can be taken back.
+     *
+     * `pendingFace` is a requested face still on its way. It is final: when it
+     * lands it moves the ink under the camera, so this mount never animates.
+     *
+     * `slowFrames` is the suspicion that the browser is withholding frames.
+     * That was a permanent verdict reached from the time since mount, and it
+     * was wrong far more often than it was right: a tab opened behind another
+     * window has its frames paused by the browser, which is ordinary and
+     * temporary. So the clock runs only while this could actually be drawn —
+     * page visible, section near the viewport — and `recheck` below can take
+     * the verdict back once frames do arrive at a normal rate.
+     */
     // oxlint-disable-next-line react/purity -- read inside this layout effect, not during render
-    const mountedAt = performance.now();
-    let browserFrameSeen = false, stalled = false;
+    let waitingSince: number | null = document.visibilityState === "visible" ? performance.now() : null;
+    let promptFrames = 0, lastFrameAt = 0, rechecks = 0;
     let W = 1, H = 1, travel = 1, startScale = 1, endScale = 1;
     let center = { x: 0, y: 0 }, target: Ink | null = null;
     let lastProgress = -1;
@@ -146,7 +162,7 @@ export default function GlyphPortal({
     });
     glyph.style.fontFamily = [...available, DEFAULT_FONT].join(",");
     // A pending requested face may also hold WebKit's render loop. Keep that mount static.
-    stalled = available.length < families.length;
+    pendingFace = available.length < families.length;
 
     const readInk = () => {
       if (!context) return false;
@@ -209,7 +225,7 @@ export default function GlyphPortal({
     };
 
     const paint = (progress: number) => {
-      const isStatic = motion.matches || !browserFrameSeen || stalled || !target;
+      const isStatic = motion.matches || !browserFrameSeen || pendingFace || slowFrames || !target;
       const p = isStatic ? 0 : progress;
       const t = clamp(p / 0.78);
       const eased = t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2;
@@ -269,16 +285,35 @@ export default function GlyphPortal({
       section.style.setProperty("--gp-word-top", `${H * .46 - bounds.height * startScale / 2}px`);
       section.style.setProperty("--gp-word-bottom", `${H * .46 + bounds.height * startScale / 2}px`);
       section.dataset.gpReady = "true";
-      section.dataset.gpMotion = !motion.matches && browserFrameSeen && !stalled && target ? "on" : "off";
+      section.dataset.gpMotion = !motion.matches && browserFrameSeen && !pendingFace && !slowFrames && target ? "on" : "off";
 
+    };
+
+    /*
+     * Asks the browser for a few frames in a row, and lets four of them at a
+     * normal rate take back the verdict that it was withholding frames.
+     *
+     * Frames are only drawn when something asks for one, so a page that has
+     * gone quiet would never prove itself; this asks. It gives up after a
+     * second and a half, and only turns the camera on at the very top, where
+     * doing so moves nothing that is already on screen.
+     */
+    const recheck = (time: number) => {
+      promptFrames = time - lastFrameAt < 80 ? promptFrames + 1 : 1;
+      lastFrameAt = time;
+      if (promptFrames >= 4 && position() < 0.02) { slowFrames = false; dirty = true; }
+      else if (rechecks++ < 90) schedule();
     };
 
     const frame = (time?: number) => {
       raf = 0;
       if (disposed) return;
       if (time !== undefined && !browserFrameSeen) {
-        browserFrameSeen = true; stalled ||= performance.now() - mountedAt > 2500; dirty = true;
+        browserFrameSeen = true;
+        slowFrames = waitingSince !== null && performance.now() - waitingSince > 2500;
+        dirty = true;
       }
+      if (time !== undefined && slowFrames && !pendingFace && !motion.matches) recheck(time);
       if (dirty) { dirty = false; layout(); }
       if (ready) paint(position());
     };
@@ -315,17 +350,37 @@ export default function GlyphPortal({
     if (root) observer.observe(root);
     const visibility = new IntersectionObserver(([entry]) => {
       active = entry?.isIntersecting ?? true;
-      if (active) { dirty = true; schedule(); }
-      else if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      // Off screen there are no frames to wait for, so the clock does not run.
+      if (!browserFrameSeen && !active) waitingSince = null;
+      if (active) {
+        if (!browserFrameSeen && waitingSince === null && document.visibilityState === "visible") {
+          // oxlint-disable-next-line react/purity -- inside a layout effect's observer, not a render
+          waitingSince = performance.now();
+        }
+        dirty = true; schedule();
+      } else if (raf) { cancelAnimationFrame(raf); raf = 0; }
     }, { root, rootMargin: "100% 0px" });
     visibility.observe(section);
+    /*
+     * A tab nobody is looking at is given no frames. That is the browser
+     * saving work, not a browser in trouble, so the wait starts again when the
+     * page is looked at — and asks for the frame that proves it.
+     */
+    const looked = () => {
+      const seen = document.visibilityState === "visible";
+      // oxlint-disable-next-line react/purity -- inside a layout effect's listener, not a render
+      if (!browserFrameSeen) waitingSince = seen && active ? performance.now() : null;
+      if (seen) { dirty = true; schedule(); }
+    };
+    document.addEventListener("visibilitychange", looked);
     (root ?? window).addEventListener("scroll", scroll, { passive: true });
     window.addEventListener("resize", resize);
     window.visualViewport?.addEventListener("resize", resize);
     motion.addEventListener("change", resize);
     frame();
     // WebKit can withhold frames, timers and scroll events behind an initial hung font.
-    // Begin in reading flow. Enable motion only when the browser starts rendering promptly.
+    // Begin in reading flow. Enable motion only when the browser renders promptly —
+    // whenever that turns out to be, which may be when the tab is first looked at.
     schedule();
     return () => {
       disposed = true;
@@ -336,6 +391,7 @@ export default function GlyphPortal({
       window.removeEventListener("resize", resize);
       window.visualViewport?.removeEventListener("resize", resize);
       motion.removeEventListener("change", resize);
+      document.removeEventListener("visibilitychange", looked);
       choices.removeEventListener("pointerover", choose);
       choices.removeEventListener("click", choose);
       choices.removeEventListener("focusin", choose);

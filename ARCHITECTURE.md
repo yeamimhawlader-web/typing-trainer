@@ -243,6 +243,19 @@ It measures the letters' ink, so it is mounted once the face has loaded; before
 that, and wherever it cannot run (tests have no layout), the same words stand
 still. Its colours are the page's tokens with paper and ink swapped inside.
 
+The portal holds still when it suspects the browser is withholding frames
+behind a hung font, and that suspicion used to be permanent and drawn from the
+time since it mounted. A tab opened behind another window is given no animation
+frames until someone looks at it, so following a link from another application
+— which is how most people arrive — reliably produced a dead hero for the life
+of the page. Two changes: the clock runs only while the portal could actually
+be drawn (page visible, section near the viewport), and the verdict can be
+taken back — while nothing has scrolled yet, four frames at a normal rate start
+the camera after all. A browser genuinely withholding frames never produces
+them, so it stays still, which was the point. Reproduced and both directions
+checked by driving Brave over the DevTools protocol with frames held back and
+with a hidden tab; the reduced-motion path is unchanged.
+
 ### Accounts are an offer, not a gate
 
 Signing in adds one thing: a copy of the test history and the typist's own
