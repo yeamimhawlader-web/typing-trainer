@@ -71,6 +71,7 @@ export default defineConfig({
             // Design tokens: a stylesheet parsed as text and some colour
             // arithmetic. No DOM involved, so it belongs on the fast project.
             'src/styles/**/*.test.ts',
+            'src/config/**/*.test.ts',
           ],
         },
       },
@@ -85,6 +86,7 @@ export default defineConfig({
             'src/core/sessions/**/*.test.ts',
             'src/core/nuggets/**/*.test.ts',
             'src/core/library/**/*.test.ts',
+            'src/core/accounts/**/*.test.ts',
             'src/app/**/*.test.{ts,tsx}',
             'src/features/**/*.test.{ts,tsx}',
             'src/shared/**/*.test.{ts,tsx}',

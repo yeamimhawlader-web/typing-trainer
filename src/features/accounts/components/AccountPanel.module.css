@@ -1,0 +1,63 @@
+/* Every value is a token reference. No literals. */
+
+.panel {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding-block: var(--space-16);
+}
+
+.title {
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.picture {
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.name {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.email {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.text {
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-secondary);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+/* Always on the page, so a screen reader hears a round finish. */
+.status {
+  min-height: var(--space-6);
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-tertiary);
+}

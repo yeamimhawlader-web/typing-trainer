@@ -261,3 +261,9 @@
     display: none;
   }
 }
+
+/* The account's own picture, where the sign-in icon is when signed out. */
+.picture {
+  border-radius: var(--gg-radius-full);
+  object-fit: cover;
+}

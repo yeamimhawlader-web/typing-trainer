@@ -46,6 +46,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigationType } from 'react-router'
 
+import { useAccountSync } from '@features/accounts'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { createSoundEngine, soundChoiceFromStored, SoundContext } from '@features/sound'
 
@@ -102,6 +103,10 @@ const useTopOfNewPage = (): void => {
 
 export const GGLayout = () => {
   useTopOfNewPage()
+  // Signed in, this browser and the account are brought level here: on arrival,
+  // on signing in, and whenever the tab is looked at again. Signed out, and in
+  // a build with no account service, it does nothing at all.
+  useAccountSync()
   const ready = useSettingsStore((state) => state.status === 'ready')
   const themeId = useSettingsStore((state) => themeIdFromStored(state.preferences.theme) ?? DEFAULT_THEME_ID)
   const setTheme = useSettingsStore((state) => state.setTheme)

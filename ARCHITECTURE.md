@@ -243,11 +243,50 @@ It measures the letters' ink, so it is mounted once the face has loaded; before
 that, and wherever it cannot run (tests have no layout), the same words stand
 still. Its colours are the page's tokens with paper and ink swapped inside.
 
-### Sign in, without accounts
+### Accounts are an offer, not a gate
 
-`/gg/sign-in` is the sign-in form as it will look. There are no accounts and no
-server, so every action on it shows one notice saying so, and the form is never
-submitted — left alone, a form with no action reloads the page with the email
+Signing in adds one thing: a copy of the test history and the typist's own
+texts kept with them, so another browser has them too. Everything else is
+unchanged — every test is still written to this browser as it finishes, nothing
+in the typing loop waits for a network, and signing out leaves it all here.
+
+The decisions worth keeping:
+
+- **Off unless configured.** `@core/accounts` is built from `env.accounts`, two
+  public values (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Without them
+  every part of it still exists and answers `unavailable`, so no page has to
+  ask whether accounts are switched on before it can render. Set one without
+  the other and the build refuses to start: a half-configured deployment would
+  otherwise look like a working one until the first sign-in.
+- **Google only, and no password anywhere.** A typing trainer has no business
+  holding a password. The form's email and password fields — the component's —
+  are not wired to anything and say so when pressed.
+- **A record of the last round, not a guess.** Comparing here with there cannot
+  tell "added somewhere else" from "deleted here": both are on one side only.
+  So each round writes down the ids it ended with, per account, and the next
+  round reads the difference against it. A first round has no record, so
+  nothing counts as a deletion and the two sides merge — which is what signing
+  in on a second browser should do, and the only safe reading of no record.
+  Sessions are immutable, so an id is the whole comparison; texts are edited,
+  so the later `updatedAt` wins. Each of those four cases has a test, and each
+  was checked by breaking it on purpose.
+- **Three moments, one idempotent round.** Signing in, coming back to the tab,
+  and finishing a test. A round already running absorbs the others, so there is
+  no coordination to get wrong, and a failure is a warning and a line on the
+  account page — never an interruption.
+- **Keystroke detail stays local.** It is the largest thing stored and is read
+  only by the analyses on the machine that recorded it; the session records
+  carry every number history and statistics show. Settings stay local too: text
+  size, sound and theme belong to the machine more than to the person.
+
+Row-level security, not the secrecy of a key in a page, is what keeps one
+typist's rows from another's. The setup, with the SQL, is docs/SUPABASE.md.
+
+### Sign in, before there were accounts
+
+`/gg/sign-in` began as the sign-in form as it will look, and is still exactly
+that in a build with no account service: every action on it shows one notice
+saying so, and the form is never submitted — left alone, a form with no action reloads the page with the email
 and password in its address. Practice needs no account: everything is kept in
 the browser. Testimonials, which the component supports, are left out: there is
 nobody to quote.

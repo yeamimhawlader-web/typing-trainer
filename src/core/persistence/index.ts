@@ -28,6 +28,8 @@ export const STORAGE_KEYS = {
   preferences: 'preferences',
   goldenNuggets: 'golden-nuggets',
   libraryTexts: 'library-texts',
+  /** What the last round of account syncing ended with. See @core/accounts. */
+  accountSync: 'account-sync',
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]

@@ -6,10 +6,14 @@
  * mistakes to a single failure point that shouts at startup, instead of an
  * `undefined` surfacing three layers deep at runtime.
  *
- * Validation is hand-rolled rather than schema-library-driven. There are two
+ * Validation is hand-rolled rather than schema-library-driven. There are four
  * variables; a dependency would cost more than it saves. If this grows past a
- * handful, switch to a schema library and delete the helpers below.
+ * handful, switch to a schema library and delete the helpers below. The two
+ * that switch accounts on are read in accounts.ts, where their rules can be
+ * tested without a module that reads the environment as it loads.
  */
+
+import { parseAccounts, type AccountsConfig } from './accounts.ts'
 
 export type Environment = 'development' | 'production' | 'test'
 
@@ -42,6 +46,8 @@ export interface Env {
   readonly isProduction: boolean
   readonly isTest: boolean
   readonly persistenceDriver: PersistenceDriver
+  /** Null until a Supabase project is configured; accounts are off then. */
+  readonly accounts: AccountsConfig | null
 }
 
 const environment = resolveEnvironment()
@@ -58,4 +64,9 @@ export const env: Env = {
     environment === 'test' ? 'memory' : 'local',
     'VITE_PERSISTENCE_DRIVER',
   ),
+  // Tests never reach a network, so accounts are off there whatever is set.
+  accounts:
+    environment === 'test'
+      ? null
+      : parseAccounts(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY),
 }

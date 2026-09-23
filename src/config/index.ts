@@ -8,5 +8,6 @@ export type { AppConfig, PersistenceConfig } from './app.config.ts'
 
 export { env } from './env.ts'
 export type { Env, Environment, PersistenceDriver } from './env.ts'
+export type { AccountsConfig } from './accounts.ts'
 
 export { DEFAULT_PREFERENCES } from './defaults.ts'

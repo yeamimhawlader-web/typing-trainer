@@ -66,6 +66,7 @@ import { paceFor } from '@core/statistics'
 import { layoutSyllables, readRhythm, type RhythmReading as Reading } from '@core/syllables'
 import { createCommonWordsProvider, createSyllableWordsProvider } from '@core/text'
 import type { HoverDifficulty, PaceChoice, Timestamp } from '@core/types'
+import { useSyncAfterSave } from '@features/accounts'
 import { createHoverController, keepTroublesomeWords, newTestId, recordGoldenNuggets } from '@features/ggtyping'
 import { createTimedMode, SYLLABLE_MODE } from '@features/typing'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
@@ -192,6 +193,10 @@ export const GGTypingScreen = ({
     drillSequence,
     drillResult,
   } = screen
+
+  // A saved test belongs on the account too, if there is one. The id changes
+  // once per saved test, so this runs once per test and never while typing.
+  useSyncAfterSave(saveState === 'saved' ? (lastSession?.id ?? null) : null)
 
   const wordTotal = useMemo(() => computeWordRanges(toCharacters(target.text)).length, [target])
   // Where every word's syllables are: worked out once per text, never per key.

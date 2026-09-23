@@ -417,7 +417,9 @@ describe('Golden Nuggets practice', () => {
     const [stored] = await sessions.getAll()
     expect(stored?.context.mode).toBe('hover')
     expect(stored?.textSourceId).toBe('golden-nuggets')
-  })
+    // The test's own budget has to be larger than the wait inside it, or the
+    // wait never gets the five seconds it was given.
+  }, 15_000)
 
   it('says where nuggets come from when there are none to practise', async () => {
     await renderAt(ROUTES.ggHoverNuggets)

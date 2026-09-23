@@ -26,6 +26,14 @@ export interface LibraryService {
    * stored, or null when there is nothing typeable in it.
    */
   save(draft: LibraryDraft, now?: number): Promise<LibraryText | null>
+  /**
+   * Stores a text exactly as given, replacing any with the same id.
+   *
+   * For a copy made somewhere else — another browser, through an account —
+   * where the record is already clean and its times are its own. `save` is for
+   * what a typist wrote just now; this is for what was written elsewhere.
+   */
+  put(text: LibraryText): Promise<void>
   remove(id: string): Promise<void>
   clear(): Promise<void>
 }
@@ -109,6 +117,13 @@ export const createLibraryService = (storage: StorageAdapter): LibraryService =>
         const kept = newest([saved, ...rest]).slice(0, LIBRARY_RULES.maxTexts)
         await storage.write(STORAGE_KEYS.libraryTexts, kept)
         return saved
+      }),
+
+    put: (text) =>
+      serialise(async () => {
+        const texts = await read()
+        const rest = texts.filter((stored) => stored.id !== text.id)
+        await storage.write(STORAGE_KEYS.libraryTexts, newest([text, ...rest]).slice(0, LIBRARY_RULES.maxTexts))
       }),
 
     remove: (id) =>
