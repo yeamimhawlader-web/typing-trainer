@@ -20,6 +20,29 @@ describe('applying a theme', () => {
     expect(root().dataset.ggTheme).toBe('glow')
   })
 
+  it('takes the browser furniture with it, and puts it back on the way out', () => {
+    // A phone tints the bar above the page from this, and so does a window
+    // installed from the site. One baked-in value gives a typist on Midnight a
+    // cream strip above a near-black page.
+    const meta = document.createElement('meta')
+    meta.name = 'theme-color'
+    meta.content = '#f7f4ee'
+    document.head.append(meta)
+
+    try {
+      applyTheme(themeById('midnight'))
+      expect(meta.content).toBe(themeById('midnight').colors.bg)
+
+      applyTheme(themeById('lemondrop'))
+      expect(meta.content).toBe(themeById('lemondrop').colors.bg)
+
+      removeTheme()
+      expect(meta.content).toBe('#f7f4ee')
+    } finally {
+      meta.remove()
+    }
+  })
+
   it('switches at once, with nothing left to fade afterwards', () => {
     vi.useFakeTimers()
     try {

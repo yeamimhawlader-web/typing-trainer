@@ -1,0 +1,20 @@
+{
+  "name": "Hover Typing",
+  "short_name": "Hover",
+  "description": "Practise where your hands slow down, on the words you actually type.",
+  "start_url": "/gg",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ee",
+  "theme_color": "#f7f4ee",
+  "icons": [
+    { "src": "/logo-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Typing test", "url": "/gg" },
+    { "name": "Hover Mode", "url": "/gg/hover" },
+    { "name": "Your texts", "url": "/gg/texts" }
+  ]
+}
