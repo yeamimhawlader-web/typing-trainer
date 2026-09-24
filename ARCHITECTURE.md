@@ -266,6 +266,21 @@ inside — which is also the keyboard's escape — and `opening: 'direct'` in
 settings replaces the whole opening with the still hero and its button, for
 anyone who has seen it and would now like to type.
 
+What the scroll lands on is an argument, not a feature list: what typing costs
+now, one number with the assumption it rests on printed beside it, the four
+things the application does, and the way in. It arrives a line at a time, keyed
+to the portal's own progress so nothing moves before there is anyone to see it,
+and the way in lands last and hardest. The whole act fits the screen the camera
+lands on, which is why a short window gets its own composition rather than the
+tall one squeezed.
+
+Four things move differently on this page and no two in a row are the same: a
+camera carried by the scroll, a page that arrives a line at a time, a list that
+answers the pointer, a close that resolves on the one action. That last one is
+a section, not a footer note: the last thing on a page is the thing that is
+remembered, and a bordered disclaimer is not it. One label for one intent, so
+the opening, the pitch and the close all say Start typing.
+
 ### Accounts are an offer, not a gate
 
 Signing in adds one thing: a copy of the test history and the typist's own

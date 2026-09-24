@@ -128,9 +128,19 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-6);
+  gap: var(--space-4);
   width: min(100%, 64rem);
   margin: auto;
+}
+
+/* The breaks, where one thought ends and the next begins. */
+.inside > .sum {
+  margin-top: var(--space-4);
+}
+
+.inside > .features,
+.inside > .close {
+  margin-top: var(--space-6);
 }
 
 /*
@@ -142,7 +152,10 @@
  * flying the content is transparent, so there is nothing to see here yet.
  */
 .portal[data-gp-motion='on'] :global([data-gp-content]) {
-  padding-block: clamp(var(--space-8), 6vh, var(--space-16));
+  /* Enough above to clear the bar the page scrolls under, less below: the
+     break belongs to the boundary, not to the last line before it. */
+  padding-top: max(calc(var(--gg-bar-height, 64px) + var(--space-3)), 5vh);
+  padding-bottom: var(--space-6);
   background-image: linear-gradient(
     to bottom,
     transparent 0,
@@ -153,6 +166,8 @@
 
 .insideTitle {
   margin: 0;
+  max-width: 22ch;
+  text-wrap: balance;
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
@@ -162,7 +177,7 @@
 
 .features {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-6);
   width: 100%;
   margin: 0;
@@ -175,41 +190,40 @@
   border-top: var(--border-width-thin) solid color-mix(in oklab, currentColor 28%, transparent);
 }
 
+.featureLead {
+  grid-column: 1 / -1;
+}
+
+.featureLead .featureName {
+  font-size: var(--font-size-xl);
+}
+
+.featureLead .featureText {
+  max-width: 52ch;
+  font-size: var(--font-size-md);
+  opacity: 0.95;
+}
+
 .featureName {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
   margin: 0;
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-semibold);
   color: inherit;
 }
 
-.featureNumber {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.08em;
-  opacity: 0.8;
-}
 
 .featureText {
   margin: var(--space-2) 0 0;
   line-height: var(--line-height-normal);
+  text-wrap: pretty;
   opacity: 0.85;
 }
 
-.eyebrow {
-  margin: 0;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  opacity: 0.7;
-}
 
 .lede {
-  max-width: 44ch;
+  max-width: 52ch;
   margin: 0;
+  text-wrap: pretty;
   font-size: var(--font-size-lg);
   line-height: var(--line-height-normal);
   opacity: 0.9;
@@ -220,7 +234,7 @@
   max-width: 44ch;
   margin: 0;
   padding-left: var(--space-5);
-  border-left: var(--border-width-base) solid color-mix(in oklab, currentColor 45%, transparent);
+  border-left: var(--border-width-thin) solid color-mix(in oklab, currentColor 45%, transparent);
   line-height: var(--line-height-relaxed);
   opacity: 0.85;
 }
@@ -338,9 +352,59 @@
 
 /* Four across where there is room; paired below that, rather than three and
    a stranded fourth. */
-@media (max-width: 75rem) {
+@media (max-width: 62rem) {
   .features {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/*
+ * A short window is a different composition, not the same one squeezed. The
+ * four go in one row so the act loses a whole band, and the type steps down
+ * with it, because the point is that the way in is on the screen the camera
+ * lands on.
+ */
+@media (max-height: 52rem) {
+  .inside {
+    gap: var(--space-3);
+  }
+
+  .inside > .sum,
+  .inside > .features,
+  .inside > .close {
+    margin-top: var(--space-4);
+  }
+
+  .insideTitle {
+    font-size: var(--font-size-2xl);
+  }
+
+  .lede {
+    font-size: var(--font-size-md);
+  }
+
+  .insideStart {
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--font-size-md);
+  }
+}
+
+@media (max-height: 52rem) and (min-width: 62rem) {
+  .features {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .featureLead {
+    grid-column: auto;
+  }
+
+  .featureLead .featureName {
+    font-size: var(--font-size-lg);
+  }
+
+  .featureLead .featureText {
+    max-width: none;
+    font-size: var(--font-size-sm);
   }
 }
 

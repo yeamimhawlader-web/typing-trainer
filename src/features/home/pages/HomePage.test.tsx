@@ -48,9 +48,12 @@ describe('the front page', () => {
     renderHome()
 
     expect(screen.getByRole('heading', { level: 1, name: 'Hover Typing' })).toBeInTheDocument()
-    const start = screen.getByRole('link', { name: 'Start practising' })
-    expect(start).toHaveAttribute('href', ROUTES.gg)
-    expect(start).toHaveAttribute('data-slot', 'button')
+    // One label for one intent: the opening, the pitch and the close all say
+    // the same three words, so the way in is never a new thing to learn.
+    const starts = screen.getAllByRole('link', { name: 'Start typing' })
+    expect(starts.length).toBeGreaterThan(0)
+    expect(starts[0]).toHaveAttribute('href', ROUTES.gg)
+    expect(starts[0]).toHaveAttribute('data-slot', 'button')
   })
 
   it('opens through the letters by default, and goes straight in when asked to', () => {
@@ -62,7 +65,7 @@ describe('the front page', () => {
     settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES, opening: 'direct' }, status: 'ready' })
     renderHome()
 
-    expect(screen.getByRole('link', { name: 'Start practising' })).toHaveAttribute('href', ROUTES.gg)
+    expect(screen.getAllByRole('link', { name: 'Start typing' })[0]).toHaveAttribute('href', ROUTES.gg)
   })
 
   it('lists every way to practise, each leading to its own page', () => {

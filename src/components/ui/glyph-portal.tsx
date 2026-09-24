@@ -27,6 +27,17 @@ export type GlyphPortalProps = {
   children?: ReactNode;
   /** Scroll travel in visible container heights, clamped to 1–8. */
   scrollLength?: number;
+  /**
+   * Whether a slow first frame is taken as a browser withholding frames behind
+   * a font that has not arrived, which holds the camera still.
+   *
+   * Leave it on where the face may still be loading. Turn it off where the
+   * host has already waited for the face before mounting: there is then no
+   * hung font to detect, and every slow first frame — a tab opened behind
+   * another window, a machine still busy with the rest of the page — is a
+   * false alarm that costs the opening for the life of the page.
+   */
+  watchFrames?: boolean;
   fontFamily?: string;
   fontWeight?: number;
   annotations?: boolean;
@@ -89,7 +100,7 @@ function scrollParent(element: HTMLElement): HTMLElement | null {
 
 export default function GlyphPortal({
   word = "SUBLIME", focusChar, interactive = true, background, front, children, scrollLength = 2.4,
-  fontFamily = DEFAULT_FONT, fontWeight = 900, annotations = false,
+  watchFrames = true, fontFamily = DEFAULT_FONT, fontWeight = 900, annotations = false,
   enterLabel = "Enter section", className, style, onProgress,
 }: GlyphPortalProps) {
   const uid = `gp-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -285,7 +296,11 @@ export default function GlyphPortal({
       section.style.setProperty("--gp-word-top", `${H * .46 - bounds.height * startScale / 2}px`);
       section.style.setProperty("--gp-word-bottom", `${H * .46 + bounds.height * startScale / 2}px`);
       section.dataset.gpReady = "true";
-      section.dataset.gpMotion = !motion.matches && browserFrameSeen && !pendingFace && !slowFrames && target ? "on" : "off";
+      const still = motion.matches ? "reduced-motion" : !browserFrameSeen ? "no-frame-yet"
+        : pendingFace ? "font-pending" : slowFrames ? "slow-frames" : !target ? "no-ink" : "";
+      section.dataset.gpMotion = still === "" ? "on" : "off";
+      // Which of the reasons, for anyone asking why the camera is not running.
+      section.dataset.gpStill = still;
 
     };
 
@@ -310,7 +325,7 @@ export default function GlyphPortal({
       if (disposed) return;
       if (time !== undefined && !browserFrameSeen) {
         browserFrameSeen = true;
-        slowFrames = waitingSince !== null && performance.now() - waitingSince > 2500;
+        slowFrames = watchFrames && waitingSince !== null && performance.now() - waitingSince > 2500;
         dirty = true;
       }
       if (time !== undefined && slowFrames && !pendingFace && !motion.matches) recheck(time);
@@ -398,7 +413,7 @@ export default function GlyphPortal({
       choices.removeEventListener("keydown", navigate);
       picker.removeEventListener("change", pick);
     };
-  }, [text, focusChar, interactive, fontFamily, weight, length, clipId, hasFront, sectionRef, progressRef]);
+  }, [text, focusChar, interactive, fontFamily, weight, length, clipId, hasFront, watchFrames, sectionRef, progressRef]);
 
   return (
     <section ref={sectionRef} id={uid} className={className} aria-label={text}

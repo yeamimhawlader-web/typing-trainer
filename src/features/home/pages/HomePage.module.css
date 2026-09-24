@@ -5,15 +5,85 @@
   gap: var(--space-12);
 }
 
-.note {
-  max-width: var(--layout-reading-width);
-  padding: var(--space-4) var(--space-5);
-  border: var(--border-width-thin) solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  background-color: var(--color-bg-raised);
+/* --- The close ---------------------------------------------------------
+ * The page ends on the one action, and says the two things worth knowing
+ * before it: how little there is to do first, and where what you type goes.
+ * A note in a bordered box at the foot of a page is a footer, and a footer is
+ * not an ending.
+ */
+.end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding-block: var(--space-10) var(--space-16);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.endTitle {
+  max-width: 18ch;
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-tight);
+  text-wrap: balance;
+  color: var(--color-text-primary);
+}
+
+.endText {
+  max-width: 52ch;
+  margin: 0 0 var(--space-3);
+  line-height: var(--line-height-relaxed);
+  text-wrap: pretty;
   color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-normal);
+}
+
+.endStart {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-full);
+  background-color: var(--color-accent-base);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-on-accent);
+  text-decoration: none;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.endStart > span {
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .endStart:hover {
+    background-color: var(--color-accent-hover);
+    transform: translateY(-2px);
+  }
+
+  .endStart:hover > span {
+    transform: translateX(4px);
+  }
+}
+
+.endStart:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.endStart:focus-visible {
+  outline: var(--border-width-base) solid var(--color-accent-base);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .endStart,
+  .endStart > span {
+    transform: none !important;
+  }
 }
 
 /* Every way to practise, under a small heading: the list is the thing to look at. */
@@ -21,6 +91,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  padding-top: var(--space-8);
 }
 
 .waysTitle {

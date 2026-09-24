@@ -68,7 +68,7 @@ const PORTAL_COLOURS: GlyphPortalStyle = {
 const INSIDE: readonly { readonly name: string; readonly text: string }[] = [
   {
     name: 'Hover Mode',
-    text: 'A word you miss lifts out of the line and stays there until you type it clean. You practise your mistakes instead of your strengths.',
+    text: 'A word you miss lifts out of the line and stays there until you type it clean. You practise your mistakes instead of your strengths, which is the whole of it.',
   },
   {
     name: 'Syllable Trainer',
@@ -80,7 +80,7 @@ const INSIDE: readonly { readonly name: string; readonly text: string }[] = [
   },
   {
     name: 'Your own texts',
-    text: 'Quotes, goals, and the words you actually use — ask your AI for them and practise those, because those are the ones you keep typing.',
+    text: 'Quotes, goals, and the words you actually use. Ask your AI which words those are, then practise those.',
   },
 ]
 
@@ -102,7 +102,7 @@ const portalCanRun = (): boolean =>
 
 const Start = () => (
   <LiquidButton asChild size="xl">
-    <Link to={PRACTICE_PATH}>Start practising</Link>
+    <Link to={PRACTICE_PATH}>Start typing</Link>
   </LiquidButton>
 )
 
@@ -111,7 +111,7 @@ const StillHero = () => (
   <header className={styles.still}>
     <h1 className={styles.stillTitle}>{appConfig.appName}</h1>
     <p className={styles.stillLede}>
-      A practice environment built for deliberate, daily work on speed and accuracy.
+      Practise where your hands slow down, on the words you actually type.
     </p>
     <Start />
   </header>
@@ -150,6 +150,14 @@ export const HomeHero = () => {
       fontFamily={face}
       fontWeight={WEIGHT}
       scrollLength={2.2}
+      /*
+       * The face is loaded before this mounts, a few lines up, so there is no
+       * hung font here for the portal's frame guard to catch — only false
+       * alarms. A link opened in a tab behind another window is given no
+       * animation frames until it is looked at, and that was enough to cost
+       * the opening for the life of the page.
+       */
+      watchFrames={false}
       enterLabel="Skip inside"
       className={styles.portal ?? ''}
       style={PORTAL_COLOURS}
@@ -162,33 +170,32 @@ export const HomeHero = () => {
       }
     >
       <div className={styles.inside}>
-        <p className={cx(styles.eyebrow, styles.reveal)}>Why bother</p>
-
-        <h2 className={cx(styles.insideTitle, styles.reveal)} style={delay(60)}>
+        <h2 className={cx(styles.insideTitle, styles.reveal)}>
           You think at the speed you type.
         </h2>
 
-        <p className={cx(styles.lede, styles.reveal)} style={delay(120)}>
-          Prompts, notes, messages, code, the reply you rewrite three times — the whole
-          day goes through a keyboard now. Every word your hands fumble is a thought you
+        <p className={cx(styles.lede, styles.reveal)} style={delay(80)}>
+          Prompts, notes, messages, code, the reply you rewrite three times. The whole day
+          goes through a keyboard now, and every word your hands fumble is a thought you
           have to think twice.
         </p>
 
         {/* Arithmetic the reader can check, with its assumption on the page:
             claims about hours saved are worth nothing if they cannot be. */}
-        <p className={cx(styles.sum, styles.reveal)} style={delay(180)}>
+        <p className={cx(styles.sum, styles.reveal)} style={delay(160)}>
           Three hours a day at a keyboard, at forty words a minute. Type at eighty and the
-          same words take half as long — <strong>over five hundred hours a year</strong>,
-          on your own arithmetic rather than ours.
+          same words take half as long: <strong>over five hundred hours a year</strong>, on
+          your own arithmetic rather than ours.
         </p>
 
         <ol className={styles.features}>
           {INSIDE.map((item, index) => (
-            <li key={item.name} className={cx(styles.feature, styles.reveal)} style={delay(240 + index * 90)}>
-              <h3 className={styles.featureName}>
-                <span className={styles.featureNumber}>{String(index + 1).padStart(2, '0')}</span>
-                {item.name}
-              </h3>
+            <li
+              key={item.name}
+              className={cx(styles.feature, index === 0 && styles.featureLead, styles.reveal)}
+              style={delay(230 + index * 70)}
+            >
+              <h3 className={styles.featureName}>{item.name}</h3>
               <p className={styles.featureText}>{item.text}</p>
             </li>
           ))}
@@ -198,7 +205,7 @@ export const HomeHero = () => {
           <Link to={PRACTICE_PATH} className={styles.insideStart}>
             Start typing <span aria-hidden="true">→</span>
           </Link>
-          <p className={cx(styles.terms, styles.reveal)} style={delay(760)}>
+          <p className={cx(styles.terms, styles.reveal)} style={delay(700)}>
             No account, nothing to install, and the first test is fifteen words long.
           </p>
         </div>
