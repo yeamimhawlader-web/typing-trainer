@@ -32,6 +32,14 @@ interface SignInPageProps {
   testimonials?: Testimonial[];
   /** Merged over the page's own classes: where it sits, and how big it is. */
   className?: string;
+  /**
+   * No password, no password furniture: the form is an address and a button
+   * that sends a link to it. What is left would be asking for something the
+   * application never holds.
+   */
+  passwordless?: boolean;
+  /** The submit button's words, which say what pressing it does. */
+  submitLabel?: string;
   onSignIn?: (event: React.FormEvent<HTMLFormElement>) => void;
   onGoogleSignIn?: () => void;
   onResetPassword?: () => void;
@@ -69,6 +77,8 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   heroImageSrc,
   testimonials = NO_TESTIMONIALS,
   className,
+  passwordless = false,
+  submitLabel = 'Sign In',
   onSignIn,
   onGoogleSignIn,
   onResetPassword,
@@ -94,28 +104,32 @@ export const SignInPage: React.FC<SignInPageProps> = ({
                 </GlassInputWrapper>
               </div>
 
-              <div className="animate-element animate-delay-400">
-                <label htmlFor={`${id}-password`} className="text-sm font-medium text-muted-foreground">Password</label>
-                <GlassInputWrapper>
-                  <div className="relative">
-                    <input id={`${id}-password`} name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" className="w-full border-0 bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none" />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute inset-y-0 right-3 flex items-center">
-                      {showPassword ? <EyeOff className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" aria-hidden="true" /> : <Eye className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" aria-hidden="true" />}
-                    </button>
-                  </div>
-                </GlassInputWrapper>
-              </div>
+              {!passwordless && (
+                <div className="animate-element animate-delay-400">
+                  <label htmlFor={`${id}-password`} className="text-sm font-medium text-muted-foreground">Password</label>
+                  <GlassInputWrapper>
+                    <div className="relative">
+                      <input id={`${id}-password`} name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" className="w-full border-0 bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none" />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} className="absolute inset-y-0 right-3 flex items-center">
+                        {showPassword ? <EyeOff className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" aria-hidden="true" /> : <Eye className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" aria-hidden="true" />}
+                      </button>
+                    </div>
+                  </GlassInputWrapper>
+                </div>
+              )}
 
-              <div className="animate-element animate-delay-500 flex items-center justify-between text-sm">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" name="rememberMe" className="custom-checkbox" />
-                  <span className="text-foreground/90">Keep me signed in</span>
-                </label>
-                <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-primary transition-colors">Reset password</a>
-              </div>
+              {!passwordless && (
+                <div className="animate-element animate-delay-500 flex items-center justify-between text-sm">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="rememberMe" className="custom-checkbox" />
+                    <span className="text-foreground/90">Keep me signed in</span>
+                  </label>
+                  <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-primary transition-colors">Reset password</a>
+                </div>
+              )}
 
               <LiquidButton type="submit" size="xl" className="animate-element animate-delay-600 w-full rounded-full bg-primary font-medium text-primary-foreground hover:bg-primary/90">
-                Sign In
+                {submitLabel}
               </LiquidButton>
             </form>
 
@@ -132,7 +146,9 @@ export const SignInPage: React.FC<SignInPageProps> = ({
             </LiquidButton>
 
             <p className="animate-element animate-delay-900 text-center text-sm text-muted-foreground">
-              New to our platform? <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-primary hover:underline transition-colors">Create Account</a>
+              {passwordless
+                ? 'First time? The same link signs you up. There is nothing else to fill in.'
+                : <>New to our platform? <a href="#" onClick={(e) => { e.preventDefault(); onCreateAccount?.(); }} className="text-primary hover:underline transition-colors">Create Account</a></>}
             </p>
           </div>
         </div>

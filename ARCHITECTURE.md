@@ -296,9 +296,16 @@ The decisions worth keeping:
   ask whether accounts are switched on before it can render. Set one without
   the other and the build refuses to start: a half-configured deployment would
   otherwise look like a working one until the first sign-in.
-- **Google only, and no password anywhere.** A typing trainer has no business
-  holding a password. The form's email and password fields — the component's —
-  are not wired to anything and say so when pressed.
+- **A link to an address, and no password anywhere.** A typing trainer has no
+  business holding a password, so neither way in involves one. The link is the
+  one offered first because it needs nothing registered anywhere else: a
+  Supabase project can send it the moment it exists, where Google costs a Cloud
+  project and an OAuth client before anything works at all. That difference is
+  the difference between a setup someone finishes and one they put off, and it
+  is why the sign-in form is passwordless: no password field, no "keep me
+  signed in", and no separate Create Account, because asking for the link is
+  the whole of signing up. Google sits beside it for anyone who wants one
+  click.
 - **A record of the last round, not a guess.** Comparing here with there cannot
   tell "added somewhere else" from "deleted here": both are on one side only.
   So each round writes down the ids it ended with, per account, and the next

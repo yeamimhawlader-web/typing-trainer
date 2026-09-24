@@ -25,7 +25,6 @@ import { TopBar } from './components/TopBar/TopBar.tsx'
 import {
   ACCOUNTS_NOT_YET,
   GGSignInPage,
-  PASSWORDS_NOT_HELD,
   SIGN_IN_HERO_IMAGE,
 } from './pages/GGSignInPage.tsx'
 import { removeTheme } from './themes/apply-theme.ts'
@@ -188,6 +187,10 @@ describe('Sign in, with accounts switched on', () => {
         listeners.add(listener)
         return () => listeners.delete(listener)
       },
+      signInWithEmail: (email, redirectTo) => {
+        asked.push(`email:${email}:${redirectTo}`)
+        return Promise.resolve()
+      },
       signInWithGoogle: (redirectTo) => {
         asked.push(`google:${redirectTo}`)
         return Promise.resolve()
@@ -235,17 +238,44 @@ describe('Sign in, with accounts switched on', () => {
     expect(accounts.asked).toEqual([`google:${window.location.origin}${ROUTES.ggSignIn}`])
   })
 
-  it('holds no password of its own, and says which way in is the real one', async () => {
+  it('sends a link to the address given, and says to go and look for it', async () => {
     const user = userEvent.setup()
     const accounts = fakeAccounts({ status: 'signed-out' })
     renderSignIn(accounts.service)
 
     await user.type(screen.getByLabelText('Email Address'), 'typist@example.com')
-    await user.type(screen.getByLabelText('Password'), 'hunter2')
-    await user.click(screen.getByRole('button', { name: 'Sign In' }))
+    await user.click(screen.getByRole('button', { name: 'Email me a link' }))
 
-    expect(screen.getByRole('status')).toHaveTextContent(PASSWORDS_NOT_HELD)
+    expect(accounts.asked).toEqual([`email:typist@example.com:${window.location.origin}${ROUTES.ggSignIn}`])
+    expect(screen.getByRole('status')).toHaveTextContent('typist@example.com')
+  })
+
+  it('asks for an address before sending anything', async () => {
+    const user = userEvent.setup()
+    const accounts = fakeAccounts({ status: 'signed-out' })
+    renderSignIn(accounts.service)
+
+    await user.click(screen.getByRole('button', { name: 'Email me a link' }))
+
     expect(accounts.asked).toEqual([])
+    expect(screen.getByRole('status')).toHaveTextContent('email address')
+  })
+
+  it('offers no password field, because there is no password', () => {
+    const accounts = fakeAccounts({ status: 'signed-out' })
+    renderSignIn(accounts.service)
+
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument()
+  })
+
+  it('offers no separate way to create an account, because the link makes one', () => {
+    const accounts = fakeAccounts({ status: 'signed-out' })
+    renderSignIn(accounts.service)
+
+    // Asking an address for a link is the whole of signing up: there is no
+    // second form, and a link called Create Account would go nowhere.
+    expect(screen.queryByRole('link', { name: 'Create Account' })).not.toBeInTheDocument()
+    expect(screen.getByText(/first time/i)).toBeInTheDocument()
   })
 
   it('becomes the account the moment the session arrives, without a reload', () => {

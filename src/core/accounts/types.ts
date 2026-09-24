@@ -31,6 +31,15 @@ export interface AccountService {
   /** Calls back with every change, and returns the way to stop listening. */
   subscribe(listener: (state: AccountState) => void): () => void
   /**
+   * Sends a link to an address, which signs the typist in when it is followed.
+   *
+   * The way in that needs nothing set up beyond the project itself: no
+   * provider to register, no console but Supabase's own. Rejects when the
+   * link could not be sent, so the page can say why rather than claiming to
+   * have sent one.
+   */
+  signInWithEmail(email: string, redirectTo: string): Promise<void>
+  /**
    * Leaves for Google and comes back to `redirectTo`. Resolves only if the
    * redirect could not be started.
    */

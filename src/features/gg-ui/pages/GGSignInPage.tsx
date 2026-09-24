@@ -5,11 +5,13 @@
  * who is signed in:
  *
  * - **Signed in.** The account, what it keeps, and the way out.
- * - **Accounts configured, signed out.** Google is the one way in and it is
- *   real: the button leaves for Google and comes back here. The email and
- *   password fields are the component's; they are not wired to anything,
- *   because a typing trainer has no business holding a password, and pressing
- *   them says so.
+ * - **Accounts configured, signed out.** An address and a button that sends a
+ *   link to it. That way in needs nothing registered anywhere: a Supabase
+ *   project can send it the moment it exists, which is the difference between
+ *   a setup someone finishes and one they put off. Google is kept beside it
+ *   for anyone who has registered a client for it, and says so plainly when
+ *   the project has not. Neither holds a password, so the form has no password
+ *   field at all.
  * - **No account service.** The form as it will look, saying so when used.
  *
  * Practice needs none of it. Sessions, Golden Nuggets, settings and your own
@@ -39,8 +41,11 @@ export const SIGN_IN_HERO_IMAGE =
 export const ACCOUNTS_NOT_YET =
   "Accounts aren't switched on yet, so nothing was sent anywhere. Your practice is saved in this browser in the meantime."
 
-export const PASSWORDS_NOT_HELD =
-  'Signing in is through Google, above. This application holds no passwords of its own.'
+/** What the address was given for, said back with the address itself. */
+const linkSent = (email: string): string =>
+  `A link is on its way to ${email}. Open it on this browser and you are in. It is good for an hour.`
+
+export const ADDRESS_NEEDED = 'An email address first, and the link goes to it.'
 
 export interface GGSignInPageProps {
   /** Injectable for tests; defaults to the application's account. */
@@ -56,19 +61,45 @@ export const GGSignInPage = ({ accounts = accountService }: GGSignInPageProps = 
     setNotice(said)
   }, [])
 
-  /** What every field and link on the form does: nothing, and says so. */
+  /**
+   * The form's password furniture, which only exists where there is nothing to
+   * sign in to: with a project configured the form is passwordless and none of
+   * it is rendered at all.
+   */
   const notHere = useCallback(() => {
-    say(accounts.available ? PASSWORDS_NOT_HELD : ACCOUNTS_NOT_YET)
-  }, [accounts.available, say])
+    say(ACCOUNTS_NOT_YET)
+  }, [say])
+
+  const comeBackTo = `${window.location.origin}${ROUTES.ggSignIn}`
 
   const submit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
-      // Left alone, a form with no action reloads this page with the email and
-      // the password in its address.
+      // Left alone, a form with no action reloads this page with what was typed
+      // in its address.
       event.preventDefault()
-      notHere()
+      if (!accounts.available) {
+        notHere()
+        return
+      }
+
+      const email = new FormData(event.currentTarget).get('email')
+      const address = typeof email === 'string' ? email.trim() : ''
+      if (address === '') {
+        say(ADDRESS_NEEDED)
+        return
+      }
+
+      accounts.signInWithEmail(address, comeBackTo).then(
+        () => say(linkSent(address)),
+        (error: unknown) => {
+          console.warn('[accounts] the link could not be sent', error)
+          say(
+            'That link could not be sent. Supabase limits how many go out in an hour; nothing was lost, and your practice is safe in this browser.',
+          )
+        },
+      )
     },
-    [notHere],
+    [accounts, comeBackTo, notHere, say],
   )
 
   const google = useCallback(() => {
@@ -77,11 +108,11 @@ export const GGSignInPage = ({ accounts = accountService }: GGSignInPageProps = 
       return
     }
     // Back to this page, where the account panel is waiting.
-    accounts.signInWithGoogle(`${window.location.origin}${ROUTES.ggSignIn}`).catch((error: unknown) => {
+    accounts.signInWithGoogle(comeBackTo).catch((error: unknown) => {
       console.warn('[accounts] sign-in could not start', error)
       say('Google could not be reached. Nothing was sent anywhere; your practice is safe in this browser.')
     })
-  }, [accounts, say])
+  }, [accounts, comeBackTo, say])
 
   const signOut = useCallback(() => {
     accounts.signOut().catch((error: unknown) => {
@@ -99,9 +130,11 @@ export const GGSignInPage = ({ accounts = accountService }: GGSignInPageProps = 
           className="h-auto w-full min-h-[calc(100dvh-var(--gg-bar-height)-5rem)]"
           description={
             accounts.available
-              ? 'Sign in to Hover Typing, and your history follows you.'
+              ? 'A link to your inbox, and your history follows you between browsers.'
               : 'Sign in to Hover Typing.'
           }
+          passwordless={accounts.available}
+          submitLabel={accounts.available ? 'Email me a link' : 'Sign In'}
           heroImageSrc={SIGN_IN_HERO_IMAGE}
           onSignIn={submit}
           onGoogleSignIn={google}

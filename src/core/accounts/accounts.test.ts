@@ -33,6 +33,8 @@ import type { AccountService, AccountState } from './types.ts'
 
 // --- A database, in memory ---------------------------------------------
 
+const ACCOUNT_ID = 'account-1'
+
 interface Row {
   readonly id: string
   readonly user_id: string
@@ -57,6 +59,13 @@ const fakeDatabase = () => {
   ])
   /** Set to make the next request fail, as a network does. */
   let failWith: string | null = null
+  /*
+   * Who the request is coming from, and the whole of row-level security: the
+   * policies in docs/SUPABASE.md mean a request only ever sees its own rows.
+   * Without that here, every account in a test could see every other account's
+   * rows, and a test would pass on evidence the real database would never give.
+   */
+  let asAccount = ACCOUNT_ID
 
   const rowsOf = (name: string): Map<string, Row> => {
     const table = tables.get(name)
@@ -64,30 +73,33 @@ const fakeDatabase = () => {
     return table
   }
 
+  const mine = (name: string): Row[] => [...rowsOf(name).values()].filter((row) => row.user_id === asAccount)
+
   const answer = <T>(data: T[]) =>
     failWith === null ? { data, error: null } : { data: null, error: { message: failWith } }
 
   const client = {
     from: (name: string) => ({
       select: (columns: string) => {
-        const all = [...rowsOf(name).values()].map((row) => project(row, columns))
-        const whole = Promise.resolve(answer(all))
+        const whole = Promise.resolve(answer(mine(name).map((row) => project(row, columns))))
         return Object.assign(whole, {
           in: (_column: string, ids: readonly string[]) =>
-            Promise.resolve(
-              answer([...rowsOf(name).values()].filter((row) => ids.includes(row.id)).map((row) => project(row, columns))),
-            ),
+            Promise.resolve(answer(mine(name).filter((row) => ids.includes(row.id)).map((row) => project(row, columns)))),
         })
       },
       upsert: (incoming: readonly Row[]) => {
         if (failWith !== null) return Promise.resolve({ error: { message: failWith } })
-        for (const row of incoming) rowsOf(name).set(row.id, row)
+        for (const row of incoming) {
+          // The insert policy's check: a row may only be written as its owner.
+          if (row.user_id !== asAccount) return Promise.resolve({ error: { message: 'row-level security' } })
+          rowsOf(name).set(row.id, row)
+        }
         return Promise.resolve({ error: null })
       },
       delete: () => ({
         in: (_column: string, ids: readonly string[]) => {
           if (failWith !== null) return Promise.resolve({ error: { message: failWith } })
-          for (const id of ids) rowsOf(name).delete(id)
+          for (const row of mine(name)) if (ids.includes(row.id)) rowsOf(name).delete(row.id)
           return Promise.resolve({ error: null })
         },
       }),
@@ -98,6 +110,10 @@ const fakeDatabase = () => {
     client: client as unknown as SupabaseClient,
     rows: (name: string) => [...rowsOf(name).values()],
     put: (name: string, row: Row) => rowsOf(name).set(row.id, row),
+    /** Whose request it is from here on, as signing in as someone else would be. */
+    signedInAs: (id: string) => {
+      asAccount = id
+    },
     fail: (message: string | null) => {
       failWith = message
     },
@@ -106,12 +122,13 @@ const fakeDatabase = () => {
 
 // --- An account -------------------------------------------------------
 
-const ACCOUNT = { id: 'account-1', email: 'typist@example.com', name: 'A Typist', pictureUrl: null }
+const ACCOUNT = { id: ACCOUNT_ID, email: 'typist@example.com', name: 'A Typist', pictureUrl: null }
 
 const signedIn = (): AccountService => ({
   available: true,
   state: (): AccountState => ({ status: 'signed-in', account: ACCOUNT }),
   subscribe: () => () => undefined,
+  signInWithEmail: () => Promise.resolve(),
   signInWithGoogle: () => Promise.resolve(),
   signOut: () => Promise.resolve(),
 })
@@ -171,6 +188,42 @@ describe('who is signed in', () => {
     expect(accounts.available).toBe(false)
   })
 
+
+  it('sends a link to an address, and asks for it back at the page that asked', async () => {
+    const asked: unknown[] = []
+    const client = {
+      auth: {
+        onAuthStateChange: () => undefined,
+        signInWithOtp: (options: unknown) => {
+          asked.push(options)
+          return Promise.resolve({ error: null })
+        },
+      },
+    } as unknown as SupabaseClient
+
+    const accounts = createAccountService(Promise.resolve(client))
+    await accounts.signInWithEmail('typist@example.com', 'https://hover.test/gg/sign-in')
+
+    expect(asked).toEqual([
+      { email: 'typist@example.com', options: { emailRedirectTo: 'https://hover.test/gg/sign-in' } },
+    ])
+  })
+
+  it('says so when the link could not be sent, rather than pretending it was', async () => {
+    const client = {
+      auth: {
+        onAuthStateChange: () => undefined,
+        signInWithOtp: () => Promise.resolve({ error: { message: 'email rate limit exceeded' } }),
+      },
+    } as unknown as SupabaseClient
+
+    const accounts = createAccountService(Promise.resolve(client))
+
+    await expect(accounts.signInWithEmail('typist@example.com', 'https://hover.test/')).rejects.toThrow(
+      'email rate limit exceeded',
+    )
+  })
+
   it('follows the session the client reports, and tells whoever is listening', async () => {
     let report: (event: string, session: { user: User } | null) => void = () => undefined
     const client = {
@@ -228,6 +281,7 @@ describe('bringing a browser and an account level', () => {
     database = fakeDatabase()
     build()
   })
+
 
   it('does nothing at all when nobody is signed in', async () => {
     build({ ...signedIn(), state: () => ({ status: 'signed-out' }) })

@@ -6,9 +6,11 @@
  * exists and answers `unavailable`, so nothing downstream has to ask whether
  * accounts are switched on before it can render.
  *
- * Only Google is offered. It is the one provider worth the setup for a typing
- * trainer, and an email and password would mean holding a password, which this
- * application has no business doing.
+ * Two ways in, neither of which holds a password. A link to an address needs
+ * nothing set up beyond the project itself, so it is the one that works the
+ * moment a project exists; Google is a second button for anyone willing to
+ * register an OAuth client for it. An email and a password would mean holding
+ * a password, which this application has no business doing.
  *
  * The client is told to keep its session and to read one out of the address it
  * is redirected back to; that is the whole of the sign-in mechanism here.
@@ -71,6 +73,7 @@ export const createUnavailableAccountService = (): AccountService => ({
   available: false,
   state: () => UNAVAILABLE,
   subscribe: () => () => undefined,
+  signInWithEmail: () => Promise.resolve(),
   signInWithGoogle: () => Promise.resolve(),
   signOut: () => Promise.resolve(),
 })
@@ -115,6 +118,12 @@ export const createAccountService = (arriving: Promise<SupabaseClient>): Account
     subscribe: (listener) => {
       listeners.add(listener)
       return () => listeners.delete(listener)
+    },
+
+    signInWithEmail: async (email, redirectTo) => {
+      const client = await arriving
+      const { error } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } })
+      if (error !== null) throw new Error(error.message)
     },
 
     signInWithGoogle: async (redirectTo) => {
