@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="32" height="32">
-  <!-- Hover Typing's mark (LogoGlyph in src/features/gg-ui/components/icons.tsx): the word stream's block cursor on its baseline, in Classic Milk. -->
-  <rect width="24" height="24" rx="6" fill="#86592F"/>
-  <g transform="translate(-0.75 0.25)" fill="none" stroke="#F7F4EE" stroke-width="1.9" stroke-linecap="round">
-    <rect x="6" y="6.5" width="7" height="10" rx="1.5" fill="#F7F4EE" stroke="none"/>
-    <path d="M15.5 16.5h3"/>
-  </g>
-</svg>

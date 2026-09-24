@@ -46,17 +46,17 @@
   border-radius: var(--gg-radius-pill);
 }
 
+/* The mark brings its own ground, so the chip that used to stand in for one is
+   gone; what is left is the corner radius the rest of the chrome uses and a
+   hairline to seat it against a light page. */
 .mark {
-  display: inline-flex;
+  display: block;
   flex: none;
-  align-items: center;
-  justify-content: center;
   width: 36px;
   height: 36px;
   border-radius: var(--gg-radius-logo);
-  background-color: var(--gg-accent-tint);
-  box-shadow: inset 0 0 0 1px var(--gg-accent-tint-strong);
-  color: var(--gg-accent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--gg-liquid-edge) 12%, transparent);
+  object-fit: cover;
 }
 
 .wordmark {

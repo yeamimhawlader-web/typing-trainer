@@ -27,7 +27,7 @@ import { accountService, type AccountService } from '@core/accounts'
 import { useAccount } from '@features/accounts'
 import { cx } from '@shared/lib'
 
-import { LogoGlyph, PaletteIcon, SignInIcon } from '../icons.tsx'
+import { PaletteIcon, SignInIcon } from '../icons.tsx'
 
 import styles from './TopBar.module.css'
 
@@ -58,9 +58,9 @@ export const TopBar = ({ accounts = accountService, themesOpen, onOpenThemes, th
     <header className={styles.bar} data-recede="">
       <div className={styles.inner}>
         <Link to={ROUTES.home} className={styles.brand} aria-label={appConfig.appName}>
-          <span className={styles.mark} aria-hidden="true">
-            <LogoGlyph />
-          </span>
+          {/* The mark keeps its own ground across all eleven themes, the way
+              an application's icon does; the wordmark beside it is themed. */}
+          <img className={styles.mark} src="/logo-mark.png" alt="" width={36} height={36} />
           <span className={styles.wordmark} aria-hidden="true">
             <span className={styles.gg}>HOVER</span>
             <span className={styles.rest}> TYPING</span>
