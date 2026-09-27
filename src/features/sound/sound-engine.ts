@@ -61,13 +61,28 @@ export interface SoundEngineOptions {
   readonly wobble?: () => { readonly pitch: number; readonly gain: number }
 }
 
-type AudioContextConstructor = new () => AudioContext
+type AudioContextConstructor = new (options?: AudioContextOptions) => AudioContext
+
+/**
+ * The smallest buffer the browser will give, asked for by name.
+ *
+ * A context opened with no options is not the fastest one available: measured
+ * in Chrome on Windows, the default reports a 10ms base latency and this
+ * reports 2.5ms, for the same device. `'interactive'` is the specification's
+ * default and measures the same as passing nothing at all; only a number asks
+ * for the minimum. The browser clamps it to whatever it can really do.
+ *
+ * It is the part of the delay that is ours. The rest belongs to the sound
+ * device — 40ms of output latency on the machine this was measured on — and no
+ * page can talk its way past that.
+ */
+const SMALLEST_BUFFER: AudioContextOptions = { latencyHint: 0 }
 
 const browserContext = (): AudioContext | null => {
   const constructor = (globalThis as { AudioContext?: AudioContextConstructor }).AudioContext
   if (constructor === undefined) return null
   try {
-    return new constructor()
+    return new constructor(SMALLEST_BUFFER)
   } catch {
     return null
   }

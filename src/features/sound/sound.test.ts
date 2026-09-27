@@ -580,6 +580,32 @@ describe('the sound engine', () => {
     expect(latest().closed).toBe(true)
   })
 
+  it('asks the browser for the smallest audio buffer it will give', () => {
+    /*
+     * Measured on a real machine: a context opened with no options reports a
+     * base latency of 10ms, and one asked for the smallest buffer reports
+     * 2.5ms. That difference is heard as the gap between pressing a key and
+     * hearing it, which is the one thing a typing trainer cannot afford.
+     * The browser clamps the request to what it can actually do.
+     */
+    const asked: unknown[] = []
+    class Spy extends FakeContext {
+      constructor(options?: unknown) {
+        super()
+        asked.push(options)
+      }
+    }
+    const had = Reflect.get(globalThis, 'AudioContext')
+    Reflect.set(globalThis, 'AudioContext', Spy)
+    try {
+      createSoundEngine().choose(DEFAULT_SOUND_PACK)
+    } finally {
+      Reflect.set(globalThis, 'AudioContext', had)
+    }
+
+    expect(asked).toEqual([{ latencyHint: 0 }])
+  })
+
   it('makes no sound, and no trouble, in a browser without Web Audio', () => {
     const sound = createSoundEngine({ createContext: () => null })
 

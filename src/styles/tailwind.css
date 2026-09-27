@@ -68,15 +68,26 @@
 
 /* --- The sign-in form's entrance ---------------------------------------- */
 /*
- * Each part rises out of a slight blur in turn, the delays staggering them
- * (`animate-delay-300` waits 300ms). With reduced motion everything is simply
- * there.
+ * Each part rises in turn, the delays staggering them. Two decisions, both
+ * measured rather than guessed:
+ *
+ * Only `opacity` and `transform` move. The original softened a blur away as
+ * well, and a blur is the one filter the compositor cannot carry: every frame
+ * re-rasterises the element at a new radius, on nine elements at once, two of
+ * them already carrying a backdrop filter. On a machine slowed four times it
+ * cost the worst frame 50ms.
+ *
+ * And the whole entrance is over inside half a second. It used to run for a
+ * second and a half, which put the last of it squarely inside the window where
+ * a cold start is still parsing the application — three hundred milliseconds
+ * of blocked main thread that the animation cannot advance through. Finishing
+ * before that work lands is what makes it look smooth; the delays are scaled
+ * here rather than in the markup, so the classes still read 100 to 900.
  */
 
 @keyframes fadeSlideIn {
   to {
     opacity: 1;
-    filter: blur(0px);
     transform: translateY(0px);
   }
 }
@@ -84,7 +95,6 @@
 @keyframes slideRightIn {
   to {
     opacity: 1;
-    filter: blur(0px);
     transform: translateX(0px);
   }
 }
@@ -92,20 +102,17 @@
 @keyframes testimonialIn {
   to {
     opacity: 1;
-    filter: blur(0px);
     transform: translateY(0px) scale(1);
   }
 }
 
 @utility animate-element {
   opacity: 0;
-  filter: blur(4px);
   transform: translateY(12px);
-  animation: fadeSlideIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: fadeSlideIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 
   @media (prefers-reduced-motion: reduce) {
     opacity: 1;
-    filter: none;
     transform: none;
     animation: none;
   }
@@ -113,13 +120,11 @@
 
 @utility animate-slide-right {
   opacity: 0;
-  filter: blur(4px);
   transform: translateX(-24px);
-  animation: slideRightIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: slideRightIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 
   @media (prefers-reduced-motion: reduce) {
     opacity: 1;
-    filter: none;
     transform: none;
     animation: none;
   }
@@ -127,20 +132,19 @@
 
 @utility animate-testimonial {
   opacity: 0;
-  filter: blur(4px);
   transform: translateY(16px) scale(0.96);
-  animation: testimonialIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: testimonialIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 
   @media (prefers-reduced-motion: reduce) {
     opacity: 1;
-    filter: none;
     transform: none;
     animation: none;
   }
 }
 
 @utility animate-delay-* {
-  animation-delay: calc(--value(integer) * 1ms);
+  /* A fifth of what the name says: the ninth element waits 180ms, not 900. */
+  animation-delay: calc(--value(integer) * 0.2ms);
 }
 
 /* A native checkbox in the theme's accent: its own tick, its own focus. */
