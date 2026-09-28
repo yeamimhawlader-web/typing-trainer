@@ -20,6 +20,13 @@
  * the light only at the end. Folding runs the same windows backwards, so the
  * order reverses by itself.
  *
+ * Every one of those windows has to close by the time the spring does. A
+ * stagger that simply added up pushed the later windows past 1, where the
+ * spring never goes: with six branches the last one could only travel 82% of
+ * the way, held there while the animation played out, and jumped the final
+ * 116 pixels when it was cancelled. `staggerFor` spends the stagger inside
+ * the run instead.
+ *
  * Because it is one spring solved exactly (see spring.ts), the value and its
  * speed are known at every moment. Leaving while it is still opening starts the
  * fold from exactly where it is, moving as fast as it was; reopening does the
@@ -256,11 +263,31 @@ export const stemsPose = (x: number, motion: UnfoldMotion = UNFOLD_MOTION): Fram
 }
 
 /**
- * How far branch `index` is along its journey at `x`: 0 at the node, 1 in
- * place, and a little past only while the spring itself is past 1.
+ * How much later each branch sets off than the one before.
+ *
+ * The stagger is what makes them leave one after another, but it has to be
+ * spent inside the spring's own run: the last branch's window must still end
+ * by the time the spring reaches 1, or its journey cannot finish inside it.
+ * Staggered past that, a branch stopped short — the fourth at 94% of the way,
+ * the sixth at 82% — held there while the animation played out, and jumped the
+ * rest when it was cancelled. Three branches spend the full step, as Hover
+ * Mode's always did; a longer list shares the same budget between more of
+ * them, so they set off closer together and all arrive.
  */
-export const branchProgress = (x: number, index: number, motion: UnfoldMotion = UNFOLD_MOTION): number => {
-  const shift = index * motion.branch.stagger
+export const staggerFor = (count: number, step: number, end: number): number =>
+  count > 1 ? Math.min(step, (1 - end) / (count - 1)) : 0
+
+/**
+ * How far branch `index` of `count` is along its journey at `x`: 0 at the node,
+ * 1 in place, and a little past only while the spring itself is past 1.
+ */
+export const branchProgress = (
+  x: number,
+  index: number,
+  count: number,
+  motion: UnfoldMotion = UNFOLD_MOTION,
+): number => {
+  const shift = index * staggerFor(count, motion.branch.stagger, motion.branch.end)
   const journey = clamp(across(x, motion.branch.start + shift, motion.branch.end + shift), 0, 1)
   return journey + Math.max(0, x - 1) * motion.branch.overshootGain
 }
@@ -273,7 +300,7 @@ export const branchPose = (
 ): Frame => {
   const box = geometry.branches[index]
   if (box === undefined) return {}
-  const p = branchProgress(x, index, motion)
+  const p = branchProgress(x, index, geometry.branches.length, motion)
   const middle = centre(box)
   // From the node's bottom centre to the branch's own centre.
   const dx = (geometry.node.x - middle.x) * (1 - p)
@@ -293,7 +320,7 @@ export const labelPose = (
 ): Frame => {
   const box = geometry.branches[index]
   if (box === undefined) return {}
-  const shift = index * motion.label.stagger
+  const shift = index * staggerFor(geometry.branches.length, motion.label.stagger, motion.label.end)
   const q = clamp(across(x, motion.label.start + shift, motion.label.end + shift), 0, 1)
   // The label slides the way its branch travelled: out from the node.
   const direction = Math.sign(centre(box).x - geometry.node.x) || 1

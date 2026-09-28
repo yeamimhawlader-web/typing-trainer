@@ -220,14 +220,40 @@ describe('the poses', () => {
     expect(lightPose(1).opacity).toBe('1')
   })
 
+  it('gets every branch of a long list the whole way there, however many there are', () => {
+    /*
+     * Each branch's window is staggered later than the one before, and the
+     * spring only ever runs to 1. Staggered past that, a branch's journey
+     * cannot finish inside it: it stopped short, held while the animation
+     * played out, and jumped the rest of the way when it was cancelled. Sound
+     * has six branches, Pace has four, and the ones that broke were exactly
+     * those from the fourth on.
+     */
+    const many: UnfoldGeometry = {
+      rowHeight: 71,
+      node: { x: 300, y: 0 },
+      branches: Array.from({ length: 6 }, (_, index) => ({
+        left: index * 100,
+        top: 18,
+        width: 90,
+        height: 53,
+      })),
+    }
+
+    many.branches.forEach((_, index) => {
+      expect(branchPose(1, index, many)).toEqual({ transform: 'translate(0px, 0px) scale(1)', opacity: '1' })
+      expect(labelPose(1, index, many)).toEqual({ transform: 'translateX(0px)', opacity: '1' })
+    })
+  })
+
   it('brings the branches out one just after another, and folds them back in the reverse order', () => {
-    const halfway = [0, 1, 2].map((index) => branchProgress(0.45, index))
+    const halfway = [0, 1, 2].map((index) => branchProgress(0.45, index, 3))
 
     expect(halfway[0]).toBeGreaterThan(halfway[1] as number)
     expect(halfway[1]).toBeGreaterThan(halfway[2] as number)
     // The last to arrive is the first to leave: at 0.95 on the way back only it has moved.
-    expect(branchProgress(0.95, 0)).toBe(1)
-    expect(branchProgress(0.95, 2)).toBeLessThan(1)
+    expect(branchProgress(0.95, 0, 3)).toBe(1)
+    expect(branchProgress(0.95, 2, 3)).toBeLessThan(1)
   })
 
   it('carries a branch past its place only while the spring itself is past 1, and only by a few pixels', () => {
@@ -237,7 +263,7 @@ describe('the poses', () => {
 
     expect(Math.hypot(dx as number, dy as number)).toBeLessThan(travel * 0.04)
     expect(scale).toBeLessThan(1.02)
-    expect(branchProgress(0.999, 2)).toBeLessThanOrEqual(1)
+    expect(branchProgress(0.999, 2, 3)).toBeLessThanOrEqual(1)
   })
 
   it('never makes more room than the branches need', () => {
