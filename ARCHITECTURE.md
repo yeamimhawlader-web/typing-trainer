@@ -165,6 +165,35 @@ calendar days as the activity chart is. It stands until midnight — a day with
 no test yet has not broken it — because the honest reading of "still yours
 today" is not "already lost".
 
+### A page at a time
+
+Pages were imported eagerly, on the reasoning that the bundle was small. It
+stopped being small. Measured on a cold load with the processor slowed four
+times, the entry bundle blocked the main thread for 250ms and then 313ms
+before the page could draw: arriving at the front page meant parsing the
+statistics charts, the sign-in form, the syllable corpus and every typing
+screen first. No animation can advance through work like that, which is where
+the unfolding branches were losing the frames that made some of them lurch
+while their neighbours glided.
+
+Each page is now fetched when it is first asked for; the shell is not, because
+the bar, the theme and the glass are what the first paint needs. Two things
+make that actually split. GGLayout is imported by its own module rather than
+through `@features/gg-ui`, whose entry point names every page and would drag
+them all back in behind it. And the pages name their modules directly too: a
+`lazy` import of a barrel pulls everything that barrel names into a single
+chunk, which is the opposite of the point. `app/pages.tsx` is the one file
+allowed to reach past a feature's entry point, and says so.
+
+    entry bundle   707kB -> 226kB      (232kB -> 71kB gzipped)
+    entry CSS      169kB ->  82kB      ( 30kB -> 16kB gzipped)
+
+Blocked main thread on a cold load fell with it, from 137ms, 344ms and 257ms
+on the three pages measured to a median of 52ms, 59ms and 77ms, with many
+loads now producing no long task at all. Nothing stands in for a page while
+its chunk is in flight: a spinner between two screens that swap in a few
+milliseconds is a flash of something worse than the pause it covers.
+
 ### One shell, every page
 
 The shell's route has no path of its own and every page is a child of it, so
