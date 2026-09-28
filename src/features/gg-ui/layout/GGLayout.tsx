@@ -43,7 +43,7 @@
  * they take on the theme without a line of their own changing.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigationType } from 'react-router'
 
 import { useAccountSync } from '@features/accounts'
@@ -195,7 +195,16 @@ export const GGLayout = () => {
           <TopBar themesOpen={themesOpen} onOpenThemes={() => setThemesOpen(true)} themesButtonRef={themesButton} />
 
           <main id={MAIN_ID} tabIndex={-1} className={styles.main}>
-            <Outlet />
+            {/*
+             * Pages arrive a chunk at a time (app/router.tsx). Nothing stands
+             * in for one while it is on its way: the bar, the theme and the
+             * page's own ground are already drawn, and a spinner between two
+             * screens that take a few milliseconds to swap is a flash of
+             * something worse than the pause it covers.
+             */}
+            <Suspense fallback={null}>
+              <Outlet />
+            </Suspense>
           </main>
         </div>
 

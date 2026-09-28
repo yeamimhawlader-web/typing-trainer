@@ -10,34 +10,34 @@
  * own, so moving between pages never replaces it — the theme is applied once,
  * and stays.
  *
- * Pages are imported eagerly. The bundle is small and this is a daily-use tool
- * where a lazy chunk boundary would trade a real first-interaction delay for a
- * saving that does not matter yet. Revisit when the bundle justifies it.
+ * Each page is fetched when it is first asked for (app/pages.tsx); the shell
+ * around them is not.
  */
 
 import { createBrowserRouter, type RouteObject } from 'react-router'
 
 import { NotFoundPage } from '@app/layout/NotFoundPage.tsx'
-import { ROUTES } from '@app/routes.ts'
-import { DrillPage } from '@features/drill'
 import {
+  DrillPage,
   GGDrillPage,
   GGGoldenNuggetsPage,
   GGHoverPage,
-  GGLayout,
   GGNuggetPracticePage,
   GGPracticePage,
   GGSignInPage,
   GGSyllablePage,
-} from '@features/gg-ui'
-import { HistoryPage } from '@features/history/pages/HistoryPage.tsx'
+  HistoryPage,
+  HomePage,
+  LibraryPage,
+  LibraryPracticePage,
+  PracticePage,
+  SessionDetailPage,
+  SettingsPage,
+  StatisticsPage,
+} from '@app/pages.tsx'
+import { ROUTES } from '@app/routes.ts'
+import { GGLayout } from '@features/gg-ui/layout/GGLayout.tsx'
 import { historyStore } from '@features/history/state/history.store.ts'
-import { HomePage } from '@features/home/pages/HomePage.tsx'
-import { LibraryPage, LibraryPracticePage } from '@features/library'
-import { SessionDetailPage } from '@features/results'
-import { StatisticsPage } from '@features/statistics'
-import { PracticePage } from '@features/practice/pages/PracticePage.tsx'
-import { SettingsPage } from '@features/settings/pages/SettingsPage.tsx'
 
 export const routeConfig: RouteObject[] = [
   {
@@ -60,9 +60,6 @@ export const routeConfig: RouteObject[] = [
       { path: ROUTES.history, element: <HistoryPage /> },
       {
         path: ROUTES.sessionDetail,
-        // Wired here rather than imported by the page: the history feature already
-        // depends on results, and deleting through the history store is what makes
-        // a deletion from this page undoable on the history page.
         element: <SessionDetailPage deleteSession={(id) => historyStore.getState().remove(id)} />,
       },
       { path: ROUTES.statistics, element: <StatisticsPage /> },
