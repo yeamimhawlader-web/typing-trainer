@@ -119,10 +119,11 @@ export type LineScroll = (typeof LINE_SCROLLS)[number]
 /**
  * The shape of the caret.
  *
- * - `block`: a tinted block over the character about to be typed, which is
- *   what the screen has always drawn.
- * - `bar`: a thin rule at that character's leading edge, as most typing tests
- *   draw it, covering nothing.
+ * - `bar`: a thin rule at the leading edge of the character about to be typed,
+ *   as most typing tests draw it, covering nothing.
+ * - `block`: a tinted block over that character, which is what the screen drew
+ *   before there was a choice. The letter reads through the tint, but the
+ *   block is over it.
  */
 export const CARETS = ['block', 'bar'] as const
 export type Caret = (typeof CARETS)[number]

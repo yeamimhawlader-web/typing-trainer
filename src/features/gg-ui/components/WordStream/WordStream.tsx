@@ -263,7 +263,7 @@ export const WordStream = ({
   syllables,
   pace = null,
   lineScroll = 'glide',
-  caret = 'block',
+  caret = 'bar',
 }: WordStreamProps) => {
   const characters = useMemo(() => toCharacters(text), [text])
   const words = useMemo(() => computeWordRanges(characters), [characters])

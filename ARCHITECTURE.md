@@ -1164,11 +1164,15 @@ held until the glide has arrived, and a line crossed before the last one
 finished replaces what is waiting.
 
 Both of the choices here that are a matter of eyes are preferences, in settings:
-`lineScroll` glides or jumps, and `caret` is a block over the character or a
-bar at its leading edge. The glide is the default because the lurch was real;
-the block is the default because it is what the screen has always drawn and a
-bar is a taste, not a correction. A system asking for reduced motion gets the
-jump whatever is chosen.
+`lineScroll` glides or jumps, and `caret` is a bar at the leading edge of the
+character or a block over it. Both default to the new behaviour — the glide
+because the lurch was real, the bar because it is what most typing tests draw
+and it covers nothing, where the block sits over the letter. The block was the
+default for a day, on the reasoning that it was what the screen had always
+drawn and a change of shape is a taste rather than a correction; shown both,
+the author preferred the bar, which is the only way that question was ever
+going to be settled. A system asking for reduced motion gets the jump whatever
+is chosen.
 
 ### Accuracy is said afterwards, not during
 

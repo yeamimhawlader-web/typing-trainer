@@ -34,7 +34,8 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   opening: 'portal',
   // The glide: the line break was the one moment in a test that lurched.
   lineScroll: 'glide',
-  // The block the screen has always drawn. The bar is a press away in
-  // settings, and is what most typing tests use.
-  caret: 'block',
+  // The bar: a rule at the leading edge of the character being typed, which
+  // is what most typing tests draw and what covers nothing. The block the
+  // screen drew before it is a press away in settings.
+  caret: 'bar',
 }
