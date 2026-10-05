@@ -296,7 +296,7 @@ describe('GG.Typing on the real typing session', () => {
       expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
       expect(screen.getByText(/^Test complete: \d+ words per minute, 100% accuracy\.$/)).toBeInTheDocument()
       expect(field().value).toBe('')
-      expect(field()).toHaveAttribute('placeholder', 'Press Tab for the next test')
+      expect(field()).toHaveAttribute('placeholder', 'Tab for next')
     })
 
     it('stores the session, the same one the panel shows', async () => {
@@ -583,8 +583,15 @@ describe('GG.Typing on the real typing session', () => {
     })
   })
 
-  describe('live accuracy', () => {
+  describe('accuracy, once the test is over', () => {
     const notice = () => screen.getByRole('status', { name: 'Accuracy' })
+
+    /** A text short enough that one wrong key decides what the whole test was worth. */
+    const text = (words: string): TextProvider => ({
+      id: 'fixed',
+      label: 'Fixed words',
+      provide: () => ({ text: words, sourceId: 'fixed' }),
+    })
 
     it('says nothing at all while accuracy is fine', async () => {
       await firstTest(wordsProvider().provider)
@@ -592,39 +599,48 @@ describe('GG.Typing on the real typing session', () => {
       typeText('alpha bravo')
 
       expect(figure('acc')).toBe('100%')
-      expect(notice()).toHaveTextContent('')
+      expect(notice()).toBeEmptyDOMElement()
       expect(notice()).toHaveAttribute('data-state', 'normal')
     })
 
-    it('asks the typist to keep an eye on it below 96%', async () => {
+    it('stays quiet while the test is under way, however the accuracy looks', async () => {
       await firstTest(wordsProvider().provider)
 
-      // One wrong key in twenty-two: 95.5%, where the figure still reads 95.
-      typeText('alpha bravo charlie d')
-      typeText('X')
+      typeText('alpha bra')
+      typeText('XX')
+
+      // Not a word over the words being typed.
+      expect(notice()).toBeEmptyDOMElement()
+      expect(notice()).toHaveAttribute('data-state', 'normal')
+      // The figure still turns, live, for anyone who is watching it.
+      expect(figures().querySelector('[data-state="critical"]')).not.toBeNull()
+    })
+
+    it('asks the typist to keep an eye on it below 96%, once the test is over', async () => {
+      await firstTest(text('alpha bravo charlie go'))
+
+      // One wrong key in twenty-two: 95.5%.
+      typeText('alXha bravo charlie go')
 
       expect(notice()).toHaveAttribute('data-state', 'caution')
       expect(notice()).toHaveTextContent('Keep an eye on accuracy.')
     })
 
     it('says what it is costing below 94%, without shouting about it', async () => {
-      await firstTest(wordsProvider().provider)
+      await firstTest(text('alpha bravo'))
 
-      typeText('alpha bra')
-      typeText('XX')
+      // One wrong key in eleven: 90.9%.
+      typeText('alXha bravo')
 
       expect(notice()).toHaveAttribute('data-state', 'critical')
       expect(notice()).toHaveTextContent('Accuracy is costing you speed.')
-      // The figure says so too, for anyone who cannot see the colour.
-      expect(figures().querySelector('[data-state="critical"]')).not.toBeNull()
     })
 
     it('never covers the typing text: it has a line of its own, always there', async () => {
-      await firstTest(wordsProvider().provider)
+      await firstTest(text('alpha bravo'))
       const before = notice().getBoundingClientRect().height
 
-      typeText('alpha bra')
-      typeText('XX')
+      typeText('alXha bravo')
 
       // The same line, holding words now: nothing was pushed anywhere.
       expect(notice().getBoundingClientRect().height).toBe(before)
@@ -723,7 +739,7 @@ describe('GG.Typing on the real typing session', () => {
       expect(pressTab()).toBe(true)
 
       expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
-      expect(field()).toHaveAttribute('placeholder', 'Start typing the words above')
+      expect(field()).toHaveAttribute('placeholder', 'Start typing')
       expect(figure('words')).toBe('0/15')
       // And it is typed straight away, with no click in between.
       typeText('about')

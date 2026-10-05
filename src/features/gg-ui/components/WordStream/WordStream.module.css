@@ -70,6 +70,14 @@
   top: calc(-1 * var(--gg-stream-overhang));
   overflow: hidden;
   padding-top: var(--gg-stream-overhang);
+  /* The measure, in characters rather than in pixels, so every size reads at
+     about the same line length instead of the small sizes running twice as far
+     as the large ones. It lands at about fifty-five characters: short enough that
+     the eye finds the next line without hunting for it, and short enough that
+     the return to the start of a line is a journey, not a sweep of the screen.
+     `ch` is read against this element's own font-size, which is set here. */
+  max-width: min(100%, 56ch);
+  margin-inline: auto;
   font-size: calc(var(--gg-stream-size) * var(--gg-stream-scale));
   line-height: var(--gg-stream-line-height);
   letter-spacing: var(--gg-stream-tracking);

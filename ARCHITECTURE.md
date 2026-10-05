@@ -1070,6 +1070,59 @@ it. Without the reserved width the row shuffled sideways every time a figure
 gained or lost a digit — 15 px as accuracy went from 100% to 75%. Movement at
 the edge of vision is exactly what a fast typist notices.
 
+### The typing screen is composed, not stacked
+
+Three numbers, measured on the live screen at 1440x900 while a test was under
+way, between them described a screen that had been assembled rather than
+composed:
+
+- The input field was **1270 x 120 px** and held the word `the`. It was the only
+  hard-bordered element on the screen, and it stayed bright while every other
+  piece of chrome stepped back for the test, so the largest and loudest thing in
+  front of the typist was a mostly empty box echoing what the words above it
+  already showed.
+- The words ran **70 characters to the line** across a 1272 px column. Typing
+  tests sit nearer 55. A long measure makes the eye hunt for the start of the
+  next line, and it makes the caret's return journey the width of the screen.
+- **263 px of the window below the field held nothing**, with the content
+  pushed against the top of the page.
+
+What the keystroke path cost was measured at the same time, so the three above
+could be read for what they are: at 4x CPU throttling and 90 wpm there were
+**no long tasks at all and two frames over 33 ms in 301**. Nothing here was
+slow. It looked unfinished, which is a different problem with different fixes.
+
+So the field is one line and one word wide, centred; the words carry a measure
+in `ch` rather than in pixels, which holds them near 54 characters a line at
+every size instead of letting the small sizes run twice as far as the large
+ones; and the words, the field and the line under them are one block centred in
+what the chrome leaves, so the empty part of the window is air around the text
+rather than a gap beneath it.
+
+Two details that fall out of the field being small. A word longer than the field
+scrolls along under the caret rather than wrapping onto a line the field is not
+tall enough to show — and because the field is written to rather than typed
+into, the browser does not do that by itself, so the end is brought into view by
+hand, behind a length no ordinary word reaches so that no ordinary keystroke
+pays for the measurement. And the result panel stays outside the centred block:
+finishing a test then adds to the bottom of the page instead of re-centring the
+block and pulling the words out from under the eyes of someone reading their
+score.
+
+### Accuracy is said afterwards, not during
+
+The notice under the live figures used to say `Accuracy is costing you speed.`
+the moment accuracy crossed 94%, which is to say in the corner of the eye of
+someone whose eyes are busy, at the one moment concentration is worth most. Read
+then, it is also a judgement on a few keystrokes rather than on a test: a
+stumble in the first line reads as critical and has washed out by the end — a
+test that ends at 97% was briefly at 0%.
+
+The words now wait for the test to finish, where a verdict belongs and where
+what is said is true of the whole test. The accuracy figure itself goes on
+turning live, in its own colour, for anyone who wants to watch it; only the
+sentence waits.
+
 ### Tab restarts, but never traps
 
 Tab abandons a test in progress and starts a fresh one, which is the convention

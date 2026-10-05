@@ -1,6 +1,19 @@
 /**
  * Where the typist types. Glass, of the one material the chrome is made of.
  *
+ * ## One word wide
+ *
+ * The field holds one word — it echoes the word being typed and starts over on
+ * a space — so it is sized for one word rather than for the page. It was a page
+ * wide and two lines tall for a long while, which made the brightest,
+ * hardest-edged thing on a screen that is otherwise stepping back the largest
+ * thing on it as well, repeating what the words above already show. Now it is a
+ * line, centred under them, and the words are what the screen is about.
+ *
+ * What that costs is room for a sentence, so the placeholders are two words and
+ * the sentence they used to carry is said under the field by the hint, and the
+ * Caps Lock note moved from the corner of the field to beside it.
+ *
  * GG.Typing's input adapter. It turns what arrives in the field into the typing
  * session's commands — `inputKey`, `deleteWord`, `restart` — and does nothing
  * else: whether a key was right, where the cursor goes and when the test ends
@@ -61,12 +74,43 @@ import styles from './InputField.module.css'
 
 export type InputFieldProps = Pick<TypingScreen, 'engine' | 'inputKey' | 'deleteWord' | 'restart'>
 
+/**
+ * Two words each, because the field is one word wide. What these used to say in
+ * a sentence — which words to type, which key starts the next test — is said
+ * under the field by the hint, which has the room for a sentence. The field
+ * keeps its own label for anyone who arrives at it by keyboard or by screen
+ * reader rather than by looking at it.
+ */
 const PLACEHOLDERS: Readonly<Record<SessionStatus, string>> = {
-  idle: 'Start typing the words above',
+  idle: 'Start typing',
   running: '',
   paused: '',
-  completed: 'Press Tab for the next test',
-  abandoned: 'Press Tab for the next test',
+  completed: 'Tab for next',
+  abandoned: 'Tab for next',
+}
+
+/**
+ * Longer than any word the field is wide enough for, at any of the sizes it is
+ * set in. Nothing is measured below it, which is every ordinary word: a count
+ * is not a layout.
+ */
+const LONGEST_THAT_FITS = 20
+
+/**
+ * A word longer than the field scrolls along under the caret.
+ *
+ * The browser does that by itself for text a person types, but this field is
+ * written to rather than typed into — the value is the echo of what the session
+ * accepted — and a written value leaves the view where it was. So the end is
+ * brought back into view by hand.
+ *
+ * The measurement this takes is the kind a keystroke must not pay for, which is
+ * why it is behind a length no real word reaches. On the words anyone actually
+ * types, this is one comparison and nothing else.
+ */
+const keepEndInView = (element: HTMLTextAreaElement): void => {
+  if (element.value.length <= LONGEST_THAT_FITS) return
+  element.scrollLeft = element.scrollWidth
 }
 
 export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps>(
@@ -118,12 +162,15 @@ export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps
               // The last character of a test ends it, and clears the field with it.
               const typing = isUnderWay()
               element.value = typing && !/\s/u.test(character) ? element.value + character : ''
+              keepEndInView(element)
             }
             return
           }
 
           case 'deleteContentBackward': {
-            if (inputKey(BACKSPACE, at)) element.value = element.value.slice(0, -1)
+            if (!inputKey(BACKSPACE, at)) return
+            element.value = element.value.slice(0, -1)
+            keepEndInView(element)
             return
           }
 
@@ -196,7 +243,11 @@ export const InputField = forwardRef<HTMLTextAreaElement | null, InputFieldProps
           className={styles.input}
           aria-label="Type the words above"
           placeholder={placeholder}
-          rows={2}
+          rows={1}
+          /* A word longer than the field scrolls along under the caret rather
+             than wrapping onto a second line the field is not tall enough to
+             show. */
+          wrap="off"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"

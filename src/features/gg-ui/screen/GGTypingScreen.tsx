@@ -474,43 +474,47 @@ export const GGTypingScreen = ({
 
       {syllable && <SyllableIntro engine={engine} />}
 
-      <div className={styles.stream}>
-        <WordStream
-          engine={engine}
-          text={target.text}
-          size={size}
-          font={font}
-          onActivate={focusInput}
-          hover={hover ?? undefined}
-          syllables={syllables}
-          pace={paceWpm}
-        />
-      </div>
+      {/* The words, what is typed into them and the line under both: one block,
+          centred in the room the chrome leaves (GGTypingScreen.module.css). */}
+      <div className={styles.typing} data-intro={syllable ? '' : undefined}>
+        <div className={styles.stream}>
+          <WordStream
+            engine={engine}
+            text={target.text}
+            size={size}
+            font={font}
+            onActivate={focusInput}
+            hover={hover ?? undefined}
+            syllables={syllables}
+            pace={paceWpm}
+          />
+        </div>
 
-      <InputField ref={input} engine={engine} inputKey={typeKey} deleteWord={removeWord} restart={restartTest} />
+        <InputField ref={input} engine={engine} inputKey={typeKey} deleteWord={removeWord} restart={restartTest} />
 
-      {/* Hover Mode's hint is guidance while typing, so only ordinary practice's steps back. */}
-      <div className={styles.hint} data-recede={hover === null ? '' : undefined}>
-        {hover === null ? <SessionHint engine={engine} /> : <HoverHint engine={engine} hover={hover} />}
-      </div>
+        {/* Hover Mode's hint is guidance while typing, so only ordinary practice's steps back. */}
+        <div className={styles.hint} data-recede={hover === null ? '' : undefined}>
+          {hover === null ? <SessionHint engine={engine} /> : <HoverHint engine={engine} hover={hover} />}
+        </div>
 
-      {hover !== null && (
-        <p className={styles.nuggets} data-recede="">
-          A word that does not clear is kept in{' '}
-          <Link to={ROUTES.ggNuggets} className={styles.nuggetsLink}>
-            Golden Nuggets
-          </Link>
-          .
+        {hover !== null && (
+          <p className={styles.nuggets} data-recede="">
+            A word that does not clear is kept in{' '}
+            <Link to={ROUTES.ggNuggets} className={styles.nuggetsLink}>
+              Golden Nuggets
+            </Link>
+            .
+          </p>
+        )}
+
+        {/* Shown only where the primary pointer is a finger and nothing hovers,
+            by CSS. The field takes what an on-screen keyboard sends, but input
+            methods that compose, correct or predict are not counted faithfully,
+            so they are not offered as supported. */}
+        <p className={styles.touchNote}>
+          Typing here needs a physical keyboard. On-screen keyboards are not supported.
         </p>
-      )}
-
-      {/* Shown only where the primary pointer is a finger and nothing hovers,
-          by CSS. The field takes what an on-screen keyboard sends, but input
-          methods that compose, correct or predict are not counted faithfully,
-          so they are not offered as supported. */}
-      <p className={styles.touchNote}>
-        Typing here needs a physical keyboard. On-screen keyboards are not supported.
-      </p>
+      </div>
 
       <ResultAnnouncement session={lastSession} saveState={saveState} />
 

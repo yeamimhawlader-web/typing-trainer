@@ -1,6 +1,14 @@
-/* Glass: the chrome material (gg-foundation.css), denser here, for text typed into it. */
+/* Glass: the chrome material (gg-foundation.css), denser here, for text typed into it.
+
+   One word wide and one line tall, because one word is all it ever holds: the
+   field echoes the word being typed and starts over on a space. Sized to the
+   longest word anyone will meet rather than to the page, so the brightest,
+   hardest-edged thing on a screen that is otherwise receding is no larger than
+   its job — and so the words above it are what the screen is about. */
 .field {
   position: relative;
+  width: min(100%, 22rem);
+  margin-inline: auto;
   border-radius: var(--gg-radius-input);
   background-color: var(--gg-glass-fill-strong);
   border: 1px solid var(--gg-glass-border);
@@ -31,8 +39,16 @@
 .input {
   display: block;
   width: 100%;
-  min-height: 120px;
-  padding: 20px;
+  /* One line of the type set in it. A word longer than the field scrolls along
+     under the caret (the element is `wrap="off"`); the bar it would scroll with
+     is hidden, because the field is one line tall and a scrollbar would make it
+     two. Left-aligned, not centred: letters appending from a fixed point are
+     still, where a centred word shifts sideways on every keystroke. */
+  height: calc(1.5em + 24px);
+  padding: 12px 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   border: 0;
   border-radius: inherit;
   background: transparent;
@@ -52,6 +68,12 @@
   border-radius: inherit;
 }
 
+.input::-webkit-scrollbar {
+  display: none;
+}
+
+/* Two words, because the field is one word wide: what used to be a sentence
+   here is said under it by the hint, which has the room for it. */
 .input::placeholder {
   color: var(--gg-muted);
   opacity: 1;
@@ -60,16 +82,17 @@
 @media (max-width: 520px) {
   .input {
     font-size: 1.125rem;
-    padding: 16px;
   }
 }
 
-/* Caps Lock, noted in the corner of the field: a small piece of glass that
-   fades in, out of the way of what is typed, and changes nothing around it. */
+/* Caps Lock, noted beside the field: a small piece of glass that fades in, out
+   of the way of what is typed, and changes nothing around it. Beside rather
+   than inside, now that the field is one word wide and the note would sit on
+   the word — in the room the narrow field leaves, which is plentiful. */
 .caps {
   position: absolute;
-  top: 12px;
-  right: 14px;
+  top: 50%;
+  left: calc(100% + 14px);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -83,10 +106,11 @@
     var(--gg-glass-depth);
   font-size: 0.75rem;
   font-weight: var(--font-weight-medium);
+  white-space: nowrap;
   color: var(--gg-status-text);
   pointer-events: none;
   opacity: 0;
-  transform: translateY(-2px);
+  transform: translateY(calc(-50% - 2px));
   transition:
     opacity var(--gg-duration-focus) var(--gg-ease-out),
     transform var(--gg-duration-touch) var(--gg-ease-touch);
@@ -94,7 +118,21 @@
 
 .caps[data-on='true'] {
   opacity: 1;
-  transform: none;
+  transform: translateY(-50%);
+}
+
+/* No room beside the field where the field is the width of the screen. */
+@media (max-width: 700px) {
+  .caps {
+    left: auto;
+    right: 10px;
+    top: calc(100% + 8px);
+    transform: translateY(-2px);
+  }
+
+  .caps[data-on='true'] {
+    transform: none;
+  }
 }
 
 .caps path {
