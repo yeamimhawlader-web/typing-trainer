@@ -72,10 +72,12 @@
   gap: 0.25rem;
 }
 
-/* --- Divider: 24px below the row, 28px above the toolbar ------------- */
+/* --- Divider: 12px below the row, 16px above the toolbar -------------
+   It was 24 and 28, which put 52px of air around a hairline and made the
+   control row the tallest thing above the words without holding anything. */
 
 .divider {
-  margin: 24px 0 28px;
+  margin: 12px 0 16px;
   border: 0;
   border-top: 1px solid var(--gg-divider);
 }

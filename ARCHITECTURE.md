@@ -1072,7 +1072,7 @@ the edge of vision is exactly what a fast typist notices.
 
 ### The typing screen is composed, not stacked
 
-Three numbers, measured on the live screen at 1440x900 while a test was under
+Four numbers, measured on the live screen at 1440x900 while a test was under
 way, between them described a screen that had been assembled rather than
 composed:
 
@@ -1086,6 +1086,13 @@ composed:
   next line, and it makes the caret's return journey the width of the screen.
 - **263 px of the window below the field held nothing**, with the content
   pushed against the top of the page.
+- **283 px of chrome stood above the words** — a 64px bar, a control row
+  holding two short lines in 111px, and a two-row toolbar of some twenty
+  controls. Monkeytype draws the same kind of thing in about 72px: a 36px logo
+  row and one row of small pills. That one is the gap anybody looking at the
+  two screens side by side sees first, and it is 227px now: the bar is 48,
+  the hairline under the control row has 28px of air around it rather than 52,
+  and the round buttons are 32px rather than 36.
 
 What the keystroke path cost was measured at the same time, so the three above
 could be read for what they are: at 4x CPU throttling and 90 wpm there were
@@ -1093,11 +1100,27 @@ could be read for what they are: at 4x CPU throttling and 90 wpm there were
 slow. It looked unfinished, which is a different problem with different fixes.
 
 So the field is one line and one word wide, centred; the words carry a measure
-in `ch` rather than in pixels, which holds them near 54 characters a line at
-every size instead of letting the small sizes run twice as far as the large
+in `ch` rather than in pixels, which holds them to about the same line length
+at every size instead of letting the small sizes run twice as far as the large
 ones; and the words, the field and the line under them are one block centred in
 what the chrome leaves, so the empty part of the window is air around the text
 rather than a gap beneath it.
+
+The measure was 56ch for a day, on the reasoning that the 70 characters a line
+it had been running was too long. Measured afterwards, **Monkeytype runs 67 to
+the line and 10fastfingers 68** — the two references this screen is held
+against both sit where it started, and the change had moved away from them
+rather than towards them. It is 66ch now. The argument for cutting it had been
+the length of the caret's journey back along a line, which is answered properly
+by cutting the caret instead (below) and not by making the lines shorter.
+
+Two other things fell out of measuring those two. The typeface was already
+right: 10fastfingers sets the same Roboto Slab at 30px, and this screen sets it
+at 30.4px — but at weight 340, a light that reads as thin at that size, where
+theirs is regular. It is 400 now. And the leading was right too, at 1.6:
+Monkeytype's 1.25 belongs to its own face, and this one's glyph box measures
+1.32 times its font-size, so anything near 1.3 would have had the lines
+touching. The one that was wrong was the one nobody had measured.
 
 The block takes the room that is left rather than a figure for it. It first
 shipped with a figure — 332px for the bar, the page's padding, the control row

@@ -138,7 +138,7 @@
   min-height: calc(100svh - var(--gg-bar-height));
   max-width: var(--gg-column);
   margin-inline: auto;
-  padding: 32px var(--gg-gutter) 48px;
+  padding: 20px var(--gg-gutter) 48px;
 }
 
 @media (max-width: 520px) {

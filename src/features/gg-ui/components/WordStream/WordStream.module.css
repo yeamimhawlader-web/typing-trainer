@@ -18,7 +18,9 @@
  */
 .block[data-font='slab'] {
   --gg-stream-font: var(--gg-font-slab);
-  --gg-stream-weight: 340;
+  /* Regular, as 10fastfingers sets the same face. It was 340 — a light that
+     read as thin at this size rather than as open. */
+  --gg-stream-weight: 400;
 }
 
 .block[data-font='mono'] {
@@ -72,11 +74,14 @@
   padding-top: var(--gg-stream-overhang);
   /* The measure, in characters rather than in pixels, so every size reads at
      about the same line length instead of the small sizes running twice as far
-     as the large ones. It lands at about fifty-five characters: short enough that
-     the eye finds the next line without hunting for it, and short enough that
-     the return to the start of a line is a journey, not a sweep of the screen.
+     as the large ones. About sixty-five characters, which is where the two
+     typing tests worth measuring sit: Monkeytype runs 67 to the line and
+     10fastfingers 68. This was 56 for a day, on my own reasoning that 70 was
+     too long; the references disagreed, and they are the ones with the
+     typists. The sweep back along a line, which was the real argument for
+     cutting it, is answered properly now by cutting the caret instead.
      `ch` is read against this element's own font-size, which is set here. */
-  max-width: min(100%, 56ch);
+  max-width: min(100%, 66ch);
   margin-inline: auto;
   font-size: calc(var(--gg-stream-size) * var(--gg-stream-scale));
   line-height: var(--gg-stream-line-height);
@@ -163,6 +168,33 @@
   min-width: 2px;
   border-radius: 0.045em;
   background-color: var(--gg-accent);
+}
+
+/* The caret breathes while nothing is being typed, which is what a caret has
+   always done and what says "here" on a screen the typist has just arrived at.
+   It holds still the moment a test is under way: something blinking beside the
+   word being read is the opposite of help. Only a placed caret blinks, so the
+   one waiting for its first measurement stays out of sight, and a system
+   asking for less motion gets a caret that simply sits there. */
+@keyframes caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.block[data-status='idle'] .cursor[data-placed='true'] {
+  animation: caret-blink 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .block[data-status='idle'] .cursor[data-placed='true'] {
+    animation: none;
+  }
 }
 
 .cursor[data-placed='false'],

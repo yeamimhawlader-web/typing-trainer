@@ -159,14 +159,18 @@
   /* --- Space and shape ------------------------------------------------ */
   --gg-column: 1400px;
   --gg-gutter: clamp(20px, 5vw, 64px);
-  --gg-bar-height: 64px;
+  /* A line of chrome, not a band of it. Monkeytype's is 36px and its whole
+     top of page comes to about 72; this application's came to 283 before the
+     measuring, of which the bar was the largest single piece that was not
+     doing anything with the room. */
+  --gg-bar-height: 48px;
 
   --gg-radius-logo: 10px;
   --gg-radius-pill: 8px;
   --gg-radius-input: 14px;
   --gg-radius-full: 9999px;
 
-  --gg-icon-circle: 36px;
+  --gg-icon-circle: 32px;
   --gg-pill-height: 30px;
 
   /* --- Motion: the whole budget --------------------------------------- */
