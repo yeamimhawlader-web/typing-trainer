@@ -1,31 +1,30 @@
 /*
  * The words, the field and the hint: one block, standing in the middle of what
  * the chrome above it leaves rather than at the top of a page with nothing
- * underneath. `--gg-typing-above` is what the bar, the page's own padding, the
- * control row and the toolbar take; the rest is this block's to stand in, and
- * on a short window the minimum simply does not apply and the flow is the
- * flow it always was.
+ * underneath.
  *
- * The result panel is deliberately outside it. Finishing a test then adds to
- * the bottom of the page instead of re-centring this block and pulling the
- * words out from under the eyes of someone about to read their score.
+ * It takes the room that is left rather than a figure for it. The page is a
+ * flex column a window tall (GGLayout.module.css) and this is the part of it
+ * that grows, so "what the chrome leaves" is measured by the browser at every
+ * window size instead of being guessed at one. The guess was wrong by the
+ * height of a toolbar row: the toolbar wraps onto a third row at around 1200px
+ * and a fourth at around 950px, and each row it gained pushed the page 42px
+ * past the bottom of the window.
+ *
+ * Nothing special is needed for the Syllable Trainer, which opens with an
+ * introduction above the words. What is left there is simply less, and a flex
+ * item never shrinks below what is in it.
+ *
+ * The result panel is deliberately outside this block. Finishing a test then
+ * adds to the bottom of the page instead of re-centring the block and pulling
+ * the words out from under the eyes of someone about to read their score.
  */
 .typing {
-  --gg-typing-above: 332px;
-
   display: flex;
+  flex: 1;
   flex-direction: column;
   justify-content: center;
-  min-height: calc(100svh - var(--gg-typing-above));
   padding-block: 24px;
-}
-
-/* Where something is introduced above the words — the Syllable Trainer opens
-   with what it is and a demonstration of it — the page is already longer than
-   the window, and a block holding a screenful under the introduction would push
-   the field out of sight on arrival. There it is the height of what is in it. */
-.typing[data-intro] {
-  min-height: 0;
 }
 
 .stream {
@@ -91,7 +90,6 @@
 
 @media (max-width: 520px) {
   .typing {
-    min-height: 0;
     padding-block: 16px;
   }
 

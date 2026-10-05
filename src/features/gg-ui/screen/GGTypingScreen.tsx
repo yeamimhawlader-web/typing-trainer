@@ -476,7 +476,7 @@ export const GGTypingScreen = ({
 
       {/* The words, what is typed into them and the line under both: one block,
           centred in the room the chrome leaves (GGTypingScreen.module.css). */}
-      <div className={styles.typing} data-intro={syllable ? '' : undefined}>
+      <div className={styles.typing}>
         <div className={styles.stream}>
           <WordStream
             engine={engine}

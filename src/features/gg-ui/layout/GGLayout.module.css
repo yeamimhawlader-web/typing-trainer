@@ -122,7 +122,20 @@
   outline: none;
 }
 
+/*
+ * A column of the page, at least a window tall.
+ *
+ * The height and the flex column are for the one page that wants to fill the
+ * window: the typing screen stands its words in the middle of whatever its
+ * chrome leaves (GGTypingScreen.module.css), and the only way to know what is
+ * left is to be the thing that is left. A page that asks for none of it is laid
+ * out exactly as it was — children of a flex column stretch across and take the
+ * height of what is in them, which is what they did as blocks.
+ */
 .main {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100svh - var(--gg-bar-height));
   max-width: var(--gg-column);
   margin-inline: auto;
   padding: 32px var(--gg-gutter) 48px;

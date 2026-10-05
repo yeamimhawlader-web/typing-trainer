@@ -1099,6 +1099,17 @@ ones; and the words, the field and the line under them are one block centred in
 what the chrome leaves, so the empty part of the window is air around the text
 rather than a gap beneath it.
 
+The block takes the room that is left rather than a figure for it. It first
+shipped with a figure — 332px for the bar, the page's padding, the control row
+and the toolbar — which was measured at one window size and was wrong at every
+other: the toolbar wraps onto a third row at around 1200px and a fourth at
+around 950px, and each row it gained pushed the page 42px past the bottom of
+the window. The page is now a flex column a window tall and the block is the
+part of it that grows, so what the chrome leaves is measured by the browser
+rather than guessed. Nothing special is needed for the Syllable Trainer, which
+opens with an introduction above the words: what is left there is simply less,
+and a flex item never shrinks below what is in it.
+
 Two details that fall out of the field being small. A word longer than the field
 scrolls along under the caret rather than wrapping onto a line the field is not
 tall enough to show — and because the field is written to rather than typed
