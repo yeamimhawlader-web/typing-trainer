@@ -26,6 +26,13 @@ export type AccountState =
 export interface AccountService {
   /** Whether there is anything to sign in to at all. */
   readonly available: boolean
+  /**
+   * Whether Google is worth offering: a project has no Google client until
+   * someone registers one, which is a separate job from making the project and
+   * one the emailed link needs nothing of. Where none is registered the button
+   * can only answer "provider is not enabled", so the page does not draw it.
+   */
+  readonly googleOffered: boolean
   /** The state now, for a first render. */
   state(): AccountState
   /** Calls back with every change, and returns the way to stop listening. */

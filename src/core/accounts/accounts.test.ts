@@ -130,6 +130,7 @@ const signedIn = (): AccountService => ({
   subscribe: () => () => undefined,
   signInWithEmail: () => Promise.resolve(),
   signInWithGoogle: () => Promise.resolve(),
+  googleOffered: true,
   signOut: () => Promise.resolve(),
 })
 

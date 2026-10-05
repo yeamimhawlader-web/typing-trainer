@@ -143,10 +143,16 @@ describe('Sign in', () => {
       expect(status).toBeEmptyDOMElement()
     }
 
-    await answered(screen.getByRole('button', { name: /Continue with Google/ }))
     await answered(screen.getByRole('link', { name: 'Reset password' }))
     await answered(screen.getByRole('link', { name: 'Create Account' }))
     expect(location).toBe(ROUTES.ggSignIn)
+  })
+
+  it('offers no way in through Google, since there is no project to have registered one', () => {
+    renderAt(ROUTES.ggSignIn)
+
+    expect(screen.queryByRole('button', { name: /Continue with Google/ })).toBeNull()
+    expect(screen.queryByText('Or continue with')).toBeNull()
   })
 
   it('shows keycaps beside the form, and no testimonials: there is nobody to quote', () => {
@@ -175,13 +181,14 @@ describe('Sign in, with accounts switched on', () => {
   }
 
   /** An account service that answers, and records what was asked of it. */
-  const fakeAccounts = (initial: AccountState) => {
+  const fakeAccounts = (initial: AccountState, googleOffered = true) => {
     let state = initial
     const listeners = new Set<(state: AccountState) => void>()
     const asked: string[] = []
 
     const service: AccountService = {
       available: true,
+      googleOffered,
       state: () => state,
       subscribe: (listener) => {
         listeners.add(listener)
@@ -236,6 +243,19 @@ describe('Sign in, with accounts switched on', () => {
     await user.click(screen.getByRole('button', { name: /Continue with Google/ }))
 
     expect(accounts.asked).toEqual([`google:${window.location.origin}${ROUTES.ggSignIn}`])
+  })
+
+  it('keeps Google to itself where the project has not registered a client for it', () => {
+    // Switching accounts on does not switch Google on: that is a second job,
+    // in a second console, and the link in the email needs none of it. Until
+    // it is done the button can only answer "provider is not enabled", so the
+    // page offers the one way in that works.
+    const accounts = fakeAccounts({ status: 'signed-out' }, false)
+    renderSignIn(accounts.service)
+
+    expect(screen.queryByRole('button', { name: /Continue with Google/ })).toBeNull()
+    expect(screen.queryByText('Or continue with')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Email me a link' })).toBeInTheDocument()
   })
 
   it('sends a link to the address given, and says to go and look for it', async () => {

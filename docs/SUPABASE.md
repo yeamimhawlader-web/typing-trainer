@@ -187,8 +187,22 @@ this, and the two dashboards below have to agree with each other exactly.
      common mistake.
    - **Create**, then copy the **Client ID** and **Client secret**.
 7. Back on the Supabase Google page: paste both, **Save**.
+8. **Last step, and the button will not appear without it.** Add one more
+   environment variable in Vercel, the same way you added the other two
+   (Settings -> Environment Variables), then redeploy:
+
+    | Name | Value |
+    | --- | --- |
+    | `VITE_SUPABASE_GOOGLE` | `true` |
 
 The redirect URLs from Part 3 already cover where Google sends people back to.
+
+**Why the extra variable.** Until you have done the seven steps above, your
+project has no Google client, and Supabase answers anyone who presses the
+button with "provider is not enabled" — a dead end on the one page that leads
+to an account. So the button is drawn only where this says Google is ready. Set
+it and the button appears; leave it unset and the email link is the way in,
+which is the way in that needs none of this.
 
 ---
 
@@ -202,6 +216,7 @@ The redirect URLs from Part 3 already cover where Google sends people back to.
 | Signed in, but history stays empty | The tables or the policies are missing. Run Part 2 again and check **Table Editor**. |
 | Google says **redirect_uri_mismatch** | The redirect URI is not exactly the Supabase callback. It ends `/auth/v1/callback`. |
 | Google says the app is **not verified** | Your address is not in **Test users**. |
+| There is no **Continue with Google** button | `VITE_SUPABASE_GOOGLE` is not set to `true`, or the site was not redeployed after setting it (step 8). |
 | The page refuses to load at all | Only one of the two values is set. The browser console names which. |
 
 ## What is kept, and what is not

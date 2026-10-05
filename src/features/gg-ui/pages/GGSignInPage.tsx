@@ -9,9 +9,11 @@
  *   link to it. That way in needs nothing registered anywhere: a Supabase
  *   project can send it the moment it exists, which is the difference between
  *   a setup someone finishes and one they put off. Google is kept beside it
- *   for anyone who has registered a client for it, and says so plainly when
- *   the project has not. Neither holds a password, so the form has no password
- *   field at all.
+ *   for anyone who has registered a client for it, and is not drawn at all
+ *   where nobody has: Supabase answers that button with "provider is not
+ *   enabled", and a dead end on the one page that leads to an account is a
+ *   worse offer than no button (see AccountService.googleOffered). Neither
+ *   holds a password, so the form has no password field at all.
  * - **No account service.** The form as it will look, saying so when used.
  *
  * Practice needs none of it. Sessions, Golden Nuggets, settings and your own
@@ -137,7 +139,9 @@ export const GGSignInPage = ({ accounts = accountService }: GGSignInPageProps = 
           submitLabel={accounts.available ? 'Email me a link' : 'Sign In'}
           heroImageSrc={SIGN_IN_HERO_IMAGE}
           onSignIn={submit}
-          onGoogleSignIn={google}
+          /* No handler, no button: Google is drawn only where the project has
+             registered a client for it (see AccountService.googleOffered). */
+          onGoogleSignIn={accounts.googleOffered ? google : undefined}
           onResetPassword={notHere}
           onCreateAccount={notHere}
         />

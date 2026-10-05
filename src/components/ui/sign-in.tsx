@@ -41,7 +41,8 @@ interface SignInPageProps {
   /** The submit button's words, which say what pressing it does. */
   submitLabel?: string;
   onSignIn?: (event: React.FormEvent<HTMLFormElement>) => void;
-  onGoogleSignIn?: () => void;
+  /** Given only where Google can work; without it, no Google button is drawn. */
+  onGoogleSignIn?: (() => void) | undefined;
   onResetPassword?: () => void;
   onCreateAccount?: () => void;
 }
@@ -133,17 +134,24 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               </LiquidButton>
             </form>
 
-            <div className="animate-element animate-delay-700 relative flex items-center justify-center">
-              <span className="w-full border-t border-border"></span>
-              <span className="px-4 text-sm text-muted-foreground bg-background absolute">Or continue with</span>
-            </div>
+            {/* No handler, no other way in: a build whose project has no Google
+                client registered draws neither the button nor the line that
+                introduces it, rather than a way in that cannot work. */}
+            {onGoogleSignIn && (
+              <>
+                <div className="animate-element animate-delay-700 relative flex items-center justify-center">
+                  <span className="w-full border-t border-border"></span>
+                  <span className="px-4 text-sm text-muted-foreground bg-background absolute">Or continue with</span>
+                </div>
 
-            <LiquidButton type="button" size="xl" onClick={onGoogleSignIn} className="animate-element animate-delay-800 w-full rounded-full text-foreground">
-                <span className="flex items-center justify-center gap-3">
-                  <GoogleIcon />
-                  Continue with Google
-                </span>
-            </LiquidButton>
+                <LiquidButton type="button" size="xl" onClick={onGoogleSignIn} className="animate-element animate-delay-800 w-full rounded-full text-foreground">
+                    <span className="flex items-center justify-center gap-3">
+                      <GoogleIcon />
+                      Continue with Google
+                    </span>
+                </LiquidButton>
+              </>
+            )}
 
             <p className="animate-element animate-delay-900 text-center text-sm text-muted-foreground">
               {passwordless

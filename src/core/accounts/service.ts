@@ -71,6 +71,7 @@ const UNAVAILABLE: AccountState = { status: 'unavailable' }
 /** The service for a build with no account service configured. */
 export const createUnavailableAccountService = (): AccountService => ({
   available: false,
+  googleOffered: false,
   state: () => UNAVAILABLE,
   subscribe: () => () => undefined,
   signInWithEmail: () => Promise.resolve(),
@@ -78,7 +79,11 @@ export const createUnavailableAccountService = (): AccountService => ({
   signOut: () => Promise.resolve(),
 })
 
-export const createAccountService = (arriving: Promise<SupabaseClient>): AccountService => {
+export const createAccountService = (
+  arriving: Promise<SupabaseClient>,
+  /** What the configuration says the project has registered. */
+  offers: { readonly google: boolean } = { google: false },
+): AccountService => {
   let state: AccountState = { status: 'loading' }
   const listeners = new Set<(state: AccountState) => void>()
 
@@ -114,6 +119,7 @@ export const createAccountService = (arriving: Promise<SupabaseClient>): Account
 
   return {
     available: true,
+    googleOffered: offers.google,
     state: () => state,
     subscribe: (listener) => {
       listeners.add(listener)

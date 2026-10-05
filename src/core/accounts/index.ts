@@ -43,7 +43,9 @@ const client = configured === null ? null : createAccountClient(configured)
 
 /** The application's account, and the copy it keeps. */
 export const accountService: AccountService =
-  client === null ? createUnavailableAccountService() : createAccountService(client)
+  client === null || configured === null
+    ? createUnavailableAccountService()
+    : createAccountService(client, { google: configured.google })
 
 export const syncService: SyncService =
   client === null ? noSync : createSyncService({ client, accounts: accountService, storage })
