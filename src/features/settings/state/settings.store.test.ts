@@ -18,6 +18,8 @@ const DEFAULTS: UserPreferences = {
   sound: 'off',
   soundVolume: 100,
   pace: 'off',
+  lineScroll: 'glide',
+  caret: 'block',
   punctuation: false,
   numbers: false,
   opening: 'portal',
@@ -68,6 +70,8 @@ describe('settings store', () => {
       streamFont: 'serif',
       vocabulary: 'advanced',
       hoverDifficulty: 'tired',
+      lineScroll: 'instant',
+      caret: 'bar',
       sound: 'click',
       soundVolume: 40,
       pace: 'push',
@@ -88,6 +92,8 @@ describe('settings store', () => {
       streamFont: 'serif',
       vocabulary: 'advanced',
       hoverDifficulty: 'tired',
+      lineScroll: 'instant',
+      caret: 'bar',
       sound: 'click',
       soundVolume: 40,
       pace: 'push',
@@ -205,6 +211,8 @@ describe('settings store', () => {
     await store.getState().setPunctuation(true)
     await store.getState().setStreamFont('sans')
     await store.getState().setVocabulary('advanced')
+    await store.getState().setLineScroll('instant')
+    await store.getState().setCaret('bar')
 
     await expect(adapter.read(STORAGE_KEYS.preferences)).resolves.toEqual({
       theme: 'classic',
@@ -221,6 +229,8 @@ describe('settings store', () => {
       punctuation: true,
       numbers: false,
       opening: 'portal',
+      lineScroll: 'instant',
+      caret: 'bar',
     })
   })
 

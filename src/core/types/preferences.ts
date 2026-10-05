@@ -101,6 +101,32 @@ export type Vocabulary = (typeof VOCABULARIES)[number]
 export const OPENINGS = ['portal', 'direct'] as const
 export type Opening = (typeof OPENINGS)[number]
 
+/**
+ * What the words do when the typist reaches the end of a line.
+ *
+ * - `glide`: the text travels up a line, and the caret appears at the start of
+ *   the next one and rides up with it.
+ * - `instant`: the text is a line further up on the next frame, as it was
+ *   before there was a choice. Some typists read the jump as precision and a
+ *   glide as drift, and they are not wrong about their own eyes.
+ *
+ * Either way the caret is cut to the new line rather than slid back along the
+ * old one, which was not a choice so much as an oversight.
+ */
+export const LINE_SCROLLS = ['glide', 'instant'] as const
+export type LineScroll = (typeof LINE_SCROLLS)[number]
+
+/**
+ * The shape of the caret.
+ *
+ * - `block`: a tinted block over the character about to be typed, which is
+ *   what the screen has always drawn.
+ * - `bar`: a thin rule at that character's leading edge, as most typing tests
+ *   draw it, covering nothing.
+ */
+export const CARETS = ['block', 'bar'] as const
+export type Caret = (typeof CARETS)[number]
+
 export interface UserPreferences {
   readonly theme: ThemePreference
   /**
@@ -144,4 +170,8 @@ export interface UserPreferences {
   readonly numbers: boolean
   /** Whether the front page opens through the letters, or goes straight in. */
   readonly opening: Opening
+  /** What the words do at the end of a line. */
+  readonly lineScroll: LineScroll
+  /** The shape of the caret on the typing screen. */
+  readonly caret: Caret
 }

@@ -23,10 +23,25 @@
  * ## Lines
  *
  * The line holding the cursor is kept as the first visible line. Moving on a
- * line shifts the content up with a transform — instantly, since no motion other
- * than the cursor runs on a keystroke. The cursor's coordinates are taken after
- * that shift, so across a line break it slides back along the top line rather
- * than dropping in from above.
+ * line shifts the content up with a transform, over `setLineGlide` milliseconds
+ * — one transition, started once per line, on an element no keystroke writes to
+ * in between.
+ *
+ * The cursor rides inside the content, with the pace caret and Hover Mode's
+ * layers, so everything that points at a character is held in the text's own
+ * coordinates and carried by the one transform that scrolls them. A line break
+ * then moves them together. It used to sit outside and be placed at its
+ * position minus the scroll, which worked while the scroll was instant and
+ * could not survive its becoming a journey: the caret would arrive on the top
+ * line while the word it pointed at was still a line below, climbing.
+ *
+ * The caret's own slide is cut for that one write. Sliding it to the start of
+ * the next line sends it the width of the line backwards, across every word
+ * just read, at the moment the eye is looking for where to carry on — measured
+ * at about 880px over eight frames before this. Cutting it costs no reflow:
+ * within one task the browser sees `transition: none` and the new position
+ * together and starts nothing, and the slide is given back at the top of the
+ * next frame, when there is nothing left to slide to.
  *
  * ## The line above
  *
@@ -97,6 +112,11 @@ export interface StreamCursor {
   readonly attachCursor: (element: HTMLSpanElement | null) => void
   /** Re-measure after anything that moves characters: new text, a new size. */
   measure(): void
+  /**
+   * How long the content takes to travel a line, in milliseconds. 0 is the
+   * jump it used to be. Changing it rewrites one style and nothing else.
+   */
+  setLineGlide(ms: number): void
   /** Moves the cursor to the source's position. Cheap; no layout reads. */
   place(): void
   /** Follows a cursor source until the returned stop is called. */
@@ -138,12 +158,46 @@ export const createStreamCursor = (): StreamCursor => {
   let placedAnchor = Number.NaN
   const measureListeners = new Set<() => void>()
   let hidden: readonly HTMLElement[] = []
+  let lineGlideMs = 0
+  let settling: ReturnType<typeof setTimeout> | undefined
+  let restoring = false
+  let measuring = false
 
   const setHidden = (spans: readonly HTMLElement[]): void => {
     for (const span of hidden) span.style.visibility = ''
     for (const span of spans) span.style.visibility = 'hidden'
     hidden = spans
   }
+
+  /**
+   * The line above the first visible one is hidden, because the strip over the
+   * first line would otherwise show the bottom of it. While the content is
+   * gliding, though, that line is not above anything yet — it is on its way up
+   * through the viewport, under the eye of someone who has just finished
+   * reading it. So the hiding waits for the glide, and a line crossed before
+   * the last one finished simply replaces what is waiting.
+   */
+  const hideWhenSettled = (spans: readonly HTMLElement[]): void => {
+    clearTimeout(settling)
+    if (lineGlideMs === 0) {
+      setHidden(spans)
+      return
+    }
+    settling = setTimeout(() => setHidden(spans), lineGlideMs)
+  }
+
+  /** One frame pending at a time: a run of line breaks asks for one restore. */
+  const restoreSlide = (): void => {
+    if (restoring) return
+    restoring = true
+    requestAnimationFrame(() => {
+      restoring = false
+      if (cursor !== null) cursor.style.transition = ''
+    })
+  }
+
+  const contentMotion = (): string =>
+    lineGlideMs === 0 ? 'none' : `transform ${lineGlideMs}ms var(--gg-ease-out)`
 
   const place = (): void => {
     if (layout === null || content === null || cursor === null || source === null) return
@@ -166,11 +220,32 @@ export const createStreamCursor = (): StreamCursor => {
     if (offset !== scroll) {
       content.style.transform = `translate3d(0, ${-offset}px, 0)`
       scroll = offset
-      setHidden(
-        line === 0 ? [] : layout.spans.slice(layout.lineStarts[line - 1] as number, layout.lineStarts[line] as number),
-      )
+      /*
+       * A line change moves the cursor the width of a line, which is the one
+       * move it must not make on its usual slide: sliding it there drags it
+       * backwards across every word just read, in the moment the eye is
+       * looking for where to carry on. So it is cut for this one write.
+       *
+       * Cut without a forced reflow, which is what a keystroke may not pay
+       * for. Within one task the browser sees `none` and the new position
+       * together and starts no transition at all; the slide is given back at
+       * the top of the next frame, by which time there is nothing left to
+       * slide to.
+       */
+      const above =
+        line === 0 ? [] : layout.spans.slice(layout.lineStarts[line - 1] as number, layout.lineStarts[line] as number)
+      if (measuring) {
+        // Re-placing after a measurement: nothing moved, so there is no slide
+        // to cut and nothing on its way for the hiding to wait for. `measure`
+        // holds both transitions itself, around this call.
+        setHidden(above)
+      } else {
+        cursor.style.transition = 'none'
+        restoreSlide()
+        hideWhenSettled(above)
+      }
     }
-    cursor.style.transform = `translate3d(${x}px, ${y - offset}px, 0)`
+    cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`
   }
 
   const measure = (): void => {
@@ -226,16 +301,27 @@ export const createStreamCursor = (): StreamCursor => {
       endY: endRect.top - origin.top,
     }
 
-    // Re-placed without the slide: a new layout is not the cursor moving.
+    // Re-placed without the slide, and without the glide: a new layout is not
+    // the cursor moving and not the text scrolling. A reflow is forced between
+    // the two writes, which is free here — this function has just read layout
+    // from end to end — and is what a keystroke's cut avoids.
     cursor.style.transition = 'none'
-    cursor.style.width = `${firstRect.width}px`
-    cursor.style.height = `${firstRect.height}px`
+    content.style.transition = 'none'
+    // The character's box, published rather than applied: the stylesheet
+    // decides what the caret makes of it, which is how the bar can be a rule
+    // at the leading edge of a box this wide (WordStream.module.css).
+    cursor.style.setProperty('--gg-caret-width', `${firstRect.width}px`)
+    cursor.style.setProperty('--gg-caret-height', `${firstRect.height}px`)
     scroll = Number.NaN
     placedIndex = Number.NaN
     placedAnchor = Number.NaN
+    clearTimeout(settling)
+    measuring = true
     place()
+    measuring = false
     void cursor.offsetWidth
     cursor.style.transition = ''
+    content.style.transition = contentMotion()
     cursor.dataset.placed = 'true'
 
     for (const listener of measureListeners) listener()
@@ -254,6 +340,12 @@ export const createStreamCursor = (): StreamCursor => {
 
     measure,
     place,
+
+    setLineGlide: (ms) => {
+      if (ms === lineGlideMs) return
+      lineGlideMs = ms
+      if (content !== null) content.style.transition = contentMotion()
+    },
 
     follow: (next) => {
       source = next

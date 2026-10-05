@@ -25,6 +25,10 @@ import {
   VOCABULARIES,
   type HoverDifficulty,
   type Opening,
+  CARETS,
+  LINE_SCROLLS,
+  type Caret,
+  type LineScroll,
   type PaceChoice,
   type PracticeMode,
   type PracticeWordCount,
@@ -63,6 +67,8 @@ export interface SettingsState {
   readonly setPunctuation: (punctuation: boolean) => Promise<void>
   readonly setNumbers: (numbers: boolean) => Promise<void>
   readonly setOpening: (opening: Opening) => Promise<void>
+  readonly setLineScroll: (lineScroll: LineScroll) => Promise<void>
+  readonly setCaret: (caret: Caret) => Promise<void>
 }
 
 /**
@@ -91,6 +97,8 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
     pace?: PaceChoice
     punctuation?: boolean
     opening?: Opening
+    lineScroll?: LineScroll
+    caret?: Caret
     numbers?: boolean
   } = {}
 
@@ -138,6 +146,10 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
 
   const opening = OPENINGS.find((option) => option === record['opening'])
   if (opening !== undefined) result.opening = opening
+  const lineScroll = LINE_SCROLLS.find((option) => option === record['lineScroll'])
+  if (lineScroll !== undefined) result.lineScroll = lineScroll
+  const caret = CARETS.find((option) => option === record['caret'])
+  if (caret !== undefined) result.caret = caret
 
   return result
 }
@@ -204,6 +216,8 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
       setNumbers: (numbers) => persist({ ...get().preferences, numbers }),
 
       setOpening: (opening) => persist({ ...get().preferences, opening }),
+      setLineScroll: (lineScroll) => persist({ ...get().preferences, lineScroll }),
+      setCaret: (caret) => persist({ ...get().preferences, caret }),
     }
   })
 

@@ -53,6 +53,33 @@ const stream = (count: number) => {
 const offset = (element: HTMLElement): readonly number[] =>
   (element.style.transform.match(/-?[\d.]+/g) ?? []).slice(1, 3).map(Number)
 
+/** Every transition this element is given, in the order it was given them. */
+const watchTransition = (element: HTMLElement) => {
+  const written: string[] = []
+  const descriptor = Object.getOwnPropertyDescriptor(CSSStyleDeclaration.prototype, 'transition')
+  vi.spyOn(element.style, 'transition', 'set').mockImplementation((value: string) => {
+    written.push(value)
+    descriptor?.set?.call(element.style, value)
+  })
+  return { written }
+}
+
+/** Catches the frames asked for, so a test can run them when it chooses. */
+const captureFrames = () => {
+  const queued: FrameRequestCallback[] = []
+  const spy = vi
+    .spyOn(globalThis, 'requestAnimationFrame')
+    .mockImplementation((callback: FrameRequestCallback) => queued.push(callback))
+  return {
+    run: () => {
+      for (const callback of queued.splice(0)) callback(0)
+    },
+    restore: () => {
+      spy.mockRestore()
+    },
+  }
+}
+
 const connect = (count: number, words: string[]) => {
   const elements = stream(count)
   const controller = createStreamCursor()
@@ -77,8 +104,10 @@ describe('stream cursor', () => {
   it('sizes the block to a character and puts it on the first one', () => {
     const { cursor } = connect(7, ['abc', 'def'])
 
-    expect(cursor.style.width).toBe('10px')
-    expect(cursor.style.height).toBe('30px')
+    // The box is published for the stylesheet, which draws a block across it
+    // or a rule at its leading edge.
+    expect(cursor.style.getPropertyValue('--gg-caret-width')).toBe('10px')
+    expect(cursor.style.getPropertyValue('--gg-caret-height')).toBe('30px')
     expect(offset(cursor)).toEqual([0, 6])
     expect(cursor.dataset.placed).toBe('true')
   })
@@ -96,8 +125,92 @@ describe('stream cursor', () => {
 
     type('abc ')
 
+    // The cursor rides inside the content, so it carries the position in the
+    // text and the content carries the scroll. On screen the two add up to the
+    // top line: 46 down the text, 40 of it scrolled away.
     expect(offset(content)).toEqual([0, -40])
-    expect(offset(cursor)).toEqual([0, 6])
+    expect(offset(cursor)).toEqual([0, 46])
+    expect((offset(cursor)[1] as number) + (offset(content)[1] as number)).toBe(6)
+  })
+
+  it('cuts the cursor across a line break rather than sweeping it back along the line', () => {
+    const { cursor, type } = connect(7, ['abc', 'def'])
+    const transitions = watchTransition(cursor)
+
+    // Along a line, the cursor slides: nothing touches its transition.
+    type('ab')
+    expect(transitions.written).toEqual([])
+
+    // Onto the next line, where sliding would send it the width of the line
+    // backwards, across every word the typist has just read.
+    type('c ')
+    expect(transitions.written).toEqual(['none'])
+  })
+
+  it('gives the cursor its slide back on the next frame, without reading layout for it', () => {
+    const { cursor, reads, type } = connect(7, ['abc', 'def'])
+    const frames = captureFrames()
+    try {
+      const transitions = watchTransition(cursor)
+      const afterMeasuring = reads.count
+
+      type('abc ')
+      expect(transitions.written).toEqual(['none'])
+
+      frames.run()
+
+      expect(transitions.written).toEqual(['none', ''])
+      // Restoring it is a style write at the start of a frame, never a read:
+      // the usual way of doing this, forcing a reflow between the two, is the
+      // one thing a keystroke may not do.
+      expect(reads.count).toBe(afterMeasuring)
+    } finally {
+      frames.restore()
+    }
+  })
+
+  it('glides the content between lines, and hides the line above only once it has arrived', () => {
+    vi.useFakeTimers()
+    try {
+      const { content, controller, type } = connect(7, ['abc', 'def'])
+      const visibility = () => Array.from(content.children, (span) => (span as HTMLElement).style.visibility)
+      controller.setLineGlide(150)
+
+      type('abc ')
+
+      // Still on its way: the line being left is travelling up through the
+      // viewport, and hiding it now would take it out from under the eye.
+      expect(content.style.transition).toBe('transform 150ms var(--gg-ease-out)')
+      expect(visibility()).toEqual(['', '', '', '', '', '', ''])
+
+      vi.advanceTimersByTime(150)
+
+      expect(visibility()).toEqual(['hidden', 'hidden', 'hidden', 'hidden', '', '', ''])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('hides the line above at once where there is no glide to wait for', () => {
+    const { content, controller, type } = connect(7, ['abc', 'def'])
+    const visibility = () => Array.from(content.children, (span) => (span as HTMLElement).style.visibility)
+    controller.setLineGlide(0)
+
+    type('abc ')
+
+    expect(content.style.transition).toBe('none')
+    expect(visibility()).toEqual(['hidden', 'hidden', 'hidden', 'hidden', '', '', ''])
+  })
+
+  it('does not glide the content when a new measurement moves it: that is not a scroll', () => {
+    const { content, controller, type } = connect(7, ['abc', 'def'])
+    controller.setLineGlide(150)
+    type('abc ')
+    const transitions = watchTransition(content)
+
+    controller.measure()
+
+    expect(transitions.written).toEqual(['none', 'transform 150ms var(--gg-ease-out)'])
   })
 
   it('shifts back down when the typist backspaces onto the previous line', () => {
@@ -130,7 +243,7 @@ describe('stream cursor', () => {
 
     expect(engine.getSnapshot().cursorIndex).toBe(4)
     expect(offset(content)).toEqual([0, -40])
-    expect(offset(cursor)).toEqual([0, 6])
+    expect(offset(cursor)).toEqual([0, 46])
   })
 
   it('writes nothing when the engine announces a change that does not move the cursor', () => {

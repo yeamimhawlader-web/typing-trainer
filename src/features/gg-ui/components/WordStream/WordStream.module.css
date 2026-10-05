@@ -139,16 +139,30 @@
 
 /* --- Cursor: one block that slides ------------------------------------ */
 
+/* Positioned inside the content, so `top` is the content's own top: the
+   viewport's padding already holds the strip above the first line. */
 .cursor {
   position: absolute;
-  top: var(--gg-stream-overhang);
+  top: 0;
   left: 0;
-  width: 0.6em;
-  height: 1.2em;
+  width: var(--gg-caret-width, 0.6em);
+  height: var(--gg-caret-height, 1.2em);
   border-radius: 0.14em;
   background-color: var(--gg-accent-tint-strong);
   transition: transform var(--gg-duration-cursor) var(--gg-ease-out);
   pointer-events: none;
+}
+
+/* The bar: a rule at the leading edge of the character about to be typed,
+   which is how most typing tests draw it. It covers nothing, where the block
+   sits over the letter — tinted, so the letter reads through it, but over it.
+   The width is the only thing that changes: it is placed and moved by the same
+   arithmetic, on the same character's box. */
+.block[data-caret='bar'] .cursor {
+  width: 0.09em;
+  min-width: 2px;
+  border-radius: 0.045em;
+  background-color: var(--gg-accent);
 }
 
 .cursor[data-placed='false'],

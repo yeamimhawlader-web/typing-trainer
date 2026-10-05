@@ -1120,6 +1120,56 @@ finishing a test then adds to the bottom of the page instead of re-centring the
 block and pulling the words out from under the eyes of someone reading their
 score.
 
+### The end of a line was the one lurch in a test
+
+Everything else about a keystroke had been measured and made cheap, and the
+line break had been left as two instant events that happened to fire together:
+the content jumped up a line, and the caret — placed at its position minus the
+scroll, and carrying a 90ms slide for moving along a line — slid the whole way
+back to the start. Sampled frame by frame on the rendered caret, that slide was
+**about 880px over eight frames**, right to left across the screen, at the
+moment the eye is looking for where to carry on reading. It was the only
+discontinuity left in the typing loop, and it arrived roughly every ten words.
+
+Three changes, and the order of them matters:
+
+**The caret moved inside the content**, with the pace caret and Hover Mode's
+layers, which were already there. Everything that points at a character is now
+held in the text's own coordinates and carried by the one transform that
+scrolls them, so a line break moves them together. The old arrangement —
+outside, placed at its position minus the scroll — worked only while the scroll
+was instant. It could not survive the scroll becoming a journey: the caret
+would arrive on the top line while the word it pointed at was still a line
+below, climbing.
+
+**The content glides**, 150ms, which is long enough to be a movement the eye
+can follow to where it is going and short enough to be over before the next
+word is typed. It is one transition on an element no keystroke writes to in
+between, started once per line.
+
+**The caret's slide is cut** for that one write, so it appears at the start of
+the next line rather than travelling there. This one is not a preference: a
+caret that slides the width of a line backwards is a mistake whichever way the
+words move. Cutting it costs no reflow — within one task the browser sees
+`transition: none` and the new position together and starts nothing, and the
+slide is given back at the top of the next frame, when there is nothing left to
+slide to. The usual way of forcing this, a reflow between the two writes, is
+the one thing a keystroke may not do.
+
+One thing had to wait with the glide. The line above the first visible one is
+hidden, because the strip over the first line would otherwise show the bottom
+of it; hidden the instant the scroll begins, that is a whole line of text
+vanishing from under someone who has just finished reading it. So the hiding is
+held until the glide has arrived, and a line crossed before the last one
+finished replaces what is waiting.
+
+Both of the choices here that are a matter of eyes are preferences, in settings:
+`lineScroll` glides or jumps, and `caret` is a block over the character or a
+bar at its leading edge. The glide is the default because the lurch was real;
+the block is the default because it is what the screen has always drawn and a
+bar is a taste, not a correction. A system asking for reduced motion gets the
+jump whatever is chosen.
+
 ### Accuracy is said afterwards, not during
 
 The notice under the live figures used to say `Accuracy is costing you speed.`

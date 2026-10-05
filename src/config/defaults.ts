@@ -32,4 +32,9 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   punctuation: false,
   numbers: false,
   opening: 'portal',
+  // The glide: the line break was the one moment in a test that lurched.
+  lineScroll: 'glide',
+  // The block the screen has always drawn. The bar is a press away in
+  // settings, and is what most typing tests use.
+  caret: 'block',
 }

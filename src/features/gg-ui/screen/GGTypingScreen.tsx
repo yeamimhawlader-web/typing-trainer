@@ -295,6 +295,8 @@ export const GGTypingScreen = ({
     [deleteWord, hover],
   )
 
+  const lineScroll = useSettingsStore((state) => state.preferences.lineScroll)
+  const caret = useSettingsStore((state) => state.preferences.caret)
   const size = useSettingsStore((state) => state.preferences.textSize)
   const setSize = useSettingsStore((state) => state.setTextSize)
   const font = useSettingsStore((state) => state.preferences.streamFont)
@@ -487,6 +489,8 @@ export const GGTypingScreen = ({
             hover={hover ?? undefined}
             syllables={syllables}
             pace={paceWpm}
+            lineScroll={lineScroll}
+            caret={caret}
           />
         </div>
 

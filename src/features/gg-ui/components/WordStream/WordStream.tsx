@@ -33,7 +33,17 @@
  * them never re-render for it.
  */
 
-import { Fragment, memo, useCallback, useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react'
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
 
 import { computeWordRanges, toCharacters, type TypingEngine, type WordRange } from '@core/engine'
 import {
@@ -45,8 +55,13 @@ import {
   type SyllableLayout,
   type SyllableRange,
 } from '@core/syllables'
-import type { StreamFont, TextSize } from '@core/types'
-import { useWordJumps, type HoverController, type WordJumpController } from '@features/ggtyping'
+import type { Caret, LineScroll, StreamFont, TextSize } from '@core/types'
+import {
+  prefersReducedMotion,
+  useWordJumps,
+  type HoverController,
+  type WordJumpController,
+} from '@features/ggtyping'
 import { useEngineValue } from '@features/typing'
 import { cx } from '@shared/lib'
 
@@ -221,7 +236,22 @@ export interface WordStreamProps {
   readonly syllables?: SyllableLayout | undefined
   /** The pace caret's speed in words per minute, or null for none. */
   readonly pace?: number | null | undefined
+  /** What the words do at the end of a line. */
+  readonly lineScroll?: LineScroll
+  /** The shape of the caret. */
+  readonly caret?: Caret
 }
+
+/**
+ * How long the words take to travel a line.
+ *
+ * Long enough to be a movement the eye can follow to where it is going, short
+ * enough to be over before the next word is typed: a 90wpm typist is about
+ * 130ms into the next word by the end of it. Anyone who would rather have the
+ * jump has `lineScroll: 'instant'`, and anyone who has asked their system for
+ * less motion gets it without asking here.
+ */
+export const LINE_GLIDE_MS = 150
 
 export const WordStream = ({
   engine,
@@ -232,6 +262,8 @@ export const WordStream = ({
   hover,
   syllables,
   pace = null,
+  lineScroll = 'glide',
+  caret = 'block',
 }: WordStreamProps) => {
   const characters = useMemo(() => toCharacters(text), [text])
   const words = useMemo(() => computeWordRanges(characters), [characters])
@@ -244,6 +276,13 @@ export const WordStream = ({
   const cursor = useStreamCursor(source, text, `${size} ${font}`)
   const { attachViewport, attachContent, attachCursor } = cursor
   const status = useEngineValue(engine, (snapshot) => snapshot.status)
+
+  // Before paint, so a change of mind in settings is never drawn mid-glide at
+  // the old speed. Reduced motion is the system's answer and outranks the
+  // preference, the same way it does everywhere else that moves.
+  useLayoutEffect(() => {
+    cursor.setLineGlide(lineScroll === 'instant' || prefersReducedMotion() ? 0 : LINE_GLIDE_MS)
+  }, [cursor, lineScroll])
 
   // Clicking the words means "I want to type": keep focus in the input rather
   // than letting the click drop it onto the page.
@@ -260,13 +299,18 @@ export const WordStream = ({
       data-font={font}
       data-status={status}
       data-syllables={syllables === undefined ? undefined : true}
+      data-caret={caret}
       style={syllables === undefined ? undefined : SYLLABLE_TIMING}
       aria-label="Words to type"
       onMouseDown={activate}
     >
       <div ref={attachViewport} className={styles.viewport}>
-        <span ref={attachCursor} className={styles.cursor} data-placed="false" aria-hidden="true" />
+        {/* Inside the content, with the pace caret and Hover Mode's layers:
+            everything that points at a character is positioned in the text's
+            own coordinates and carried by the one transform that scrolls it,
+            so a line break moves them together rather than one at a time. */}
         <div ref={attachContent} className={styles.content}>
+          <span ref={attachCursor} className={styles.cursor} data-placed="false" aria-hidden="true" />
           <CharacterList engine={engine} characters={characters} words={words} jumps={jumps} syllables={syllables} />
           {pace !== null && pace > 0 && (
             <PaceCaret engine={engine} cursor={cursor} wpm={pace} length={characters.length} />

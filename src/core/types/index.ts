@@ -28,7 +28,9 @@ export type {
 } from './session.ts'
 
 export type {
+  Caret,
   HoverDifficulty,
+  LineScroll,
   Opening,
   PaceChoice,
   PracticeMode,
@@ -41,7 +43,9 @@ export type {
   Vocabulary,
 } from './preferences.ts'
 export {
+  CARETS,
   HOVER_DIFFICULTIES,
+  LINE_SCROLLS,
   OPENINGS,
   PACE_CHOICES,
   PRACTICE_MODES,
