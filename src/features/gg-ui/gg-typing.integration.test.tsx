@@ -442,11 +442,18 @@ describe('GG.Typing on the real typing session', () => {
   })
 
   describe('text size', () => {
-    it('is a stored preference applied to the stream', async () => {
+    it('is a stored preference applied to the stream, and is not on the toolbar', async () => {
+      // Chosen in settings, with the typeface, the theme and the caret: how the
+      // screen is set is decided once, where the toolbar is for what the next
+      // test is made of.
       await firstTest(wordsProvider().provider)
       expect(stream()).toHaveAttribute('data-size', 'sm')
+      expect(screen.queryByRole('radiogroup', { name: 'Text size' })).toBeNull()
+      expect(screen.queryByRole('radiogroup', { name: 'Typeface' })).toBeNull()
 
-      await userEvent.setup().click(screen.getByRole('radio', { name: 'Large text' }))
+      await act(async () => {
+        await settingsStore.getState().setTextSize('lg')
+      })
 
       expect(stream()).toHaveAttribute('data-size', 'lg')
       await waitFor(async () => {

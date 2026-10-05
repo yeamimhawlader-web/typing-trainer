@@ -1,5 +1,5 @@
 /**
- * The toolbar: the mode, Hover Mode's difficulty, text size and test length.
+ * The toolbar: the mode, Hover Mode's difficulty, and what the test is made of.
  *
  * The mode is a route rather than a setting — ordinary practice at `/gg`, Hover
  * Mode at `/gg/hover` — so a mode is a page that can be linked to and returned
@@ -7,10 +7,17 @@
  * part of the mode control: its glass node unfolds into the three difficulties
  * in a row of their own beneath the toolbar (see HoverSelector).
  *
- * Text size and the test's shape are real settings with nowhere else to live.
- * Text size is a preference, kept by the settings store with the rest. The
- * shape — a number of words, or a length of time — is kept there too, both
- * lengths at once, so switching between them remembers each.
+ * What is here is what a typist changes between one test and the next: how
+ * long it runs, which words it is drawn from, whether it is dressed with
+ * punctuation and numbers. How the screen is *set* — the typeface and the text
+ * size — is not: that is chosen once and then left, and it lives in settings
+ * with the theme and the caret. Both of the typing tests this application is
+ * measured against draw the line in the same place, and the second row of this
+ * toolbar was nine pills of appearance before they were moved.
+ *
+ * The shape — a number of words, or a length of time — is a preference kept by
+ * the settings store, both lengths at once, so switching between them
+ * remembers each.
  *
  * A drill has no length to choose: it is the material it was generated as, and
  * different text would make its before-and-after comparison meaningless. So the
@@ -25,15 +32,11 @@
 
 import type { PaceTargets } from '@core/statistics'
 import {
-  STREAM_FONTS,
-  TEXT_SIZES,
   VOCABULARIES,
   type HoverDifficulty,
   type PaceChoice,
   type PracticeMode,
   type PracticeWordCount,
-  type StreamFont,
-  type TextSize,
   type Vocabulary,
 } from '@core/types'
 import type { SoundPreference } from '@features/sound'
@@ -47,36 +50,6 @@ import { BranchTreesScope } from '../Unfold/BranchTreesScope.tsx'
 import { TestShape } from './TestShape.tsx'
 
 import styles from './Toolbar.module.css'
-
-const SIZE_NAMES: Readonly<Record<TextSize, string>> = {
-  xs: 'Extra small text',
-  sm: 'Small text',
-  md: 'Medium text',
-  lg: 'Large text',
-  xl: 'Extra large text',
-}
-
-const SIZE_OPTIONS: readonly PillOption<TextSize>[] = TEXT_SIZES.map((size) => ({
-  value: size,
-  label: size,
-  accessibleLabel: SIZE_NAMES[size],
-}))
-
-/** Each typeface's name, spoken, and shown when the pointer rests on its "Aa". */
-const FONT_NAMES: Readonly<Record<StreamFont, string>> = {
-  slab: 'Roboto Slab',
-  mono: 'Geist Mono',
-  sans: 'Inter',
-  serif: 'Lora',
-}
-
-// Each shows itself: "Aa", set in the face it chooses.
-const FONT_OPTIONS: readonly PillOption<StreamFont>[] = STREAM_FONTS.map((font) => ({
-  value: font,
-  label: 'Aa',
-  accessibleLabel: FONT_NAMES[font],
-  faceClassName: styles[`font-${font}`] ?? '',
-}))
 
 const VOCABULARY_NAMES: Readonly<Record<Vocabulary, string>> = { normal: 'Normal', advanced: 'Advanced' }
 const VOCABULARY_DESCRIPTIONS: Readonly<Record<Vocabulary, string>> = {
@@ -99,11 +72,6 @@ export interface ToolbarProps {
   readonly hoverDifficulty: HoverDifficulty
   /** How to change it. Absent outside Hover Mode. */
   readonly onHoverDifficultyChange?: ((difficulty: HoverDifficulty) => void) | undefined
-  readonly size: TextSize
-  readonly onSizeChange: (size: TextSize) => void
-  /** The typeface the words are set in, and how to change it. */
-  readonly font: StreamFont
-  readonly onFontChange: (font: StreamFont) => void
   /**
    * What ends a test — a word count or a time — and the two lengths it
    * remembers. Null for a drill, which is the material it was built as.
@@ -147,10 +115,6 @@ export const Toolbar = ({
   mode,
   hoverDifficulty,
   onHoverDifficultyChange,
-  size,
-  onSizeChange,
-  font,
-  onFontChange,
   shape,
   sound,
   onSoundChange,
@@ -169,14 +133,8 @@ export const Toolbar = ({
     )}
 
     <div className={styles.settings}>
-      <PillGroup name="gg-font" label="Typeface" options={FONT_OPTIONS} value={font} onChange={onFontChange} />
-
-      <Separator />
-      <PillGroup name="gg-size" label="Text size" options={SIZE_OPTIONS} value={size} onChange={onSizeChange} />
-
       {shape !== null && (
         <>
-          <Separator />
           <TestShape
             mode={shape.mode}
             words={shape.words as PracticeWordCount}

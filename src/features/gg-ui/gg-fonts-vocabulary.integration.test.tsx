@@ -2,6 +2,11 @@
  * The typeface, the vocabulary and the theme button, over the real shell and
  * settings: each chosen as a typist chooses it, each doing what it says, each
  * remembered. How the typefaces look is judged in a browser; jsdom sets no type.
+ *
+ * The typeface is chosen on the settings page rather than on the toolbar — how
+ * the screen is set is decided once, where the toolbar is for what the next
+ * test is made of — so it is chosen there here, and the words are watched for
+ * it on the typing screen.
  */
 
 import { render, screen, waitFor, within } from '@testing-library/react'
@@ -17,6 +22,8 @@ import { createSessionServiceOver } from '@core/sessions'
 import { createTelemetryServiceOver } from '@core/telemetry'
 import { ADVANCED_WORDS, COMMON_WORDS } from '@core/text'
 import { settingsStore } from '@features/settings/state/settings.store.ts'
+
+import { SettingsPage } from '@features/settings/pages/SettingsPage.tsx'
 
 import { GGLayout } from './layout/GGLayout.tsx'
 import { GGHoverPage } from './pages/GGHoverPage.tsx'
@@ -34,9 +41,12 @@ const renderAt = (path: string) => {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path={ROUTES.gg} element={<GGLayout />}>
-          <Route index element={<GGPracticePage {...services} />} />
+        {/* The shell has no path of its own, as it has none in the real
+            router, so settings can sit beside the typing screens under it. */}
+        <Route element={<GGLayout />}>
+          <Route path={ROUTES.gg} element={<GGPracticePage {...services} />} />
           <Route path={ROUTES.ggHover} element={<GGHoverPage {...services} />} />
+          <Route path={ROUTES.settings} element={<SettingsPage />} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -58,22 +68,38 @@ afterEach(() => {
 })
 
 describe('the typeface', () => {
-  it('opens in the slab face, and sets the words in whichever of the four is chosen, remembered', async () => {
-    const user = userEvent.setup()
+  it('opens in the slab face, and is not on the toolbar: the toolbar is for the next test', () => {
     renderAt(ROUTES.gg)
-    const faces = screen.getByRole('radiogroup', { name: 'Typeface' })
 
-    expect(
-      within(faces)
-        .getAllByRole('radio')
-        .map((radio) => radio.getAttribute('aria-label')),
-    ).toEqual(['Roboto Slab', 'Geist Mono', 'Inter', 'Lora'])
     expect(stream()).toHaveAttribute('data-font', 'slab')
+    expect(screen.queryByRole('radiogroup', { name: 'Typeface' })).toBeNull()
+  })
 
-    await user.click(within(faces).getByRole('radio', { name: 'Lora' }))
+  it('offers the four by name in settings, and sets the words in whichever is chosen, remembered', async () => {
+    const user = userEvent.setup()
+    renderAt(ROUTES.settings)
+    const faces = screen.getByRole('group', { name: 'Typeface' })
 
-    expect(stream()).toHaveAttribute('data-font', 'serif')
+    expect(within(faces).getAllByRole('button').map((button) => button.textContent)).toEqual([
+      'Roboto Slab',
+      'Geist Mono',
+      'Inter',
+      'Lora',
+    ])
+
+    await user.click(within(faces).getByRole('button', { name: 'Lora' }))
+
     expect(settingsStore.getState().preferences.streamFont).toBe('serif')
+  })
+
+  it('reaches the words chosen, on the typing screen', () => {
+    settingsStore.setState({
+      preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15, streamFont: 'mono' },
+      status: 'ready',
+    })
+    renderAt(ROUTES.gg)
+
+    expect(stream()).toHaveAttribute('data-font', 'mono')
   })
 })
 

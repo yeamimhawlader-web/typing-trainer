@@ -13,14 +13,28 @@
  * application that asks for something before it gives anything: it is worth
  * seeing once, and worth being able to turn off after that.
  *
- * So are the two choices about the typing screen that are a matter of eyes
- * rather than of better and worse: what the words do at the end of a line, and
- * the shape of the caret. Both are in the toolbar's reach in the sense that
- * they change what a test looks like, and neither is in the toolbar, which is
- * for the choices a typist makes between one test and the next.
+ * So is everything about how the typing screen looks rather than what the test
+ * is: the typeface, the text size, what the words do at the end of a line and
+ * the shape of the caret. The toolbar on the typing screen is for the choices
+ * a typist makes between one test and the next — how long, which words, with
+ * punctuation or without. How it is set is chosen once and then left, and both
+ * of the typing tests this application is measured against keep that
+ * separation: Monkeytype and 10fastfingers put the test's shape on the screen
+ * and its appearance behind a settings page.
  */
 
-import { CARETS, LINE_SCROLLS, OPENINGS, type Caret, type LineScroll, type Opening } from '@core/types'
+import {
+  CARETS,
+  LINE_SCROLLS,
+  OPENINGS,
+  STREAM_FONTS,
+  TEXT_SIZES,
+  type Caret,
+  type LineScroll,
+  type Opening,
+  type StreamFont,
+  type TextSize,
+} from '@core/types'
 import { GG_THEMES } from '@features/gg-ui/themes/themes.ts'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { Button, Page } from '@shared/ui'
@@ -30,6 +44,22 @@ import styles from './SettingsPage.module.css'
 const OPENING_LABELS: Readonly<Record<Opening, string>> = {
   portal: 'Through the letters',
   direct: 'Straight in',
+}
+
+/** Each typeface by the name it is published under, not by what it is for. */
+const FONT_LABELS: Readonly<Record<StreamFont, string>> = {
+  slab: 'Roboto Slab',
+  mono: 'Geist Mono',
+  sans: 'Inter',
+  serif: 'Lora',
+}
+
+const SIZE_LABELS: Readonly<Record<TextSize, string>> = {
+  xs: 'Extra small',
+  sm: 'Small',
+  md: 'Medium',
+  lg: 'Large',
+  xl: 'Extra large',
 }
 
 const LINE_SCROLL_LABELS: Readonly<Record<LineScroll, string>> = {
@@ -47,6 +77,10 @@ export const SettingsPage = () => {
   const setTheme = useSettingsStore((state) => state.setTheme)
   const opening = useSettingsStore((state) => state.preferences.opening)
   const setOpening = useSettingsStore((state) => state.setOpening)
+  const font = useSettingsStore((state) => state.preferences.streamFont)
+  const setFont = useSettingsStore((state) => state.setStreamFont)
+  const size = useSettingsStore((state) => state.preferences.textSize)
+  const setSize = useSettingsStore((state) => state.setTextSize)
   const lineScroll = useSettingsStore((state) => state.preferences.lineScroll)
   const setLineScroll = useSettingsStore((state) => state.setLineScroll)
   const caret = useSettingsStore((state) => state.preferences.caret)
@@ -77,6 +111,55 @@ export const SettingsPage = () => {
         <p className={styles.hint}>
           Classic Milk is the default. The same themes are in the palette in the
           top bar, on every page.
+        </p>
+      </fieldset>
+
+      <fieldset className={styles.group}>
+        <legend className={styles.legend}>Typeface</legend>
+
+        <div className={styles.options}>
+          {STREAM_FONTS.map((option) => (
+            <Button
+              key={option}
+              selected={font === option}
+              onClick={() => {
+                void setFont(option)
+              }}
+            >
+              {FONT_LABELS[option]}
+            </Button>
+          ))}
+        </div>
+
+        <p className={styles.hint}>
+          The face the words to type are set in. Roboto Slab is the default, and
+          is what 10fastfingers sets the same words in; Geist Mono gives every
+          letter the same width, which is what most typing tests use and what
+          makes the caret travel the same distance on every keystroke.
+        </p>
+      </fieldset>
+
+      <fieldset className={styles.group}>
+        <legend className={styles.legend}>Text size</legend>
+
+        <div className={styles.options}>
+          {TEXT_SIZES.map((option) => (
+            <Button
+              key={option}
+              selected={size === option}
+              onClick={() => {
+                void setSize(option)
+              }}
+            >
+              {SIZE_LABELS[option]}
+            </Button>
+          ))}
+        </div>
+
+        <p className={styles.hint}>
+          Smaller text shows more lines at once, larger text fewer; the block the
+          words sit in keeps one height either way, so nothing below it moves.
+          The line length stays at about sixty-five characters at every size.
         </p>
       </fieldset>
 

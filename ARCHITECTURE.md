@@ -1094,6 +1094,18 @@ composed:
   the hairline under the control row has 28px of air around it rather than 52,
   and the round buttons are 32px rather than 36.
 
+The other half of that gap was density rather than height, and it came from
+the toolbar holding two different kinds of choice. What a typist changes
+between one test and the next — how long it runs, which words it is drawn
+from, whether it is dressed with punctuation and numbers — belongs in front of
+them. How the screen is *set* — the typeface and the text size — is chosen once
+and then left, and nine of the toolbar's pills were that. They are in settings
+now, with the theme, the caret and the line scroll, which is where both of the
+tests this screen is measured against keep the same distinction: Monkeytype and
+10fastfingers each put the shape of the test on the screen and its appearance
+behind a settings page. The toolbar went from about twenty-two controls to
+thirteen without losing one of them.
+
 What the keystroke path cost was measured at the same time, so the three above
 could be read for what they are: at 4x CPU throttling and 90 wpm there were
 **no long tasks at all and two frames over 33 ms in 301**. Nothing here was

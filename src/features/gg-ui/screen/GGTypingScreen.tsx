@@ -297,10 +297,11 @@ export const GGTypingScreen = ({
 
   const lineScroll = useSettingsStore((state) => state.preferences.lineScroll)
   const caret = useSettingsStore((state) => state.preferences.caret)
+  // Read, never written here: the typeface and the size are set in settings
+  // (SettingsPage), with the theme and the caret, because they are chosen once
+  // rather than between one test and the next.
   const size = useSettingsStore((state) => state.preferences.textSize)
-  const setSize = useSettingsStore((state) => state.setTextSize)
   const font = useSettingsStore((state) => state.preferences.streamFont)
-  const setFont = useSettingsStore((state) => state.setStreamFont)
   const setPracticeMode = useSettingsStore((state) => state.setPracticeMode)
   const setPracticeSeconds = useSettingsStore((state) => state.setPracticeSeconds)
 
@@ -318,13 +319,6 @@ export const GGTypingScreen = ({
     restart()
     focusInput()
   }, [focusInput, restart])
-
-  const changeSize = useCallback(
-    (next: typeof size) => {
-      void setSize(next)
-    },
-    [setSize],
-  )
 
   const changeWordCount = useCallback(
     (count: WordCount) => {
@@ -424,13 +418,6 @@ export const GGTypingScreen = ({
           mode={drillSequence === null ? mode : null}
           hoverDifficulty={hover === null ? rememberedDifficulty : hoverDifficulty}
           onHoverDifficultyChange={hover === null ? undefined : changeHoverDifficulty}
-          size={size}
-          onSizeChange={changeSize}
-          font={font}
-          onFontChange={(next) => {
-            void setFont(next)
-            focusInput()
-          }}
           shape={
             drillSequence === null && hover === null && !fixedText
               ? {
