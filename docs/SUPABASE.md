@@ -247,13 +247,22 @@ the history and statistics pages show.
 - **Signing out** leaves everything in the browser exactly as it is, and deletes
   nothing from the account.
 
-### One known rough edge
+### Two people on one browser
 
-If a **second person** signs in on a browser someone else has already used, the
-history already on that browser is merged into the second person's account. On a
-machine one person uses, which is the normal case, this is exactly right: it is
-how your practice from before you signed up reaches your account. On a shared
-machine it is wrong, and it is not fixed yet. Ask, and it will be.
+If a **second person** signs in on a browser where someone else's account has
+already synced, the first person's history is **not** sent to the second
+person's account. It stays on the browser, untouched — their keystroke detail
+lives only there — and if they sign back in, it is still theirs. The second
+person's own history comes down as usual.
+
+Practice typed on a browser before *anyone* has signed in on it still goes up
+with the first sign-in, which is how your practice from before you signed up
+reaches your account.
+
+What is not separated: while the second person is signed in, the History page
+on that browser still *shows* the first person's tests, because everything is
+kept in the browser first. That is no more than it showed before anyone signed
+in; it is never uploaded to the wrong account.
 
 ## Costs
 

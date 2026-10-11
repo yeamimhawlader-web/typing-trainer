@@ -25,6 +25,22 @@
  * Sessions never change once saved, so an id is the whole comparison. Texts
  * are edited, so where both sides have one, the later `updatedAt` wins.
  *
+ * ## Someone else signing in on the same browser
+ *
+ * A record belongs to one account, and a record for another account used to
+ * read as no record at all — a first round — so everything on the browser was
+ * merged into whoever signed in next: the first person's whole history,
+ * copied into the second person's account, for good.
+ *
+ * Now what the previous account had synced is *withheld*: it stays on the
+ * browser, since its keystrokes live nowhere else and deleting it would lose
+ * them, but it is never sent to the account that signed in after it. The new
+ * account's own history comes down as usual, and anything typed on the browser
+ * that never belonged to an account goes up as it always did. The withheld ids
+ * are kept in the record, so every later round holds them back too, and they
+ * are let go of the moment the account turns out to hold them — which is what
+ * happens when the first person signs back in.
+ *
  * ## What is not synced
  *
  * Telemetry — every keystroke of every test — stays on the device that
@@ -55,23 +71,62 @@ export const TEXTS_TABLE = 'texts'
 /** Rows in one request. Small enough to stay well inside any limit. */
 const BATCH = 200
 
+/** Ids on this browser that belong to another account, and are never sent to this one. */
+interface Withheld {
+  readonly sessions: readonly string[]
+  readonly texts: readonly string[]
+}
+
+const NOTHING_WITHHELD: Withheld = { sessions: [], texts: [] }
+
 /** What the last round ended with, for the account it ended with. */
 interface SyncRecord {
   readonly accountId: string
+  /** On both sides at the end of the round. */
   readonly sessions: readonly string[]
   readonly texts: readonly string[]
+  /** Here only, and another account's. Absent from records written before there was a switch to guard. */
+  readonly withheld: Withheld
 }
 
 const isStrings = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((entry) => typeof entry === 'string')
 
-const parseRecord = (value: unknown, accountId: string): SyncRecord | null => {
+/** The record as written, for whichever account wrote it. */
+const parseRecord = (value: unknown): SyncRecord | null => {
   if (typeof value !== 'object' || value === null) return null
   const record = value as Record<string, unknown>
-  // A record written for another account says nothing about this one.
-  if (record['accountId'] !== accountId) return null
+  if (typeof record['accountId'] !== 'string') return null
   if (!isStrings(record['sessions']) || !isStrings(record['texts'])) return null
-  return { accountId, sessions: record['sessions'], texts: record['texts'] }
+  const withheld = record['withheld'] as Record<string, unknown> | undefined
+  const held =
+    withheld !== undefined && isStrings(withheld['sessions']) && isStrings(withheld['texts'])
+      ? { sessions: withheld['sessions'], texts: withheld['texts'] }
+      : NOTHING_WITHHELD
+  return { accountId: record['accountId'], sessions: record['sessions'], texts: record['texts'], withheld: held }
+}
+
+/**
+ * What this round knows and what it holds back, from the record the last round
+ * left. The same account: its record, as before. Another account: nothing known
+ * — so nothing reads as a deletion, as on any first round — and everything that
+ * account had, or was itself holding back, withheld from this one.
+ */
+const startingFrom = (
+  previous: SyncRecord | null,
+  accountId: string,
+): { readonly known: Withheld; readonly withheld: Withheld } => {
+  if (previous === null) return { known: NOTHING_WITHHELD, withheld: NOTHING_WITHHELD }
+  if (previous.accountId === accountId) {
+    return { known: { sessions: previous.sessions, texts: previous.texts }, withheld: previous.withheld }
+  }
+  return {
+    known: NOTHING_WITHHELD,
+    withheld: {
+      sessions: [...previous.sessions, ...previous.withheld.sessions],
+      texts: [...previous.texts, ...previous.withheld.texts],
+    },
+  }
 }
 
 /**
@@ -130,7 +185,12 @@ export const createSyncService = ({
     for (const listener of listeners) listener(result, error)
   }
 
-  const syncSessions = async (client: SupabaseClient, accountId: string, known: ReadonlySet<string>): Promise<Pick<SyncResult, 'sessionsUp' | 'sessionsDown'>> => {
+  const syncSessions = async (
+    client: SupabaseClient,
+    accountId: string,
+    known: ReadonlySet<string>,
+    held: ReadonlySet<string>,
+  ): Promise<Pick<SyncResult, 'sessionsUp' | 'sessionsDown'> & { readonly withheld: readonly string[] }> => {
     const local = await sessions.getAll()
     // Plain strings on both sides: ids arrive from the network unbranded, and
     // the comparison is between the two sets, not between two domains.
@@ -139,7 +199,11 @@ export const createSyncService = ({
       rowsOf<{ id: string }>(await client.from(SESSIONS_TABLE).select('id')).map((row) => row.id),
     )
 
-    const added = local.filter((session) => !remoteIds.has(session.id) && !known.has(session.id))
+    // Another account's, still here and not this account's: kept back. One the
+    // account turns out to hold is this account's after all, and is let go.
+    const withheld = [...held].filter((id) => localIds.has(id) && !remoteIds.has(id))
+    const holding = new Set(withheld)
+    const added = local.filter((session) => !remoteIds.has(session.id) && !known.has(session.id) && !holding.has(session.id))
     const deletedThere = [...localIds].filter((id) => !remoteIds.has(id) && known.has(id))
     const deletedHere = [...remoteIds].filter((id) => !localIds.has(id) && known.has(id))
     const waiting = [...remoteIds].filter((id) => !localIds.has(id) && !known.has(id))
@@ -183,22 +247,29 @@ export const createSyncService = ({
       await deletion.deleteSession(sessionId(id))
     })
 
-    return { sessionsUp: added.length, sessionsDown: pulled }
+    return { sessionsUp: added.length, sessionsDown: pulled, withheld }
   }
 
-  const syncTexts = async (client: SupabaseClient, accountId: string, known: ReadonlySet<string>): Promise<Pick<SyncResult, 'textsUp' | 'textsDown'>> => {
+  const syncTexts = async (
+    client: SupabaseClient,
+    accountId: string,
+    known: ReadonlySet<string>,
+    held: ReadonlySet<string>,
+  ): Promise<Pick<SyncResult, 'textsUp' | 'textsDown'> & { readonly withheld: readonly string[] }> => {
     const local = await library.getAll()
     const localById = new Map(local.map((text) => [text.id, text]))
     const remote = rowsOf<{ id: string; updated_at: number }>(
       await client.from(TEXTS_TABLE).select('id, updated_at'),
     )
     const remoteById = new Map(remote.map((row) => [row.id, row.updated_at]))
+    const withheld = [...held].filter((id) => localById.has(id) && !remoteById.has(id))
+    const holding = new Set(withheld)
 
     const up = local.filter((text) => {
       const there = remoteById.get(text.id)
       // Absent there and never synced: new here. Absent and synced before:
       // deleted there, so it is not sent back up.
-      return there === undefined ? !known.has(text.id) : text.updatedAt > there
+      return there === undefined ? !known.has(text.id) && !holding.has(text.id) : text.updatedAt > there
     })
     const down = remote.filter((row) => {
       const here = localById.get(row.id)
@@ -241,27 +312,43 @@ export const createSyncService = ({
 
     await inSequence(deletedThere, (id) => library.remove(id))
 
-    return { textsUp: up.length, textsDown: pulled }
+    return { textsUp: up.length, textsDown: pulled, withheld }
   }
 
   const round = async (accountId: string): Promise<SyncResult> => {
     const client = await arriving
-    const record = parseRecord(await storage.read<unknown>(STORAGE_KEYS.accountSync), accountId)
+    const { known, withheld } = startingFrom(
+      parseRecord(await storage.read<unknown>(STORAGE_KEYS.accountSync)),
+      accountId,
+    )
 
-    const moved = {
-      ...(await syncSessions(client, accountId, new Set(record?.sessions ?? []))),
-      ...(await syncTexts(client, accountId, new Set(record?.texts ?? []))),
-    }
+    const { withheld: sessionsHeld, ...sessionsMoved } = await syncSessions(
+      client,
+      accountId,
+      new Set(known.sessions),
+      new Set(withheld.sessions),
+    )
+    const { withheld: textsHeld, ...textsMoved } = await syncTexts(
+      client,
+      accountId,
+      new Set(known.texts),
+      new Set(withheld.texts),
+    )
 
     // What both sides now hold, read back rather than worked out, so a record
-    // that was refused or trimmed by storage is not remembered as kept.
+    // that was refused or trimmed by storage is not remembered as kept. What is
+    // withheld is here only, so it is kept apart from that: listed as held, it
+    // is never mistaken next round for something deleted from the account.
+    const holdingSessions = new Set(sessionsHeld)
+    const holdingTexts = new Set(textsHeld)
     await storage.write(STORAGE_KEYS.accountSync, {
       accountId,
-      sessions: (await sessions.getAll()).map((session) => session.id),
-      texts: (await library.getAll()).map((text) => text.id),
+      sessions: (await sessions.getAll()).map((session) => session.id).filter((id) => !holdingSessions.has(id)),
+      texts: (await library.getAll()).map((text) => text.id).filter((id) => !holdingTexts.has(id)),
+      withheld: { sessions: sessionsHeld, texts: textsHeld },
     } satisfies SyncRecord)
 
-    return moved
+    return { ...sessionsMoved, ...textsMoved }
   }
 
   return {

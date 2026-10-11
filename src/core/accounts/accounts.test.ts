@@ -397,4 +397,87 @@ describe('bringing a browser and an account level', () => {
     database.fail(null)
     expect(await sync.syncNow()).toMatchObject({ sessionsUp: 1 })
   })
+
+  describe('when someone else signs in on the same browser', () => {
+    const OTHER = { id: 'account-2', email: 'someone@example.com', name: 'Someone Else', pictureUrl: null }
+    let who = ACCOUNT
+
+    const signInAs = (account: typeof ACCOUNT): void => {
+      who = account
+      database.signedInAs(account.id)
+    }
+
+    const idsOn = (table: string, account: typeof ACCOUNT): string[] =>
+      database
+        .rows(table)
+        .filter((row) => row.user_id === account.id)
+        .map((row) => row.id)
+        .toSorted()
+
+    const idsHere = async (): Promise<string[]> => (await sessions.getAll()).map((stored) => stored.id).toSorted()
+
+    beforeEach(() => {
+      who = ACCOUNT
+      database = fakeDatabase()
+      build({ ...signedIn(), state: () => ({ status: 'signed-in', account: who }) })
+    })
+
+    it("never sends the first account's history to the second", async () => {
+      await sessions.save(session('first-test'))
+      await library.put(text('first-text', 10))
+      await sync.syncNow()
+
+      signInAs(OTHER)
+      database.put(SESSIONS_TABLE, { id: 'other-test', user_id: OTHER.id, completed_at: 3000, data: session('other-test', 3000) })
+      const result = await sync.syncNow()
+
+      expect(idsOn(SESSIONS_TABLE, OTHER)).toEqual(['other-test'])
+      expect(idsOn(TEXTS_TABLE, OTHER)).toEqual([])
+      expect(result).toMatchObject({ sessionsUp: 0, sessionsDown: 1, textsUp: 0 })
+      // And nothing was taken off this browser: the first account's keystrokes
+      // live only here, and deleting its tests would lose them for good.
+      expect(await idsHere()).toEqual(['first-test', 'other-test'])
+      expect((await library.getAll()).map((stored) => stored.id)).toEqual(['first-text'])
+    })
+
+    it('keeps holding it back on every later round, and still sends what is typed after the switch', async () => {
+      await sessions.save(session('first-test'))
+      await sync.syncNow()
+      signInAs(OTHER)
+      await sync.syncNow()
+
+      await sessions.save(session('typed-after-switch', 5000))
+      const later = await sync.syncNow()
+
+      expect(later).toMatchObject({ sessionsUp: 1 })
+      expect(idsOn(SESSIONS_TABLE, OTHER)).toEqual(['typed-after-switch'])
+      expect(await idsHere()).toEqual(['first-test', 'typed-after-switch'])
+    })
+
+    it("gives the first account its own back, and keeps the second's out of it, when the first returns", async () => {
+      await sessions.save(session('first-test'))
+      await sync.syncNow()
+      signInAs(OTHER)
+      database.put(SESSIONS_TABLE, { id: 'other-test', user_id: OTHER.id, completed_at: 3000, data: session('other-test', 3000) })
+      await sync.syncNow()
+
+      signInAs(ACCOUNT)
+      const back = await sync.syncNow()
+
+      expect(idsOn(SESSIONS_TABLE, ACCOUNT)).toEqual(['first-test'])
+      expect(idsOn(SESSIONS_TABLE, OTHER)).toEqual(['other-test'])
+      expect(back).toMatchObject({ sessionsUp: 0, sessionsDown: 0 })
+      expect(await idsHere()).toEqual(['first-test', 'other-test'])
+    })
+
+    it('still merges everything the first time a browser meets an account, as long as no other account came first', async () => {
+      // A typist trying the application before signing up: what they typed is
+      // theirs, and goes up with the first sign-in, as it always has.
+      await sessions.save(session('typed-before-signing-up'))
+      signInAs(OTHER)
+
+      expect(await sync.syncNow()).toMatchObject({ sessionsUp: 1 })
+      expect(idsOn(SESSIONS_TABLE, OTHER)).toEqual(['typed-before-signing-up'])
+    })
+  })
 })
