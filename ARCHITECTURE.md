@@ -1218,6 +1218,38 @@ the author preferred the bar, which is the only way that question was ever
 going to be settled. A system asking for reduced motion gets the jump whatever
 is chosen.
 
+### The last keystroke is drawn before the result is built
+
+Every keystroke reached the screen in under a frame or two — measured with real
+key events, the slowest of three hundred at 32ms on an ordinary laptop and 56ms
+on one slowed four times — except the one that ended the test. That one took
+112–144ms on the slow machine, with a long task of 60–80ms in it.
+
+The guess was storage and analysis, and the profile said otherwise. Across the
+moment the test ends, saving the session cost about a millisecond and reading
+the keystrokes about eight; nearly all of the rest was rendering: the result
+panel, the largest thing the screen builds, and the browser laying it out —
+all of it inside the keystroke's own event, so in front of the frame that would
+have shown it.
+
+So the two jobs are split by their deadlines (`useTypingSession`). Keeping the
+test is started at once, because nothing should depend on a frame being drawn
+for a test to be kept — a tab closed or hidden at the very end still has it.
+Showing the result, and the readings of the keystrokes it carries, waits until
+the browser has drawn that keystroke (`afterNextPaint`: a task queued from a
+frame callback, with a timer behind it for a page in the background), and the
+panel's own rise covers the frame between. A Tab pressed before the result is
+built moves on to the next test; the finished one is saved and its panel is
+never shown over the new one.
+
+Measured old against new in the same run, real key events, three runs each on
+the slow machine: the last keystroke went from 112–144ms to 32–40ms, and the
+long task went away. With a thousand tests saved it is 40–56ms — the history's
+size barely registers, because a save writes one record and a small index.
+Moving from one round to the next (Tab) was left as it was: 64–96ms there, a
+single frame on an ordinary laptop, spent building the next three hundred
+letters.
+
 ### Motion, checked in more than one engine
 
 Every animation was run in WebKit 27.2 (Safari's engine) and Chrome 154 on a

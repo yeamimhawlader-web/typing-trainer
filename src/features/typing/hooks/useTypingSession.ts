@@ -55,6 +55,7 @@ import {
   type SessionTarget,
   type Timestamp,
 } from '@core/types'
+import { afterNextPaint } from '@shared/lib'
 
 /** How often the clock advances while running, in milliseconds. */
 const TICK_INTERVAL_MS = 100
@@ -354,33 +355,56 @@ export const useTypingSession = (
    * Records a finished test.
    *
    * Nothing here runs while typing: it is subscribed to the engine's `finished`
-   * event, which fires exactly once per completed test. The write is started
-   * and not awaited, so a slow or broken store cannot delay the screen — the
-   * result is on display before storage has been asked about it.
+   * event, which fires exactly once per completed test — inside the keystroke
+   * that finished it.
+   *
+   * ## Saved at once, shown after the keystroke is drawn
+   *
+   * Two jobs, with different deadlines. Keeping the test has no deadline but
+   * "now": it is started here, before anything else, so a tab closed or sent to
+   * the background at the very end still has it, and it costs about a
+   * millisecond. Showing the result has a deadline that is the opposite of
+   * urgent — and it is the largest thing this screen renders. Built here, it
+   * stood in front of the last keystroke: on a slow laptop that keystroke took
+   * 136ms to reach the screen where every other took under 60, and nearly all
+   * of it was rendering the panel and laying it out, not the saving or the
+   * analysis around it. So the result, and the readings of the keystrokes it
+   * shows, are put on screen after the frame that draws that keystroke
+   * (`afterNextPaint`), while the panel's own rise covers the moment between.
+   *
+   * A test finished and immediately left — Tab before the result was built —
+   * is still saved, but its result is shown over nothing: the screen has moved
+   * on to the next test, and a panel arriving over it would be the wrong one.
    *
    * A failure is reported, not thrown. Losing a record is a nuisance; losing
    * the session you just typed because saving it went wrong is not acceptable.
    */
   useEffect(() => {
+    /** Moves on with every test, so a result built late knows whether its test is still on screen. */
+    let showing = 0
+    const pending = new Set<() => void>()
+
     const unsubscribe = engine.on((event) => {
+      if (event.type === 'started' || event.type === 'reset') showing += 1
       if (event.type !== 'finished' || event.status !== 'completed') return
 
+      const finished = showing
       const session = createTypingSession({
         result: event.result,
         context: modeRef.current?.finalContext(contextRef.current) ?? contextRef.current,
         completedAt: timestamp(Date.now()),
       })
 
-      setLastSession(session)
-      setSaveState('saving')
-
-      service
-        .save(session)
-        .then(() => setSaveState('saved'))
-        .catch((error: unknown) => {
+      let saved: SaveState = 'saving'
+      const saving = service.save(session).then(
+        () => {
+          saved = 'saved'
+        },
+        (error: unknown) => {
           console.warn('[sessions] failed to save a finished test', error)
-          setSaveState('failed')
-        })
+          saved = 'failed'
+        },
+      )
 
       /**
        * Keystroke detail is packed and stored separately, and separately
@@ -393,26 +417,44 @@ export const useTypingSession = (
         console.warn('[telemetry] failed to save keystroke detail', error)
       })
 
-      // Read straight from the keystrokes in hand rather than from storage, so
-      // the result appears even if the save failed. Derived once here and used
-      // for both readings, rather than walking the log twice.
-      const derived = deriveSessionTelemetry(
-        event.result.keystrokes,
-        event.result.target.text,
-      )
+      const { keystrokes, target: typed } = event.result
+      const finishedIn = contextRef.current
+      const stillShowing = (): boolean => showing === finished
 
-      setSequences(analyseSlowSequences(derived))
-      setTestShape(shapeOfTest(derived))
+      const cancel = afterNextPaint(() => {
+        pending.delete(cancel)
+        if (!stillShowing()) return
 
-      const drillTarget = contextRef.current.targetSequence
-      setDrillOutcome(
-        contextRef.current.mode === 'drill' && drillTarget !== undefined
-          ? measureDrill(derived, event.result.target.text, drillTarget)
-          : null,
-      )
+        // Read straight from the keystrokes in hand rather than from storage,
+        // so the result appears even if the save failed. Derived once and used
+        // for every reading, rather than walking the log more than once.
+        const derived = deriveSessionTelemetry(keystrokes, typed.text)
+        const drillTarget = finishedIn.targetSequence
+
+        setLastSession(session)
+        setSaveState(saved)
+        setSequences(analyseSlowSequences(derived))
+        setTestShape(shapeOfTest(derived))
+        setDrillOutcome(
+          finishedIn.mode === 'drill' && drillTarget !== undefined
+            ? measureDrill(derived, typed.text, drillTarget)
+            : null,
+        )
+
+        if (saved === 'saving') {
+          void saving.then(() => {
+            if (stillShowing()) setSaveState(saved)
+          })
+        }
+      })
+      pending.add(cancel)
     })
 
-    return unsubscribe
+    return () => {
+      unsubscribe()
+      // A result still waiting for its frame belongs to a screen that is gone.
+      for (const cancel of pending) cancel()
+    }
   }, [engine, service, telemetry])
 
   return {

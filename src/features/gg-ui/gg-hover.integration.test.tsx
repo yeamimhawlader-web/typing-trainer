@@ -436,7 +436,9 @@ describe('Hover Mode on the GG.Typing screen', () => {
       expect(stored?.metrics).toMatchObject({ totalCharacters: 13, typedCharacters: 13, errorCount: 2 })
       expect(figure('wpm')).toBe(String(Math.round(stored?.metrics.netWpm ?? -1)))
 
-      const result = screen.getByRole('region', { name: 'Hover Mode' })
+      // Saved the moment the test ends; shown a frame later, once the last
+      // keystroke has been drawn (useTypingSession).
+      const result = await screen.findByRole('region', { name: 'Hover Mode' })
       expect(result).toHaveTextContent('Difficulty Standard')
       const rows = within(result).getAllByRole('row').slice(1)
       expect(rows.map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent))).toEqual([

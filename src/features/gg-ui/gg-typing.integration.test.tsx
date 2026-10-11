@@ -299,6 +299,52 @@ describe('GG.Typing on the real typing session', () => {
       expect(field()).toHaveAttribute('placeholder', 'Tab for next')
     })
 
+    it('draws the keystroke that ends a test before it builds the result', async () => {
+      // The result panel is the largest thing the screen renders, and building
+      // it in front of the last keystroke held that keystroke back: 136ms to
+      // reach the screen on a slow laptop, where any other key took under 60.
+      await firstTest(wordsProvider().provider)
+      const text = streamText()
+
+      typeText(text)
+
+      // That keystroke is drawn as any other is…
+      expect(stateAt(Array.from(text).length - 1)).toBe('correct')
+      expect(field()).toHaveAttribute('placeholder', 'Tab for next')
+      // …and the result is built after it, not in front of it. ("Try again" is
+      // drawn with the panel; "View details" only once the test is saved, so
+      // its absence would prove nothing.)
+      expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
+      expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    })
+
+    it('saves the test the moment it ends, without waiting for a frame to be drawn', async () => {
+      // A test must not depend on the browser drawing anything to be kept: a
+      // tab closed, or sent to the background, right at the end still has it.
+      await firstTest(wordsProvider().provider)
+
+      typeText(streamText())
+      // Promises only — forty turns of them, and no frame or timer.
+      await Array.from({ length: 40 }).reduce<Promise<void>>((turn) => turn.then(() => undefined), Promise.resolve())
+
+      expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
+      expect(await sessions.getAll()).toHaveLength(1)
+    })
+
+    it('shows no result over the next test when Tab comes before it is built, and keeps the one finished', async () => {
+      await firstTest(wordsProvider().provider)
+
+      typeText(streamText())
+      fireEvent.keyDown(field(), { key: 'Tab' })
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 300))
+      })
+
+      expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull()
+      expect(field()).toHaveAttribute('placeholder', 'Start typing')
+      expect(await sessions.getAll()).toHaveLength(1)
+    })
+
     it('stores the session, the same one the panel shows', async () => {
       await firstTest(wordsProvider().provider)
       const text = streamText()
