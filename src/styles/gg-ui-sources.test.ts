@@ -103,6 +103,21 @@ describe('GG.Typing UI sources', () => {
   describe('motion', () => {
     const stylesheets = sources.filter(({ file }) => file.endsWith('.css'))
 
+    it('lets the result rise in on the compositor alone, and not at all for reduced motion', () => {
+      // The score is the most-looked-at moment in a test, and it used to pop in.
+      // It rises now — moving only what the browser can move off the main
+      // thread, so it is smooth on a slow machine, and never the words above it.
+      const screen = stylesheets.find(({ file }) => /GGTypingScreen\.module\.css$/.test(file))?.contents ?? ''
+      const rule = screen.match(/\.result\s*\{([^}]*)\}/)?.[1] ?? ''
+      const name = rule.match(/animation:\s*([\w-]+)/)?.[1] ?? ''
+      const frames = screen.match(new RegExp(String.raw`@keyframes ${name}\s*\{([\s\S]*?)\n\}`))?.[1] ?? ''
+      const animated = new Set([...frames.matchAll(/([a-z-]+)\s*:/g)].map((match) => match[1]))
+
+      expect(name).not.toBe('')
+      expect([...animated].sort()).toEqual(['opacity', 'transform'])
+      expect(screen).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.result\s*\{\s*animation:\s*none/)
+    })
+
     it('never transitions a colour, so a theme switch and a state change land on one frame', () => {
       const offenders = stylesheets.flatMap(({ file, contents }) =>
         [...contents.matchAll(/transition(?:-property)?:\s*([^;]+);/g)]

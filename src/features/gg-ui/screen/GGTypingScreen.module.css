@@ -82,6 +82,32 @@
    margins rather than by being made narrower here. */
 .result {
   margin-top: 24px;
+  animation: result-rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/*
+ * The score rises into place rather than appearing. It is the moment in a test
+ * people look at most, and a panel this size arriving in one frame read as a
+ * pop. Only opacity and transform move, which the browser animates off the main
+ * thread — so it is as smooth on a slow laptop as a fast one, in every browser —
+ * and it moves itself only: the words above it stay exactly where they are.
+ */
+@keyframes result-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result {
+    animation: none;
+  }
 }
 
 .result > * {
