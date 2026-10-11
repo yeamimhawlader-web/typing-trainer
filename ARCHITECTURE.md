@@ -743,9 +743,18 @@ tier from two questions asked together:
 
 | Tier | Relative delta | Expected by chance | On screen |
 | --- | --- | --- | --- |
-| Strong evidence | ≥ 20% | ≤ 0.05 | Listed first, with the Train button |
-| Possible | ≥ 10% | ≤ 0.5 | "Possible — needs more tests", a quiet text link |
-| — | otherwise | | Not listed; counted in "sequences with enough data" |
+| Strong evidence | ≥ 20% | ≤ 0.05 | "Clear pattern", listed first, with the Train button |
+| Possible | ≥ 10% | ≤ 0.5 | "Maybe — needs more tests", a quiet text link |
+| — | otherwise | | Not listed; counted in "We checked N" |
+
+The tiers keep their statistical names in the code and in this document, where
+they mean something exact. On screen they speak to a typist rather than to a
+statistician: the section is "Letter pairs that slow you down", a transition is
+a letter pair, the baseline is "your usual" time between keys — kept in sight,
+so a row's delta can be checked against it — and how all of this is worked out
+sits behind "How is this worked out?" instead of two paragraphs in the way.
+Every number on the page is the one the analysis produced; only the words
+around them changed.
 
 Calibrated against the audit's simulated typist (86 ms transitions, log-normal
 jitter σ 0.3, 3% pauses, 60-word tests; forty histories per case):

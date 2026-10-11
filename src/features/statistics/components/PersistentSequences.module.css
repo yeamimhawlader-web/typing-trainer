@@ -136,6 +136,41 @@
   color: var(--color-text-primary);
 }
 
+/* The usual time between keys, in sight above the rows it is the measure of. */
+.usual {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* How it is worked out: one press away, in the same quiet type as before. The
+   marker is the browser's own, so it turns as it opens in every browser. */
+.how {
+  max-width: var(--layout-reading-width);
+}
+
+.howSummary {
+  width: fit-content;
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  border-radius: var(--radius-sm);
+}
+
+.howSummary:hover {
+  color: var(--color-text-primary);
+}
+
+.how[open] > .howSummary {
+  margin-bottom: var(--space-2);
+}
+
+.how > .caveat + .caveat {
+  margin-top: var(--space-2);
+}
+
 @media (max-width: 480px) {
   .row {
     grid-template-columns: 3.5rem 1fr;

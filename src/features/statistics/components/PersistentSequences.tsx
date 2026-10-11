@@ -17,6 +17,18 @@
  *   that may be noise is not presented as something to act on.
  *
  * Nothing here says "weakness", and nothing tells the reader what to practise.
+ *
+ * ## In plain words
+ *
+ * It is written for someone who has never heard the word telemetry. The
+ * analysis is a statistician's — transitions, baselines, evidence tiers — and
+ * the page used to speak it: "sequences consistently slower than your
+ * baseline". What a typist wants to know is which letter pairs slow them down,
+ * so that is what it says, and "strong" and "possible" are "Clear pattern" and
+ * "Maybe". Every number is still the one the analysis produced. How it is
+ * worked out is one press away rather than two paragraphs in the way, except
+ * the one number a reader needs to check a row — their usual time between
+ * keys — which stays in sight.
  */
 
 import { Link } from 'react-router'
@@ -47,10 +59,20 @@ const formatPercent = (ratio: number): string => `${Math.round(ratio * 100)}%`
 const formatDelta = (value: number): string =>
   `${value >= 0 ? '+' : '−'}${Math.abs(Math.round(value))} ms`
 
+const tests = (count: number): string => `${count} ${count === 1 ? 'test' : 'tests'}`
+
+const pairs = (count: number): string => `${count} ${count === 1 ? 'pair' : 'pairs'}`
+
+/** "4 tests" from nothing, "2 more tests" from two of four, never "0 more". */
+const stillToTake = (needed: number, had: number): string => {
+  const left = Math.max(1, needed - had)
+  return had === 0 ? tests(left) : `${left} more ${left === 1 ? 'test' : 'tests'}`
+}
+
 const Section = ({ children }: { children: React.ReactNode }) => (
   <section className={styles.section} aria-labelledby="persistent-sequences-heading">
     <h2 className={styles.heading} id="persistent-sequences-heading">
-      Sequences consistently slower than your baseline
+      Letter pairs that slow you down
     </h2>
     {children}
   </section>
@@ -65,11 +87,11 @@ export const PersistentSequences = ({ report }: PersistentSequencesProps) => {
     return (
       <Section>
         <p className={styles.note}>
-          Not enough history yet. This needs keystroke detail from at least{' '}
-          {thresholds.minimumSessions} tests in this range, and has{' '}
-          {report.sessionsWithTelemetry}. Keep practising and it will appear —
-          one test on its own is too small a sample to tell a slow transition
-          from a slow moment.
+          {/* What is still to do, not what is required and what is had: the
+              reader should not have to subtract. */}
+          Take {stillToTake(thresholds.minimumSessions, report.sessionsWithTelemetry)} and this
+          will show which letter pairs slow you down. One test can't tell a habit from a
+          one-off.
         </p>
       </Section>
     )
@@ -79,12 +101,10 @@ export const PersistentSequences = ({ report }: PersistentSequencesProps) => {
     return (
       <Section>
         <p className={styles.note}>
-          Nothing stood out across {report.sessionsWithTelemetry} tests. Of{' '}
-          {report.metEvidenceThreshold}{' '}
-          {report.metEvidenceThreshold === 1 ? 'sequence' : 'sequences'} with enough
-          data to judge, none was reliably slower than your{' '}
-          {formatMs(report.baselineMs ?? 0)} typical transition. That is a result,
-          not a gap — an even keyboard is what it looks like.
+          No letter pair stands out across your {tests(report.sessionsWithTelemetry)}. We
+          checked {report.metEvidenceThreshold}, and none is reliably slower than your
+          usual {formatMs(report.baselineMs ?? 0)} between keys. That's good news: your
+          typing is even.
         </p>
       </Section>
     )
@@ -107,13 +127,13 @@ export const PersistentSequences = ({ report }: PersistentSequencesProps) => {
           {formatDelta(
             Math.round(entry.medianMs) - Math.round(report.baselineMs ?? entry.medianMs),
           )}{' '}
-          vs baseline)
+          vs your usual)
         </span>
       </span>
 
       <span className={styles.evidence}>
-        {entry.observations} observations across {entry.sessions} tests, slower in{' '}
-        {entry.slowerSessions} of {entry.sessions}
+        seen {entry.observations} times in {tests(entry.sessions)} · slower in{' '}
+        {entry.slowerSessions}
       </span>
 
       {/* Offered only where a drill can actually be built from real words. A
@@ -144,47 +164,54 @@ export const PersistentSequences = ({ report }: PersistentSequencesProps) => {
 
   return (
     <Section>
+      {/* The one number a reader needs to check a row — 118 ms, +24 ms —
+          kept in sight rather than in the explanation below. */}
+      <p className={styles.usual}>
+        Compared with your usual {formatMs(report.baselineMs ?? 0)} between keys.
+      </p>
+
       {strong.length > 0 ? (
         <>
-          <h3 className={styles.group}>Strong evidence</h3>
+          <h3 className={styles.group}>Clear pattern</h3>
           <ul className={styles.list}>{strong.map(row)}</ul>
         </>
       ) : (
         <p className={styles.note}>
-          No sequence has strong evidence yet. What follows may be real, or may be
-          the ordinary variation of {report.sessionsWithTelemetry} tests.
+          Nothing clear yet. The pairs below might be real, or just the normal ups and
+          downs of {tests(report.sessionsWithTelemetry)}.
         </p>
       )}
 
       {possible.length > 0 && (
         <>
-          <h3 className={styles.group}>Possible — needs more tests</h3>
+          <h3 className={styles.group}>Maybe — needs more tests</h3>
           <ul className={`${styles.list} ${styles.possible}`}>{possible.map(row)}</ul>
         </>
       )}
 
-      <p className={styles.caveat}>
-        Strong evidence means at least{' '}
-        {formatPercent(EVIDENCE_TIERS.strong.minimumRelativeDelta)} slower than your
-        typical transition, and slower in so many of its tests that chance alone would
-        rarely produce it, even allowing for the {report.metEvidenceThreshold}{' '}
-        {report.metEvidenceThreshold === 1 ? 'sequence' : 'sequences'} checked.
-        Possible means at least{' '}
-        {formatPercent(EVIDENCE_TIERS.possible.minimumRelativeDelta)} slower with
-        thinner or less consistent evidence, and may turn out to be noise.
-      </p>
+      <details className={styles.how}>
+        <summary className={styles.howSummary}>How is this worked out?</summary>
 
-      <p className={styles.caveat}>
-        Median time between the two keys, taken per test and then across tests, so
-        one long session cannot outvote the rest. Compared against your own{' '}
-        {formatMs(report.baselineMs ?? 0)} typical transition over the same{' '}
-        {report.sessionsWithTelemetry} tests — not a fixed target. Counted only
-        where both keys were typed correctly and in sequence, needing at least{' '}
-        {thresholds.minimumObservations} observations across{' '}
-        {thresholds.minimumSessions} tests. These are heuristic measures, not a
-        diagnosis: a sequence can be slow because it is awkward, or because it
-        turns up in words you have to think about.
-      </p>
+        <p className={styles.caveat}>
+          <strong>Clear pattern</strong> means at least{' '}
+          {formatPercent(EVIDENCE_TIERS.strong.minimumRelativeDelta)} slower than your usual
+          time between keys, in so many tests that luck is an unlikely explanation — even
+          after allowing for the {pairs(report.metEvidenceThreshold)} we checked.{' '}
+          <strong>Maybe</strong> means at least{' '}
+          {formatPercent(EVIDENCE_TIERS.possible.minimumRelativeDelta)} slower on thinner
+          evidence, and it may turn out to be nothing.
+        </p>
+
+        <p className={styles.caveat}>
+          We take the middle time for each pair in each test, and then the middle of
+          those, so one long test can't outweigh the rest. It's compared with your own
+          usual speed over the same {tests(report.sessionsWithTelemetry)}, not a fixed
+          target, and only counted when both keys were typed correctly, one after the
+          other, at least {thresholds.minimumObservations} times across{' '}
+          {tests(thresholds.minimumSessions)}. A pair can be slow because it's awkward to
+          reach, or because it turns up in words you have to think about.
+        </p>
+      </details>
     </Section>
   )
 }

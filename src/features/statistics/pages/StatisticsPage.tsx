@@ -223,13 +223,14 @@ export const StatisticsPage = () => {
       {statistics.excludedFromAverages.length > 0 && (
         <p className={styles.note}>
           {/* Said out loud rather than adjusted quietly. See splitFarOutliers. */}
-          The average and consistency leave out{' '}
           {statistics.excludedFromAverages.length === 1
-            ? 'one test'
+            ? 'One test'
             : `${statistics.excludedFromAverages.length} tests`}{' '}
-          far outside your others (
-          {statistics.excludedFromAverages.map((value) => Math.round(value)).join(', ')} wpm).
-          Median and best include every test.
+          ({statistics.excludedFromAverages.map((value) => Math.round(value)).join(', ')} wpm){' '}
+          {statistics.excludedFromAverages.length === 1 ? 'was' : 'were'} so far from your
+          others that {statistics.excludedFromAverages.length === 1 ? "it's" : "they're"} left
+          out of the average and consistency. Median and best still count{' '}
+          {statistics.excludedFromAverages.length === 1 ? 'it' : 'them'}.
         </p>
       )}
 
@@ -322,7 +323,8 @@ export const StatisticsPage = () => {
         </div>
       ) : (
         <p className={styles.note}>
-          One test in this range. Trends appear once there are a few more to compare.
+          Only one test in this range. Take another to see your speed and accuracy over
+          time.
         </p>
       )}
 
@@ -341,11 +343,11 @@ export const StatisticsPage = () => {
       {analyses !== null && analyses.keys.keys.length > 0 && (
         <section className={styles.section} aria-labelledby="keys-heading">
           <h2 id="keys-heading" className={styles.sectionTitle}>
-            Keys that cost you
+            Keys you miss most
           </h2>
           <p className={styles.sectionLede}>
-            Every key you have typed at least {KEY_RULES.minimumAttempts} times in this
-            range, the ones you miss most marked deepest.
+            Darker keys are the ones you miss most. A key is only shaded once you've typed
+            it {KEY_RULES.minimumAttempts} times.
           </p>
           <KeyboardHeatmap report={analyses.keys} />
         </section>

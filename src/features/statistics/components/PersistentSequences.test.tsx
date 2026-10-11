@@ -67,20 +67,19 @@ describe('persistent sequences section', () => {
   it('says plainly when there is not enough history, and how much is needed', () => {
     renderSection(report({ hasEnoughHistory: false, sessionsWithTelemetry: 2 }))
 
-    expect(screen.getByText(/not enough history yet/i)).toBeInTheDocument()
-    // Both halves of the comparison, so the reader knows how far off they are.
-    expect(screen.getByText(/at least 4 tests/i)).toBeInTheDocument()
-    expect(screen.getByText(/and has 2/i)).toBeInTheDocument()
+    // The gap itself, so the reader knows how far off they are: 4 needed, 2 had.
+    expect(screen.getByText(/take 2 more tests and this will show which letter pairs slow you down/i)).toBeInTheDocument()
+    expect(screen.getByText(/one test can't tell a habit from a one-off/i)).toBeInTheDocument()
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
   })
 
   it('says nothing stood out rather than showing an empty ranking', () => {
     renderSection(report({ candidates: [] }))
 
-    expect(screen.getByText(/nothing stood out across 11 tests/i)).toBeInTheDocument()
-    // The count of sequences it was able to judge — so "nothing" reads as a
-    // result rather than as a failure to look.
-    expect(screen.getByText(/14 sequences with enough data/i)).toBeInTheDocument()
+    expect(screen.getByText(/no letter pair stands out across your 11 tests/i)).toBeInTheDocument()
+    // The count of pairs it was able to judge — so "nothing" reads as a result
+    // rather than as a failure to look.
+    expect(screen.getByText(/we checked 14/i)).toBeInTheDocument()
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
   })
 
@@ -91,17 +90,19 @@ describe('persistent sequences section', () => {
 
     expect(row).toHaveTextContent('th')
     expect(row).toHaveTextContent('118 ms')
-    expect(row).toHaveTextContent('+24 ms vs baseline')
-    expect(row).toHaveTextContent('42 observations across 11 tests')
-    expect(row).toHaveTextContent('slower in 9 of 11')
+    expect(row).toHaveTextContent('+24 ms vs your usual')
+    expect(row).toHaveTextContent('seen 42 times in 11 tests')
+    expect(row).toHaveTextContent('slower in 9')
   })
 
   it('states a delta that reconciles with the baseline it shows', () => {
     renderSection(report({ candidates: [evidence()] }))
 
-    // 118 − 94 = 24. A reader who subtracts must get the number on screen.
+    // 118 − 94 = 24. A reader who subtracts must get the number on screen —
+    // on screen, not behind "How is this worked out?".
     expect(screen.getByRole('listitem')).toHaveTextContent('118 ms')
-    expect(screen.getByText(/your own 94 ms typical transition/i)).toBeInTheDocument()
+    const usual = screen.getByText(/compared with your usual 94 ms between keys/i)
+    expect(usual.closest('details')).toBeNull()
   })
 
   it('never calls a sequence a weakness, even while offering to train it', () => {
@@ -112,13 +113,14 @@ describe('persistent sequences section', () => {
     // come with it is language claiming the sequence is a defect, or telling
     // the reader what they ought to do about it.
     expect(text).not.toMatch(/weak|you should|fix your|improve your/i)
-    expect(text).toMatch(/heuristic measures, not a diagnosis/i)
+    // And it says what a slow pair might be instead of what it is.
+    expect(text).toMatch(/a pair can be slow because it's awkward to reach/i)
   })
 
   it('offers Train for a sequence with strong evidence, named for that sequence', () => {
     renderSection(report({ candidates: [evidence()] }))
 
-    expect(screen.getByRole('heading', { name: 'Strong evidence' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Clear pattern' })).toBeInTheDocument()
     // Named per row, so a list of them is not a column of identical "Train"
     // links to a screen reader.
     const train = screen.getByRole('link', { name: 'Train th' })
@@ -146,7 +148,7 @@ describe('persistent sequences section', () => {
       renderSection(report({ candidates: [evidence(), possible] }))
 
       expect(
-        screen.getByRole('heading', { name: 'Possible — needs more tests' }),
+        screen.getByRole('heading', { name: 'Maybe — needs more tests' }),
       ).toBeInTheDocument()
     })
 
@@ -165,15 +167,16 @@ describe('persistent sequences section', () => {
 
       const row = screen.getByRole('listitem')
       expect(row).toHaveTextContent('105 ms')
-      expect(row).toHaveTextContent('+11 ms vs baseline')
-      expect(row).toHaveTextContent('slower in 9 of 11')
+      expect(row).toHaveTextContent('+11 ms vs your usual')
+      expect(row).toHaveTextContent('slower in 9')
     })
 
     it('says outright when nothing has strong evidence', () => {
       renderSection(report({ candidates: [possible] }))
 
-      expect(screen.getByText(/no sequence has strong evidence yet/i)).toBeInTheDocument()
-      expect(screen.queryByRole('heading', { name: 'Strong evidence' })).not.toBeInTheDocument()
+      expect(screen.getByText(/nothing clear yet/i)).toBeInTheDocument()
+      expect(screen.getByText(/normal ups and downs of 11 tests/i)).toBeInTheDocument()
+      expect(screen.queryByRole('heading', { name: 'Clear pattern' })).not.toBeInTheDocument()
     })
 
     it('keeps the two tiers in separate lists', () => {
@@ -189,9 +192,9 @@ describe('persistent sequences section', () => {
   it('explains what each tier requires, including how many sequences were checked', () => {
     renderSection(report({ candidates: [evidence()] }))
 
-    expect(screen.getByText(/at least 20% slower than your typical transition/i)).toBeInTheDocument()
-    expect(screen.getByText(/allowing for the 14 sequences checked/i)).toBeInTheDocument()
-    expect(screen.getByText(/may turn out to be noise/i)).toBeInTheDocument()
+    expect(screen.getByText(/at least 20% slower than your usual time between keys/i)).toBeInTheDocument()
+    expect(screen.getByText(/allowing for the 14 pairs we checked/i)).toBeInTheDocument()
+    expect(screen.getByText(/may turn out to be nothing/i)).toBeInTheDocument()
     // Evidence, never certainty.
     expect(document.body.textContent).not.toMatch(/proven|certain|significant|confiden/i)
   })
@@ -218,6 +221,18 @@ describe('persistent sequences section', () => {
       }),
     )
 
-    expect(screen.getByText(/at least 30 observations across 6 tests/i)).toBeInTheDocument()
+    expect(screen.getByText(/at least 30 times across 6 tests/i)).toBeInTheDocument()
+  })
+
+  it('keeps how it is worked out one press away rather than in the way', () => {
+    renderSection(report({ candidates: [evidence()] }))
+
+    const how = screen.getByText('How is this worked out?')
+    const details = how.closest('details')
+
+    expect(how.tagName).toBe('SUMMARY')
+    expect(details).not.toBeNull()
+    expect(details).not.toHaveAttribute('open')
+    expect(details).toHaveTextContent(/at least 20% slower/i)
   })
 })

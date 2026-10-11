@@ -37,7 +37,7 @@ export const SlowSequences = ({ report }: SlowSequencesProps) => {
   return (
     <section className={styles.section} aria-labelledby="slow-sequences-heading">
       <h3 className={styles.heading} id="slow-sequences-heading">
-        Slowest observed sequences
+        Slowest letter pairs in this test
       </h3>
 
       <ul className={styles.list}>
@@ -57,10 +57,10 @@ export const SlowSequences = ({ report }: SlowSequencesProps) => {
       </ul>
 
       <p className={styles.caveat}>
-        Median time between the two keys, from this test only, counting just the
-        transitions typed cleanly — {report.minimumObservations} or more times each.
-        Compared against your typical {formatMs(report.overallMedianMs ?? 0)}{' '}
-        transition. One test is not enough to call any of these a weakness.
+        Time between the two keys, from this test only, for pairs typed correctly at
+        least {report.minimumObservations} times. Your usual is{' '}
+        {formatMs(report.overallMedianMs ?? 0)}. One test isn't enough to call any of
+        these a weakness. Your Statistics page tracks them across tests.
       </p>
     </section>
   )
