@@ -179,11 +179,15 @@
   /* A touch response: quick to move, settling past its mark by a hair. The
      sampled curve of the spring in HoverSelector/unfold.motion.ts's TOUCH_SPRING
      (26 rad/s, damping 0.72): 440ms to rest, 3.8% overshoot of a movement that
-     is itself a pixel or two. */
-  --gg-ease-touch: linear(
-    0, 0.013 1.5%, 0.101 4.4%, 0.291 8.5%, 0.542 13.5%, 0.779 19.3%, 0.944 25.8%,
-    1.023 33%, 1.038 40.8%, 1.025 49.3%, 1.009 58.4%, 1.001 68%, 0.999 78.1%, 1
-  );
+     is itself a pixel or two.
+
+     That curve is a `linear()`, which Safari before 17.2 and Firefox before 112
+     do not read — and a transition naming an easing the browser cannot read is
+     thrown out whole, so every glass press and hover in those browsers snapped
+     instead of moving. This is the value they get: a cubic with the same small
+     overshoot, close enough at a pixel or two of travel that nobody can tell the
+     two apart. The spring itself replaces it below, where it is understood. */
+  --gg-ease-touch: cubic-bezier(0.32, 1.22, 0.6, 1);
 
   --gg-duration-cursor: 90ms;
   --gg-duration-hover: 150ms;
@@ -191,6 +195,16 @@
   --gg-duration-panel: 260ms;
   /* Hover, press and release on a piece of glass: the touch spring's time to rest. */
   --gg-duration-touch: 440ms;
+}
+
+/* The spring itself, wherever `linear()` is understood (see --gg-ease-touch). */
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --gg-ease-touch: linear(
+      0, 0.013 1.5%, 0.101 4.4%, 0.291 8.5%, 0.542 13.5%, 0.779 19.3%, 0.944 25.8%,
+      1.023 33%, 1.038 40.8%, 1.025 49.3%, 1.009 58.4%, 1.001 68%, 0.999 78.1%, 1
+    );
+  }
 }
 
 @media (max-width: 520px) {

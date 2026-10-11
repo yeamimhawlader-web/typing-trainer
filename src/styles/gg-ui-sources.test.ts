@@ -136,6 +136,17 @@ describe('GG.Typing UI sources', () => {
       }
       expect(foundation?.contents).toContain(`--gg-duration-touch: ${duration}ms`)
     })
+
+    it('gives a browser that cannot read linear() an easing it can, rather than none', () => {
+      // A transition naming an easing the browser cannot parse is dropped whole,
+      // so without this every glass press in Safari before 17.2 and Firefox
+      // before 112 would snap. The spring is offered only where it is read.
+      const foundation = stylesheets.find(({ file }) => /gg-foundation\.css$/.test(file))?.contents ?? ''
+      const declarations = [...foundation.matchAll(/--gg-ease-touch:\s*([a-z-]+)\(/g)].map((match) => match[1])
+
+      expect(declarations).toEqual(['cubic-bezier', 'linear'])
+      expect(foundation).toMatch(/@supports \(transition-timing-function: linear\(0, 1\)\)\s*\{\s*:root\s*\{\s*--gg-ease-touch:\s*linear\(/)
+    })
   })
 
   describe("Hover Mode's selector on a narrow screen", () => {

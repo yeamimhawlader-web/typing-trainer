@@ -77,12 +77,19 @@
  * them already carrying a backdrop filter. On a machine slowed four times it
  * cost the worst frame 50ms.
  *
- * And the whole entrance is over inside half a second. It used to run for a
- * second and a half, which put the last of it squarely inside the window where
- * a cold start is still parsing the application — three hundred milliseconds
- * of blocked main thread that the animation cannot advance through. Finishing
- * before that work lands is what makes it look smooth; the delays are scaled
- * here rather than in the markup, so the classes still read 100 to 900.
+ * And it takes its time again. For a while it was squeezed into half a second,
+ * because a cold start then blocked the main thread for three hundred
+ * milliseconds and a longer entrance stuttered through the middle of it. The
+ * pages are fetched one at a time now and the sign-in page's cold start blocks
+ * for about fifty, so the reason went away — and squeezed, the entrance read as
+ * a flicker rather than as the form arriving. Each part takes 0.65s on an
+ * ease that spends most of that time settling, and the delays are what the
+ * classes say: `animate-delay-300` waits 300ms.
+ *
+ * No scale goes with the rise, though it would stand in nicely for the lost
+ * blur: text scaled during an animation is drawn at the in-between size and
+ * redrawn crisp when it stops, which shows as a small snap at the very end —
+ * the abruptness this is trying to remove.
  */
 
 @keyframes fadeSlideIn {
@@ -109,7 +116,7 @@
 @utility animate-element {
   opacity: 0;
   transform: translateY(12px);
-  animation: fadeSlideIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: fadeSlideIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 
   @media (prefers-reduced-motion: reduce) {
     opacity: 1;
@@ -121,7 +128,7 @@
 @utility animate-slide-right {
   opacity: 0;
   transform: translateX(-24px);
-  animation: slideRightIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: slideRightIn 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 
   @media (prefers-reduced-motion: reduce) {
     opacity: 1;
@@ -133,7 +140,7 @@
 @utility animate-testimonial {
   opacity: 0;
   transform: translateY(16px) scale(0.96);
-  animation: testimonialIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: testimonialIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 
   @media (prefers-reduced-motion: reduce) {
     opacity: 1;
@@ -143,8 +150,8 @@
 }
 
 @utility animate-delay-* {
-  /* A fifth of what the name says: the ninth element waits 180ms, not 900. */
-  animation-delay: calc(--value(integer) * 0.2ms);
+  /* What the name says: the ninth element waits 900ms. */
+  animation-delay: calc(--value(integer) * 1ms);
 }
 
 /* A native checkbox in the theme's accent: its own tick, its own focus. */
