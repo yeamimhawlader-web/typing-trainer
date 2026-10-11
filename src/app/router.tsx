@@ -35,6 +35,7 @@ import {
   SettingsPage,
   StatisticsPage,
 } from '@app/pages.tsx'
+import { withPageCrossfade } from '@app/page-crossfade.ts'
 import { ROUTES } from '@app/routes.ts'
 import { GGLayout } from '@features/gg-ui/layout/GGLayout.tsx'
 import { historyStore } from '@features/history/state/history.store.ts'
@@ -71,4 +72,5 @@ export const routeConfig: RouteObject[] = [
   },
 ]
 
-export const createAppRouter = () => createBrowserRouter(routeConfig)
+// A change of page fades from one into the other (app/page-crossfade.ts).
+export const createAppRouter = () => withPageCrossfade(createBrowserRouter(routeConfig))

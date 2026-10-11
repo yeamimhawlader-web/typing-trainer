@@ -7,6 +7,17 @@
  */
 
 :root {
+  /*
+   * Room for a scrollbar on every page, whether it scrolls or not. Where
+   * scrollbars take space — Windows, and Linux most of the time — a page that
+   * scrolled had 15px less width than one that did not, so moving between them
+   * slid the whole layout, top bar included, 7px sideways in one frame. Under a
+   * page crossfade that slide became a double image of the bar. Reserved, the
+   * layout is the same width everywhere and nothing moves; where scrollbars
+   * float over the page, as on a Mac, this reserves nothing.
+   */
+  scrollbar-gutter: stable;
+
   /* --- Colour, derived ------------------------------------------------ */
   --gg-bg: var(--gg-base-bg);
   --gg-surface: var(--gg-base-surface);

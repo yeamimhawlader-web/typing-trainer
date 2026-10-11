@@ -1387,6 +1387,20 @@ maps onto the theme, so they are inside it rather than beside it. Its token plan
   dropped of 53, and 1 of 54 with the CPU slowed four times. The theme a page
   opens in is never crossfaded, and browsers without view transitions or
   systems asking for less motion get the instant switch.
+- **A change of page crossfades too, decided in one place.** Every link and
+  every `navigate()` in the application arrives at the router's own
+  `navigate`, so `withPageCrossfade` (app/page-crossfade.ts) asks for the view
+  transition there rather than in thirty-six call sites. React Router renders
+  the new page inside a React transition and waits for it before the browser
+  takes the second picture, so a page whose code is still arriving holds the
+  old page on screen rather than fading to nothing. The typing screens the mode
+  selector moves between are left out — the branch unfold is carried across
+  those routes and a fade would double it — as are back and forward, a page
+  into itself, and reduced motion. The scrollbar's room is reserved on every
+  page (`scrollbar-gutter: stable`): where scrollbars take space, a page that
+  scrolled was 15px narrower than one that did not, and the whole layout slid
+  7px sideways between them, which a crossfade would have shown as a double
+  image of the top bar.
 - **Sound is made, not recorded.** `@features/sound` builds every sound from a
   couple of oscillators and a burst of filtered noise, so there are no audio
   files to ship or license and every keystroke can differ slightly. It is off
