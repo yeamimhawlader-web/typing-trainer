@@ -1247,8 +1247,14 @@ the slow machine: the last keystroke went from 112–144ms to 32–40ms, and the
 long task went away. With a thousand tests saved it is 40–56ms — the history's
 size barely registers, because a save writes one record and a small index.
 Moving from one round to the next (Tab) was left as it was: 64–96ms there, a
-single frame on an ordinary laptop, spent building the next three hundred
-letters.
+single frame on an ordinary laptop. The likely saving looked like the letters:
+each is keyed by its place in the whole text but lives inside its word, so a new
+text with other word lengths threw away and rebuilt nearly every one. Keyed by
+word and place in the word instead, the next round reused them — 85% fewer
+elements made and removed — and was no faster on an ordinary laptop and about
+15% faster, within the noise, on the slowed one. The cost is the browser laying
+out three new lines and taking the result panel down, both of which belong to
+the frame that shows the new words, so the keys were left as they were.
 
 ### Motion, checked in more than one engine
 
@@ -1266,11 +1272,18 @@ counts are not quoted as Safari's: the WebKit Playwright ships for Windows draws
 on the processor, with no GPU, and dropped frames there that Safari on a Mac
 would not. What it is trusted for is behaviour — whether a thing moves at all.
 
-Chrome is smooth throughout, with one exception not yet explained: the first
-branch tree opened on a visit spends a single frame of 70–90ms, and every one
-after that 6–17ms. It is not the application's JavaScript (no long task), and
-not the glass blur (it stays with the blur switched off). Pinning it needs a
-performance trace.
+Chrome is smooth throughout. The one stall it showed — a single frame of
+70–90ms on the first branch tree opened — was traced, and is mostly not the
+application's. Nearly all of that frame was on the GPU, compiling the programs
+it draws new kinds of surface with, which Chrome keeps on disk per browser
+profile; the measuring browser was a fresh profile every run. With the same
+profile closed and opened again, Pace's first open is 22ms on every later visit.
+What is left is Sound's first open on each visit, about 40ms: the first styling
+(14ms, of the menu's own elements — not the page's), painting (18ms) and drawing
+of a set of glass branches the browser has not drawn before in that tab; every
+open after it is 6–11ms. The only lever on that is drawing the menu unseen when
+the page loads, which would spend the same time on every load to save two frames
+once a visit, and was not taken.
 
 Firefox was not checked. The build Playwright downloads would not start on the
 Windows Insider build it was tried on: Windows refused to activate one of its
