@@ -1218,6 +1218,35 @@ the author preferred the bar, which is the only way that question was ever
 going to be settled. A system asking for reduced motion gets the jump whatever
 is chosen.
 
+### Motion, checked in more than one engine
+
+Every animation was run in WebKit 27.2 (Safari's engine) and Chrome 154 on a
+production build, sampling the animated value itself on every frame — so a
+transition that snaps shows as no in-between values, not merely as a fast one:
+the sign-in entrance, the branch unfold, the caret's slide and its cut at a line
+break, the line glide, the theme and page crossfades, the result rise and the
+front page's scroll-driven portal.
+
+In WebKit every one of them runs, and every feature they lean on exists there:
+view transitions, `linear()` easing, the Web Animations API, scrollbar gutters.
+The portal is on, with no reason recorded for holding still. WebKit's frame
+counts are not quoted as Safari's: the WebKit Playwright ships for Windows draws
+on the processor, with no GPU, and dropped frames there that Safari on a Mac
+would not. What it is trusted for is behaviour — whether a thing moves at all.
+
+Chrome is smooth throughout, with one exception not yet explained: the first
+branch tree opened on a visit spends a single frame of 70–90ms, and every one
+after that 6–17ms. It is not the application's JavaScript (no long task), and
+not the glass blur (it stays with the blur switched off). Pinning it needs a
+performance trace.
+
+Firefox was not checked. The build Playwright downloads would not start on the
+Windows Insider build it was tried on: Windows refused to activate one of its
+own components, although the file was whole. The two fallbacks that matter
+there are covered by design rather than by measurement — `linear()` is given a
+cubic before it (Firefox read it from 112), and view transitions fall back to
+the cut where they are missing.
+
 ### Accuracy is said afterwards, not during
 
 The notice under the live figures used to say `Accuracy is costing you speed.`
