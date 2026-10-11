@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { applyTheme, removeTheme, THEME_SWITCHING_ATTRIBUTE } from './apply-theme.ts'
+import { applyTheme, removeTheme, switchTheme, THEME_SWITCHING_ATTRIBUTE } from './apply-theme.ts'
 import { themeById } from './themes.ts'
 
 const root = () => document.documentElement
@@ -82,5 +82,48 @@ describe('applying a theme', () => {
     expect(root().style.getPropertyValue('--gg-base-bg')).toBe('')
     expect(root().hasAttribute(THEME_SWITCHING_ATTRIBUTE)).toBe(false)
     expect(root().dataset.ggTheme).toBeUndefined()
+  })
+})
+
+describe('switching to another theme', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    removeTheme()
+  })
+
+  it('crossfades where the browser can, making the change inside the crossfade rather than before it', () => {
+    // The browser photographs the page as it is, runs the change, photographs
+    // it again and fades one picture into the other. A theme written before
+    // the first photograph would leave nothing to fade from.
+    let update: (() => void) | undefined
+    const crossfade = {
+      startViewTransition: vi.fn((next: () => void) => {
+        update = next
+      }),
+    }
+
+    switchTheme(themeById('glow'), { crossfade, reducedMotion: false })
+
+    expect(crossfade.startViewTransition).toHaveBeenCalledTimes(1)
+    expect(root().dataset.ggTheme).toBeUndefined()
+
+    update?.()
+
+    expect(root().dataset.ggTheme).toBe('glow')
+  })
+
+  it('switches at once where the browser cannot crossfade, as it always has', () => {
+    switchTheme(themeById('glow'), { crossfade: {}, reducedMotion: false })
+
+    expect(root().dataset.ggTheme).toBe('glow')
+  })
+
+  it('switches at once for anyone who has asked their system for less motion', () => {
+    const crossfade = { startViewTransition: vi.fn() }
+
+    switchTheme(themeById('glow'), { crossfade, reducedMotion: true })
+
+    expect(crossfade.startViewTransition).not.toHaveBeenCalled()
+    expect(root().dataset.ggTheme).toBe('glow')
   })
 })

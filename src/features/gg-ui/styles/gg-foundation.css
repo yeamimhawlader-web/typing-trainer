@@ -193,8 +193,24 @@
   --gg-duration-hover: 150ms;
   --gg-duration-focus: 200ms;
   --gg-duration-panel: 260ms;
+  /* One picture of the page fading into the next, on a theme switch (below). */
+  --gg-duration-crossfade: 280ms;
   /* Hover, press and release on a piece of glass: the touch spring's time to rest. */
   --gg-duration-touch: 440ms;
+}
+
+/*
+ * The theme crossfade (apply-theme.ts, switchTheme). The browser photographs
+ * the page, the theme is written underneath at once, and the old picture fades
+ * into the new one here: two images on the compositor, at one cost whatever is
+ * on the page, so it is as smooth on a slow machine as on a fast one. Browsers
+ * without view transitions never get here and switch at once, as they always
+ * did.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--gg-duration-crossfade);
+  animation-timing-function: ease-in-out;
 }
 
 /* The spring itself, wherever `linear()` is understood (see --gg-ease-touch). */
@@ -220,6 +236,7 @@
     --gg-duration-hover: 0ms;
     --gg-duration-focus: 0ms;
     --gg-duration-panel: 0ms;
+    --gg-duration-crossfade: 0ms;
     --gg-duration-touch: 0ms;
   }
 }

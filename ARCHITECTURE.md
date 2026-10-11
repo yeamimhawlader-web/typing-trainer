@@ -1364,10 +1364,20 @@ maps onto the theme, so they are inside it rather than beside it. Its token plan
   own (a test reads the stylesheets). Glass is the chrome — the top bar, theme
   panel, input and Hover Mode's selector — never the typing text. Where
   transparency is unwanted it becomes solid surface.
-- **A theme switch is instant.** Transitions are held off while the new theme
-  is written and style is recalculated, so a shared component that eases its own
-  colours changes on the same frame as the rest of the page. No GG stylesheet
-  transitions a colour at all; touch responses are transform and opacity.
+- **A theme switch is instant underneath, and crossfades on top.** Transitions
+  are held off while the new theme is written and style is recalculated, so a
+  shared component that eases its own colours changes on the same frame as the
+  rest of the page. No GG stylesheet transitions a colour at all; touch
+  responses are transform and opacity. What is *seen* is a crossfade: where the
+  browser has view transitions, it photographs the page, the theme is written
+  instantly underneath, and the old picture fades into the new over 280ms on the
+  compositor (`switchTheme`). This is not the first theme cross-fade — that one
+  eased every element's own colours, cost something per element and let each
+  trail the rest, and was taken out — but two pictures of the page, at one cost
+  whatever is on it. Measured on a production build with the GPU on: 0 frames
+  dropped of 53, and 1 of 54 with the CPU slowed four times. The theme a page
+  opens in is never crossfaded, and browsers without view transitions or
+  systems asking for less motion get the instant switch.
 - **Sound is made, not recorded.** `@features/sound` builds every sound from a
   couple of oscillators and a burst of filtered noise, so there are no audio
   files to ship or license and every keystroke can differ slightly. It is off

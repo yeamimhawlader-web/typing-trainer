@@ -54,7 +54,7 @@ import { BranchTreesContext, createBranchTrees } from '../components/Unfold/bran
 import { UnfoldMemoryContext } from '../components/Unfold/unfold-memory.ts'
 import { ThemePanel } from '../components/ThemePanel/ThemePanel.tsx'
 import { TopBar } from '../components/TopBar/TopBar.tsx'
-import { applyTheme, removeTheme } from '../themes/apply-theme.ts'
+import { applyTheme, removeTheme, switchTheme } from '../themes/apply-theme.ts'
 import { createTypingFocus, TypingFocusContext } from './typing-focus.ts'
 import { DEFAULT_THEME_ID, themeById, themeIdFromStored, type GGThemeId } from '../themes/themes.ts'
 
@@ -139,10 +139,16 @@ export const GGLayout = () => {
     [typingFocus],
   )
 
-  // Before paint, so the first frame is already in the theme, and a switch
-  // lands on the next frame whole.
+  // Before paint, so the first frame is already in the theme. A switch after
+  // that crossfades, where the browser can (see switchTheme); the theme a page
+  // opens in does not, since there is nothing before it to fade from.
+  const themeShown = useRef(false)
   useLayoutEffect(() => {
-    if (ready) applyTheme(themeById(themeId))
+    if (!ready) return
+    const theme = themeById(themeId)
+    if (themeShown.current) switchTheme(theme)
+    else applyTheme(theme)
+    themeShown.current = true
   }, [ready, themeId])
 
   useLayoutEffect(() => () => removeTheme(), [])

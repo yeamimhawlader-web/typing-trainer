@@ -128,11 +128,19 @@ describe('GG.Typing UI sources', () => {
       expect(offenders).toEqual([])
     })
 
-    it('has no theme cross-fade left to bring back', () => {
-      const foundation = stylesheets.find(({ file }) => /gg-foundation\.css$/.test(file))
+    it('crossfades a theme only as a picture of the whole page, never element by element', () => {
+      // The first theme cross-fade eased every element's own colours, so a
+      // switch cost something per element and each one trailed the rest into
+      // the new scheme; it was taken out for that, and the switch made instant.
+      // The crossfade that came back is the browser's: a picture of the page
+      // fading into a picture of the page, at one cost whatever is on it. So
+      // the switch itself stays instant underneath, with transitions held off
+      // while it is written, and no element-by-element duration exists.
+      const foundation = stylesheets.find(({ file }) => /gg-foundation\.css$/.test(file))?.contents ?? ''
 
-      expect(foundation?.contents).not.toContain('--gg-duration-theme')
-      expect(foundation?.contents).toMatch(/data-gg-theme-switching[\s\S]*transition: none !important/)
+      expect(foundation).not.toContain('--gg-duration-theme')
+      expect(foundation).toMatch(/data-gg-theme-switching[\s\S]*transition: none !important/)
+      expect(foundation).toMatch(/::view-transition-old\(root\),\s*::view-transition-new\(root\)\s*\{[^}]*animation-duration/)
     })
 
     it('draws --gg-ease-touch from the touch spring itself', () => {

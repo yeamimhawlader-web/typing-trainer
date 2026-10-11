@@ -50,6 +50,49 @@ export const applyTheme = (theme: GGTheme, root: HTMLElement = document.document
   root.removeAttribute(THEME_SWITCHING_ATTRIBUTE)
 }
 
+/** What `switchTheme` needs of the document: the browser's crossfade, where it has one. */
+export interface Crossfader {
+  startViewTransition?: (update: () => void) => unknown
+}
+
+const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
+
+const asksForLessMotion = (): boolean =>
+  typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(REDUCED_MOTION).matches
+
+/**
+ * Changes from one theme to another, crossfading where the browser can.
+ *
+ * `applyTheme` is instant by design, and stays so: every element changes on
+ * the same frame, nothing trails. What changes here is what is *seen*. The
+ * browser photographs the page, the theme is applied — instantly, as ever —
+ * the page is photographed again, and the first picture fades into the second
+ * over a quarter of a second, on the compositor, as two images rather than a
+ * page full of elements each easing its own colours. So the switch reads as one
+ * scheme melting into the other instead of a light being flicked, and costs the
+ * same whatever is on the page.
+ *
+ * Where the browser has no crossfade, or the typist has asked their system for
+ * less motion, it is the instant switch it always was.
+ *
+ * Only for a switch. The theme a page opens in is applied with `applyTheme`,
+ * since there is nothing before it to fade from.
+ */
+export const switchTheme = (
+  theme: GGTheme,
+  {
+    crossfade = typeof document === 'undefined' ? {} : (document as Crossfader),
+    reducedMotion = asksForLessMotion(),
+  }: { readonly crossfade?: Crossfader; readonly reducedMotion?: boolean } = {},
+): void => {
+  const start = crossfade.startViewTransition
+  if (typeof start !== 'function' || reducedMotion) {
+    applyTheme(theme)
+    return
+  }
+  start.call(crossfade, () => applyTheme(theme))
+}
+
 /** Takes the theme's properties back off `:root`, for leaving the GG shell. */
 export const removeTheme = (root: HTMLElement = document.documentElement): void => {
   root.removeAttribute(THEME_SWITCHING_ATTRIBUTE)

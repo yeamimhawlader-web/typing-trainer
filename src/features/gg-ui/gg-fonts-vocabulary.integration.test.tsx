@@ -9,10 +9,10 @@
  * it on the typing screen.
  */
 
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ROUTES } from '@app/routes.ts'
 import { DEFAULT_PREFERENCES } from '@config'
@@ -159,5 +159,33 @@ describe('the theme button', () => {
     expect(
       within(panel).getByRole('radio', { name: 'Lavender Sky' }),
     ).toBeInTheDocument()
+  })
+
+  it('crossfades a change of theme, but not the theme the page opens in', async () => {
+    // Opening the page, there is nothing to fade from. Choosing another theme,
+    // the old scheme melts into the new one rather than flicking over.
+    const updates: (() => void)[] = []
+    const startViewTransition = vi.fn((update: () => void) => {
+      updates.push(update)
+    })
+    Object.defineProperty(document, 'startViewTransition', { value: startViewTransition, configurable: true })
+    try {
+      const user = userEvent.setup()
+      renderAt(ROUTES.gg)
+
+      expect(startViewTransition).not.toHaveBeenCalled()
+      expect(document.documentElement.dataset.ggTheme).toBe(DEFAULT_PREFERENCES.theme)
+
+      await user.click(screen.getByRole('button', { name: 'Themes' }))
+      await user.click(within(screen.getByRole('dialog', { name: 'Theme' })).getByRole('radio', { name: 'Glow' }))
+
+      expect(startViewTransition).toHaveBeenCalledTimes(1)
+      act(() => {
+        for (const update of updates) update()
+      })
+      expect(document.documentElement.dataset.ggTheme).toBe('glow')
+    } finally {
+      delete (document as { startViewTransition?: unknown }).startViewTransition
+    }
   })
 })
