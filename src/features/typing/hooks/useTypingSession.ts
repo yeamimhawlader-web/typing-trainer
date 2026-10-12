@@ -31,6 +31,8 @@ import {
 import {
   createTypingSession,
   DEFAULT_SESSION_CONTEXT,
+  personalBestOf,
+  type PersonalBest,
   sessionService as defaultSessionService,
   type SessionContext,
   type SessionService,
@@ -147,6 +149,11 @@ export interface TypingSessionController {
    * Null for ordinary practice, and null until a drill finishes.
    */
   readonly drillOutcome: DrillOutcome | null
+  /**
+   * The best the finished test beat, when it beat every earlier test of its
+   * kind. Null until history has been read, and null when it beat nothing.
+   */
+  readonly personalBest: PersonalBest | null
 }
 
 export const useTypingSession = (
@@ -205,6 +212,7 @@ export const useTypingSession = (
   const [sequences, setSequences] = useState<SequenceReport | null>(null)
   const [testShape, setTestShape] = useState<TestShape | null>(null)
   const [drillOutcome, setDrillOutcome] = useState<DrillOutcome | null>(null)
+  const [personalBest, setPersonalBest] = useState<PersonalBest | null>(null)
   const initialWordCount = preference?.initial ?? DEFAULT_WORD_COUNT
   const [wordCount, setWordCountState] = useState<WordCount>(initialWordCount)
   const [target, setTarget] = useState<SessionTarget>(() =>
@@ -225,6 +233,7 @@ export const useTypingSession = (
     setSequences(null)
     setTestShape(null)
     setDrillOutcome(null)
+    setPersonalBest(null)
   }
 
   // A ref for the same reason as the context above: the callback may be rebuilt
@@ -249,6 +258,7 @@ export const useTypingSession = (
       setSequences(null)
     setTestShape(null)
       setDrillOutcome(null)
+      setPersonalBest(null)
     },
     [engine, provider],
   )
@@ -446,6 +456,18 @@ export const useTypingSession = (
             if (stillShowing()) setSaveState(saved)
           })
         }
+
+        // Read after the result is on screen, so a long history never stands
+        // between the last keystroke and its frame. A celebration a moment
+        // late is fine; a missing one only costs the confetti.
+        service.getAll().then(
+          (history) => {
+            if (stillShowing()) setPersonalBest(personalBestOf(session, history))
+          },
+          (error: unknown) => {
+            console.warn('[sessions] could not read history for a personal best', error)
+          },
+        )
       })
       pending.add(cancel)
     })
@@ -470,5 +492,6 @@ export const useTypingSession = (
     sequences,
     shape: testShape,
     drillOutcome,
+    personalBest,
   }
 }

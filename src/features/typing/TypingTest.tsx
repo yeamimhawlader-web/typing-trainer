@@ -41,6 +41,7 @@ export const TypingTest = (props: TypingTestProps = {}) => {
     resultShape,
     drillSequence,
     drillResult,
+    personalBest,
   } = screen
 
   // Keys pressed anywhere on the page. GG.Typing reads its text field instead;
@@ -84,6 +85,7 @@ export const TypingTest = (props: TypingTestProps = {}) => {
           sequences={resultSequences}
           shape={resultShape}
           drill={drillResult}
+          personalBest={personalBest}
         />
       )}
     </section>

@@ -7,7 +7,7 @@
  */
 
 import { ROUTES, sessionDetailPath } from '@app/routes.ts'
-import type { TypingSession } from '@core/sessions'
+import type { PersonalBest, TypingSession } from '@core/sessions'
 import type { DrillComparison, DrillOutcome, SequenceReport, TestShape } from '@core/telemetry'
 import { SessionSummary, TestShapeChart } from '@features/results'
 import { Button, ButtonLink } from '@shared/ui'
@@ -15,6 +15,7 @@ import { Button, ButtonLink } from '@shared/ui'
 import type { SaveState } from '../hooks/useTypingSession.ts'
 import { DrillResult } from './DrillResult.tsx'
 import { HoverResult } from './HoverResult.tsx'
+import { PersonalBestCelebration } from './PersonalBestCelebration.tsx'
 
 import styles from './TestResult.module.css'
 
@@ -29,6 +30,8 @@ export interface TestResultProps {
   readonly drill?: { readonly outcome: DrillOutcome; readonly comparison: DrillComparison } | null
   /** Where "Back to practice" leads after a drill. The classic practice page by default. */
   readonly practicePath?: string
+  /** The best this test beat, when it beat every earlier test of its kind. */
+  readonly personalBest?: PersonalBest | null
 }
 
 export const TestResult = ({
@@ -39,8 +42,11 @@ export const TestResult = ({
   shape = null,
   drill = null,
   practicePath = ROUTES.practice,
+  personalBest = null,
 }: TestResultProps) => (
   <div className={styles.panel}>
+    {personalBest !== null && <PersonalBestCelebration best={personalBest} wpm={session.metrics.netWpm} />}
+
     <SessionSummary session={session} sequences={sequences} />
 
     {shape !== null && <TestShapeChart shape={shape} />}

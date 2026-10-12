@@ -1,0 +1,27 @@
+/**
+ * The personal-best line on the result, and the canvas the confetti falls on.
+ */
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.badge {
+  font-weight: 600;
+  color: var(--color-status-success);
+}
+
+/* Over everything, under nothing that can be clicked. */
+.canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+}

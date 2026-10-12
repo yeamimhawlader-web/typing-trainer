@@ -26,6 +26,9 @@ export { difficultyOf, isTrainingMode, TRAINING_MODES } from './types.ts'
 export { DEFAULT_SESSION_CONTEXT } from './defaults.ts'
 
 export { createTypingSession } from './factory.ts'
+
+export { personalBestKind, personalBestOf } from './personal-best.ts'
+export type { PersonalBest } from './personal-best.ts'
 export type { CreateSessionOptions } from './factory.ts'
 
 export { createSessionRepository } from './repository.ts'

@@ -192,6 +192,7 @@ export const GGTypingScreen = ({
     resultShape,
     drillSequence,
     drillResult,
+    personalBest,
   } = screen
 
   // A saved test belongs on the account too, if there is one. The id changes
@@ -520,6 +521,7 @@ export const GGTypingScreen = ({
             shape={resultShape}
             drill={drillResult}
             practicePath={PRACTICE_PATH}
+            personalBest={personalBest}
           />
         </div>
       )}
