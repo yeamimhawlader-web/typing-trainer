@@ -31,6 +31,10 @@ const PLAIN: Readonly<Record<string, string>> = {
   '„': '"',
   '′': "'",
   '″': '"',
+  // U+2010 hyphen (NFKC also turns the non-breaking U+2011 into it) and U+2012
+  // figure dash: dropped, they would join "well‐known" into one word.
+  '‐': '-',
+  '‒': '-',
   '–': '-',
   '—': '-',
   '―': '-',

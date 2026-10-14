@@ -27,6 +27,14 @@ describe('making what was pasted typeable', () => {
     )
   })
 
+  it('keeps a hyphenated word one word when it was set with a typographic hyphen', () => {
+    // U+2010 hyphen, U+2011 non-breaking hyphen and U+2012 figure dash, as a
+    // PDF or a typesetter writes them. Dropped, "well‐known" became "wellknown".
+    expect(cleanPassage('a well‐known, non‑stop 555‒0199 line')).toBe(
+      'a well-known, non-stop 555-0199 line',
+    )
+  })
+
   it('folds every line break and run of space into single spaces, so it can be typed through', () => {
     expect(cleanPassage('  First line.\n\nSecond   line.\tThird.  ')).toBe(
       'First line. Second line. Third.',
