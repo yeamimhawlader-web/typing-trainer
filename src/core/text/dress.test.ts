@@ -97,6 +97,31 @@ describe('dressing words', () => {
     })
   })
 
+  describe('with both', () => {
+    const dressed = dressWords(WORDS, { punctuation: true, numbers: true }, seeded(9))
+
+    it('puts each word or figure in its place, with at most one mark after it', () => {
+      dressed.forEach((word, position) => {
+        const bare = word.replace(/[.,?!;:]$/, '')
+        if (/\d/.test(bare)) expect(bare).toMatch(/^(\d{1,4}|\d{1,2}\.\d|\d{1,3}%)$/)
+        else expect(bare.toLowerCase()).toBe(WORDS[position])
+      })
+    })
+
+    it('starts every sentence with a capital or a figure, and never capitalises mid-sentence', () => {
+      expect(dressed[0]).toMatch(/^[A-Z0-9]/)
+      dressed.forEach((word, position) => {
+        const previous = dressed[position - 1]
+        if (previous !== undefined && /[.?!]$/.test(previous)) expect(word).toMatch(/^[A-Z0-9]/)
+        if (previous !== undefined && /[a-z0-9%,;:]$/.test(previous)) expect(word).toMatch(/^[a-z0-9]/)
+      })
+    })
+
+    it('still ends the text as a sentence ends', () => {
+      expect(dressed.at(-1)).toMatch(/[.?]$/)
+    })
+  })
+
   it('is the same text for the same draws', () => {
     const options = { punctuation: true, numbers: true }
 
