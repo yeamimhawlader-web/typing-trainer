@@ -128,6 +128,24 @@ describe('persistent sequences section', () => {
     expect(train).toHaveTextContent('Train')
   })
 
+  it('offers no drill for a sequence no practice word contains, such as one punctuation or numbers made', () => {
+    // A dressed test times "e," and "19" like any other pair, and a capital
+    // makes "Th" a pair of its own; none of them is in a word a drill is drawn
+    // from, so a link would only lead to "nothing to build a drill from".
+    renderSection(
+      report({
+        candidates: [
+          evidence({ sequence: 'e,' }),
+          evidence({ sequence: 'Th' }),
+          evidence({ sequence: '19', tier: 'possible' }),
+        ],
+      }),
+    )
+
+    expect(screen.getByText('e,')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /train|drill/i })).not.toBeInTheDocument()
+  })
+
   it('offers no drill when there is nothing ranked', () => {
     renderSection(report({ candidates: [] }))
 

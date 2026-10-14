@@ -39,7 +39,7 @@ import {
   type PersistentSequenceReport,
   type SequenceEvidence,
 } from '@core/telemetry'
-import { isDrillableSequence } from '@core/text'
+import { findCarrierWords, isDrillableSequence } from '@core/text'
 import { ButtonLink } from '@shared/ui'
 
 import styles from './PersistentSequences.module.css'
@@ -139,8 +139,10 @@ export const PersistentSequences = ({ report }: PersistentSequencesProps) => {
       {/* Offered only where a drill can actually be built from real words. A
           button that leads to "no drill for that sequence" would be worse than
           no button. Prominent only where the evidence is strong; a possible
-          row keeps a quiet way in rather than none. */}
+          row keeps a quiet way in rather than none. A pair punctuation, a
+          figure or a capital made ("e,", "19", "Th") is in no practice word. */}
       {isDrillableSequence(entry.sequence) &&
+        findCarrierWords(entry.sequence).length > 0 &&
         (entry.tier === 'strong' ? (
           <ButtonLink
             to={drillPath(entry.sequence)}
