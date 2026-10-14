@@ -38,6 +38,15 @@ const KEY_NAMES: Readonly<Record<string, string>> = {
   ',': 'Comma',
   '.': 'Full stop',
   '/': 'Slash',
+  // Not drawn on the board, but punctuation, numbers and pasted passages put
+  // them in the list and the table, where a bare mark reads as nothing.
+  '?': 'Question mark',
+  '!': 'Exclamation mark',
+  ':': 'Colon',
+  '%': 'Percent sign',
+  "'": 'Apostrophe',
+  '"': 'Quotation mark',
+  '-': 'Hyphen',
 }
 
 const nameOf = (key: string): string => KEY_NAMES[key] ?? key.toUpperCase()
