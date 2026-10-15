@@ -46,6 +46,7 @@ import { themeIdFromStored } from '@features/gg-ui/themes/themes.ts'
 import { clampTime, isValidTime } from '@features/typing/modes/timed.ts'
 // The sound packs themselves, for the same reason: one list of packs.
 import { soundChoiceFromStored } from '@features/sound/voices.ts'
+import { sampleChoicesFromStored, type SampleMoment } from '@features/sound/samples.ts'
 
 export type SettingsStatus = 'idle' | 'loading' | 'ready'
 
@@ -63,6 +64,8 @@ export interface SettingsState {
   readonly setHoverDifficulty: (difficulty: HoverDifficulty) => Promise<void>
   readonly setSound: (sound: SoundPreference) => Promise<void>
   readonly setSoundVolume: (volume: number) => Promise<void>
+  /** A recording for one moment, or null for its built-in sound. */
+  readonly setSoundSample: (moment: SampleMoment, id: string | null) => Promise<void>
   readonly setPace: (pace: PaceChoice) => Promise<void>
   readonly setPunctuation: (punctuation: boolean) => Promise<void>
   readonly setNumbers: (numbers: boolean) => Promise<void>
@@ -94,6 +97,7 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
     hoverDifficulty?: HoverDifficulty
     sound?: SoundPreference
     soundVolume?: number
+    soundSamples?: Readonly<Record<string, string>>
     pace?: PaceChoice
     punctuation?: boolean
     opening?: Opening
@@ -137,6 +141,9 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
   if (typeof volume === 'number' && Number.isFinite(volume) && volume >= 0 && volume <= 100) {
     result.soundVolume = Math.round(volume)
   }
+
+  // Only recordings this build has, each for the moment it belongs to.
+  if (record['soundSamples'] !== undefined) result.soundSamples = sampleChoicesFromStored(record['soundSamples'])
 
   const pace = PACE_CHOICES.find((option) => option === record['pace'])
   if (pace !== undefined) result.pace = pace
@@ -208,6 +215,11 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
       setSound: (sound) => persist({ ...get().preferences, sound }),
 
       setSoundVolume: (soundVolume) => persist({ ...get().preferences, soundVolume }),
+
+      setSoundSample: (moment, id) => {
+        const { [moment]: _replaced, ...rest } = get().preferences.soundSamples
+        return persist({ ...get().preferences, soundSamples: id === null ? rest : { ...rest, [moment]: id } })
+      },
 
       setPace: (pace) => persist({ ...get().preferences, pace }),
 

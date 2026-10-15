@@ -17,6 +17,7 @@ const DEFAULTS: UserPreferences = {
   hoverDifficulty: 'standard',
   sound: 'off',
   soundVolume: 100,
+  soundSamples: {},
   pace: 'off',
   lineScroll: 'glide',
   caret: 'bar',
@@ -74,6 +75,7 @@ describe('settings store', () => {
       caret: 'block',
       sound: 'click',
       soundVolume: 40,
+      soundSamples: { key: 'cursor3', mistake: 'line-girl1-giku1' },
       pace: 'push',
       punctuation: true,
       numbers: true,
@@ -96,6 +98,7 @@ describe('settings store', () => {
       caret: 'block',
       sound: 'click',
       soundVolume: 40,
+      soundSamples: { key: 'cursor3', mistake: 'line-girl1-giku1' },
       pace: 'push',
       punctuation: true,
       numbers: true,
@@ -213,6 +216,7 @@ describe('settings store', () => {
     await store.getState().setVocabulary('advanced')
     await store.getState().setLineScroll('instant')
     await store.getState().setCaret('block')
+    await store.getState().setSoundSample('space', 'decision34')
 
     await expect(adapter.read(STORAGE_KEYS.preferences)).resolves.toEqual({
       theme: 'classic',
@@ -225,6 +229,7 @@ describe('settings store', () => {
       hoverDifficulty: 'tired',
       sound: 'cream',
       soundVolume: 55,
+      soundSamples: { space: 'decision34' },
       pace: 'average',
       punctuation: true,
       numbers: false,
@@ -316,5 +321,30 @@ describe('settings store', () => {
     // Ready rather than stuck loading: a screen waiting on settings must still appear.
     expect(store.getState().status).toBe('ready')
     expect(store.getState().preferences.practiceWordCount).toBe(30)
+  })
+
+  it('keeps only recordings this build has, each for its own moment', async () => {
+    await adapter.write(STORAGE_KEYS.preferences, {
+      ...DEFAULTS,
+      // A real recording, one for the wrong moment, one that does not exist, and a moment that does not.
+      soundSamples: { key: 'cursor3', space: 'line-girl1-baka1', mistake: 'gone', nowhere: 'cursor3' },
+    })
+    const store = createSettingsStore(adapter)
+    await store.getState().hydrate()
+
+    expect(store.getState().preferences.soundSamples).toEqual({ key: 'cursor3' })
+  })
+
+  it('chooses a recording for a moment, and goes back to the built-in sound', async () => {
+    const store = createSettingsStore(adapter)
+    await store.getState().hydrate()
+
+    await store.getState().setSoundSample('key', 'cursor3')
+    await store.getState().setSoundSample('mistakeStreak', 'line-girl1-baka1')
+    expect(store.getState().preferences.soundSamples).toEqual({ key: 'cursor3', mistakeStreak: 'line-girl1-baka1' })
+
+    await store.getState().setSoundSample('key', null)
+    expect(store.getState().preferences.soundSamples).toEqual({ mistakeStreak: 'line-girl1-baka1' })
+    expect(await adapter.read(STORAGE_KEYS.preferences)).toMatchObject({ soundSamples: { mistakeStreak: 'line-girl1-baka1' } })
   })
 })

@@ -10,6 +10,10 @@
  * number here, and lets every keystroke differ slightly — the thing that keeps
  * a typing sound from turning into a loop after ten seconds.
  *
+ * They stay the default. A typist who wants a real keyboard or a voice can
+ * choose a recording per moment in Settings (samples.ts), and only then is
+ * anything fetched.
+ *
  * ## What a key sounds like
  *
  * A keyboard makes two sounds at once: a click as the key moves, and a knock as

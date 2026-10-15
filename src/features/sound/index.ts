@@ -7,7 +7,32 @@
  * off, or in a browser without Web Audio, every call is a no-op.
  */
 
-export { playHoverSounds, playTypingSounds, voiceForKeystroke, voiceForSignal, ladderStep } from './connect.ts'
+export {
+  BAD_WORDS_FOR_THE_LAUGH,
+  createLaughWatcher,
+  IDLE_AFTER_MS,
+  ladderStep,
+  MISTAKES_IN_A_ROW,
+  playHoverSounds,
+  playIdleSound,
+  playTypingSounds,
+  RETYPES_FOR_A_BAD_WORD,
+  voiceForKeystroke,
+  voiceForSignal,
+} from './connect.ts'
+export { pressesIn } from './presses.ts'
+export {
+  isSampleFor,
+  MOMENT_DETAILS,
+  PRESS_MOMENTS,
+  SAMPLE_MOMENTS,
+  sampleById,
+  sampleChoicesFromStored,
+  SAMPLES,
+  SOURCE_CREDITS,
+  sourcesIn,
+} from './samples.ts'
+export type { MomentDetails, Sample, SampleChoices, SampleMoment, SampleSource } from './samples.ts'
 export { SoundContext, useSound } from './context.ts'
 export { createSoundEngine } from './sound-engine.ts'
 export type { SoundEngine, SoundEngineOptions } from './sound-engine.ts'

@@ -48,7 +48,7 @@ import { Outlet, useLocation, useNavigationType } from 'react-router'
 
 import { useAccountSync } from '@features/accounts'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
-import { createSoundEngine, soundChoiceFromStored, SoundContext } from '@features/sound'
+import { createSoundEngine, sampleChoicesFromStored, soundChoiceFromStored, SoundContext } from '@features/sound'
 
 import { BranchTreesContext, createBranchTrees } from '../components/Unfold/branch-trees.ts'
 import { UnfoldMemoryContext } from '../components/Unfold/unfold-memory.ts'
@@ -126,6 +126,10 @@ export const GGLayout = () => {
   useEffect(() => {
     sound.setVolume(soundVolume)
   }, [sound, soundVolume])
+  const soundSamples = useSettingsStore((state) => state.preferences.soundSamples)
+  useEffect(() => {
+    sound.setSamples(sampleChoicesFromStored(soundSamples))
+  }, [sound, soundSamples])
   useEffect(() => () => sound.close(), [sound])
   const themesButton = useRef<HTMLButtonElement>(null)
   const [typingFocus] = useState(createTypingFocus)

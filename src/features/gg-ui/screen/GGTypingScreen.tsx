@@ -70,7 +70,7 @@ import { useSyncAfterSave } from '@features/accounts'
 import { createHoverController, keepTroublesomeWords, newTestId, recordGoldenNuggets } from '@features/ggtyping'
 import { createTimedMode, SYLLABLE_MODE } from '@features/typing'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
-import { playHoverSounds, playTypingSounds, useSound } from '@features/sound'
+import { playHoverSounds, playIdleSound, playTypingSounds, useSound } from '@features/sound'
 import {
   ResultAnnouncement,
   SessionHint,
@@ -193,6 +193,7 @@ export const GGTypingScreen = ({
     drillSequence,
     drillResult,
     personalBest,
+    personalBestCheckedFor,
   } = screen
 
   // A saved test belongs on the account too, if there is one. The id changes
@@ -247,6 +248,19 @@ export const GGTypingScreen = ({
     [hover, sound],
   )
   useEffect(() => (sound === null || hover === null ? undefined : playHoverSounds(hover, sound)), [hover, sound])
+  useEffect(
+    () => (sound === null ? undefined : playIdleSound(hover === null ? [engine] : [engine, hover.attempt], sound)),
+    [engine, hover, sound],
+  )
+
+  // The end of a test sounds once its history has been read, so it knows which
+  // end it was: a personal best's sound with the confetti, or the finished one.
+  const endSounded = useRef<string | null>(null)
+  useEffect(() => {
+    if (sound === null || personalBestCheckedFor === null || endSounded.current === personalBestCheckedFor) return
+    endSounded.current = personalBestCheckedFor
+    sound.play(personalBest !== null && sound.hasSample('best') ? 'best' : 'finish')
+  }, [personalBest, personalBestCheckedFor, sound])
 
   useEffect(
     () =>

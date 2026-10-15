@@ -39,6 +39,8 @@ import { GG_THEMES } from '@features/gg-ui/themes/themes.ts'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { Button, Page } from '@shared/ui'
 
+import { SoundEffectsSettings } from './SoundEffectsSettings.tsx'
+
 import styles from './SettingsPage.module.css'
 
 const OPENING_LABELS: Readonly<Record<Opening, string>> = {
@@ -238,6 +240,8 @@ export const SettingsPage = () => {
           anywhere.
         </p>
       </fieldset>
+
+      <SoundEffectsSettings />
     </Page>
   )
 }

@@ -26,6 +26,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   // Silence until it is asked for, and at the level the packs were made at.
   sound: 'off',
   soundVolume: 100,
+  soundSamples: {},
   // No caret to follow until one is chosen.
   pace: 'off',
   // Plain words, as the application has always opened; the harder drill is chosen.

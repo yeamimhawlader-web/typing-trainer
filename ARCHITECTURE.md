@@ -1475,7 +1475,7 @@ maps onto the theme, so they are inside it rather than beside it. Its token plan
   scrolled was 15px narrower than one that did not, and the whole layout slid
   7px sideways between them, which a crossfade would have shown as a double
   image of the top bar.
-- **Sound is made, not recorded.** `@features/sound` builds every sound from a
+- **Sound is made, not recorded, by default.** `@features/sound` builds every sound from a
   couple of oscillators and a burst of filtered noise, so there are no audio
   files to ship or license and every keystroke can differ slightly. It is off
   until a pack is chosen, and until then no audio context exists at all; the
@@ -1484,6 +1484,17 @@ maps onto the theme, so they are inside it rather than beside it. Its token plan
   — neither knows sound exists — so a keystroke does no extra work for it, and a
   browser without Web Audio, or a graph that throws, is silent rather than
   broken.
+- **Recordings are a choice per moment, on top.** Settings can give a moment a
+  recording instead (`features/sound/samples.ts`): a real keyboard, a cartoon pop,
+  a voice. The made sounds stay the default and a moment left alone sounds as its
+  pack makes it. Five moments exist only for recordings and are silent without
+  one: the third wrong letter in a row, the end of a test, a personal best, All
+  In's laugh (a second word with three repetitions gone wrong, once a test) and a
+  minute idle. Files live in `public/sounds`, are fetched only when chosen with
+  sound on, and a key-press recording is cut into its separate presses
+  (`presses.ts`) so each keystroke plays one, a different one each time. They come
+  from Sound Effect Lab, Maou Damashii and OtoLogic; the last two are CC BY 4.0,
+  and the credits are on the Settings page under the choices.
 - **Master volume is one gain.** Everything GG.Typing plays goes through the
   engine's single master gain, so the packs keep their proportions exactly at
   any volume. The slider is squared rather than straight, because hearing is

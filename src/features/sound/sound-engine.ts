@@ -11,8 +11,17 @@
  * Playing is deliberately forgiving. A browser with no Web Audio, a context
  * that will not start, a voice played while sound is off: all of them do
  * nothing rather than throw. A typing test must never fail because of a sound.
+ *
+ * ## Recordings
+ *
+ * A moment can have a recording chosen for it (samples.ts). It is fetched and
+ * decoded once, when it is chosen with sound on, and until it is ready the
+ * moment plays as it would without one — the built-in voice, or nothing. A
+ * recording that will not load is the same: silence, never an error.
  */
 
+import { pressesIn } from './presses.ts'
+import { PRESS_MOMENTS, SAMPLES, sampleById, type SampleChoices, type SampleMoment } from './samples.ts'
 import { playVoice, type PlayOptions } from './synth.ts'
 import {
   DEFAULT_SOUND_PACK,
@@ -37,7 +46,17 @@ export interface SoundEngine {
   readonly volume: () => number
   /** Sets it. 0 is silence; 100 is the level the packs were made at. */
   readonly setVolume: (volume: number) => void
-  readonly play: (voice: SoundVoice, options?: PlayOptions) => void
+  /**
+   * Plays a voice, or a moment: its recording when one is chosen and loaded,
+   * otherwise its built-in voice, and nothing for a moment that has none.
+   */
+  readonly play: (voice: SoundVoice | SampleMoment, options?: PlayOptions) => void
+  /** The recordings chosen per moment. Fetches the ones not yet loaded, if sound is on. */
+  readonly setSamples: (choices: SampleChoices) => void
+  /** Whether a recording is chosen for `moment`, loaded or not. */
+  readonly hasSample: (moment: SampleMoment) => boolean
+  /** Plays one recording, chosen or not, sound on or not: what it sounds like. */
+  readonly previewSample: (id: string) => void
   /** One key from `id`, whether or not that is the pack in use: what a pack sounds like. */
   readonly preview: (id: SoundPackId) => void
   /**
@@ -59,7 +78,27 @@ export interface SoundEngineOptions {
   readonly createContext?: (() => AudioContext | null) | undefined
   /** Injectable for tests; defaults to a small random wobble per play. */
   readonly wobble?: () => { readonly pitch: number; readonly gain: number }
+  /** Injectable for tests; defaults to fetching the file from public/sounds. */
+  readonly loadSample?: (file: string) => Promise<ArrayBuffer>
 }
+
+/**
+ * How loud a recording plays under the master level. The libraries' files are
+ * mastered near full scale; this brings them to sit with the built-in voices.
+ */
+const SAMPLE_GAIN = 0.6
+/** How far a key press's pitch wanders from one press to the next, either way. */
+const PRESS_PITCH_WOBBLE = 0.03
+
+const fetchSample = async (file: string): Promise<ArrayBuffer> => {
+  const response = await fetch(`${import.meta.env.BASE_URL}sounds/${file}`)
+  if (!response.ok) throw new Error(`sound ${file}: ${response.status}`)
+  return response.arrayBuffer()
+}
+
+/** Whether a recording is one of key presses, to be cut apart: it belongs to a press moment. */
+const isPressSample = (id: string): boolean =>
+  PRESS_MOMENTS.some((moment) => SAMPLES[moment].some((sample) => sample.id === id))
 
 type AudioContextConstructor = new (options?: AudioContextOptions) => AudioContext
 
@@ -96,12 +135,17 @@ export const createSoundEngine = ({
   volume: startingVolume = FULL_VOLUME,
   createContext = browserContext,
   wobble = randomWobble,
+  loadSample = fetchSample,
 }: SoundEngineOptions = {}): SoundEngine => {
   let enabled = choice !== 'off'
   let packId: SoundPackId = choice === 'off' ? DEFAULT_SOUND_PACK : choice
   let volume = startingVolume
   let context: AudioContext | null = null
   let master: GainNode | null = null
+  let samples: SampleChoices = {}
+  /** Decoded recordings by id: one buffer, or one per press. Null for one that would not load. */
+  const decoded = new Map<string, readonly AudioBuffer[] | null>()
+  const loading = new Set<string>()
 
   const open = (): AudioContext | null => {
     if (context !== null) return context
@@ -117,6 +161,69 @@ export const createSoundEngine = ({
   // has been in the background. Asking it to resume costs nothing when running.
   const wake = (audio: AudioContext): void => {
     if (audio.state === 'suspended') void audio.resume().catch(() => undefined)
+  }
+
+  /** Cuts a recording of presses into one buffer per press. */
+  const cut = (audio: AudioContext, buffer: AudioBuffer): readonly AudioBuffer[] =>
+    pressesIn(buffer.getChannelData(0), buffer.sampleRate).map(([from, to]) => {
+      const press = audio.createBuffer(buffer.numberOfChannels, Math.max(1, to - from), buffer.sampleRate)
+      for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+        press.copyToChannel(buffer.getChannelData(channel).subarray(from, to), channel)
+      }
+      return press
+    })
+
+  /** Fetches and decodes a recording once. `then` runs with it when it is ready. */
+  const load = (id: string, then?: (buffers: readonly AudioBuffer[]) => void): void => {
+    const known = decoded.get(id)
+    if (known !== undefined) {
+      if (known !== null) then?.(known)
+      return
+    }
+    const sample = sampleById(id)
+    const audio = open()
+    if (sample === null || audio === null || loading.has(id)) return
+    loading.add(id)
+    loadSample(sample.file)
+      .then((bytes) => audio.decodeAudioData(bytes))
+      .then((buffer) => (isPressSample(id) ? cut(audio, buffer) : [buffer]))
+      .then(
+        (buffers) => {
+          decoded.set(id, buffers)
+          then?.(buffers)
+        },
+        (error: unknown) => {
+          console.warn('[sound] a recording could not be loaded', error)
+          decoded.set(id, null)
+        },
+      )
+      .finally(() => loading.delete(id))
+  }
+
+  const loadChosen = (): void => {
+    if (!enabled) return
+    for (const id of Object.values(samples)) if (id !== undefined) load(id)
+  }
+
+  /** Plays one of `buffers` now. A press takes a random one, a little off pitch. */
+  const playBuffers = (id: string, buffers: readonly AudioBuffer[]): void => {
+    const audio = open()
+    if (audio === null || master === null) return
+    wake(audio)
+    const presses = isPressSample(id)
+    const buffer = buffers[presses ? Math.floor(Math.random() * buffers.length) : 0]
+    if (buffer === undefined) return
+    try {
+      const source = audio.createBufferSource()
+      const level = audio.createGain()
+      source.buffer = buffer
+      if (presses) source.playbackRate.value = 1 + wobble().pitch * PRESS_PITCH_WOBBLE
+      level.gain.value = SAMPLE_GAIN
+      source.connect(level).connect(master)
+      source.start()
+    } catch {
+      // As with a voice: a recording that cannot play is not worth a broken test.
+    }
   }
 
   /** Plays `voice` from `from`, whatever is chosen. Silent without a context. */
@@ -150,11 +257,33 @@ export const createSoundEngine = ({
       if (!enabled) return
       const audio = open()
       if (audio !== null) wake(audio)
+      loadChosen()
     },
 
     play: (voice, options = {}) => {
       if (!enabled || volume <= 0) return
-      sound(voice, packId, options)
+      const id = (samples as Readonly<Partial<Record<string, string>>>)[voice]
+      const recording = id === undefined ? undefined : decoded.get(id)
+      if (id !== undefined && recording !== undefined && recording !== null) {
+        playBuffers(id, recording)
+        return
+      }
+      // A moment with no built-in voice is silent without its recording.
+      if (voice in packById(packId)) sound(voice as SoundVoice, packId, options)
+    },
+
+    setSamples: (choices) => {
+      samples = choices
+      loadChosen()
+    },
+
+    hasSample: (moment) => samples[moment] !== undefined,
+
+    previewSample: (id) => {
+      if (volume <= 0) return
+      load(id, (buffers) => {
+        playBuffers(id, buffers)
+      })
     },
 
     // A preview is asked for by pressing the pack itself, so it plays even

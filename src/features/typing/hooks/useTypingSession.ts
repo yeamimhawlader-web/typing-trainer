@@ -154,6 +154,12 @@ export interface TypingSessionController {
    * kind. Null until history has been read, and null when it beat nothing.
    */
   readonly personalBest: PersonalBest | null
+  /**
+   * The finished test whose history has been read: once it is the one on
+   * screen, `personalBest` is the final word on it. Null until then — so what
+   * marks the end of a test (its sound) can wait to know which end it was.
+   */
+  readonly personalBestCheckedFor: string | null
 }
 
 export const useTypingSession = (
@@ -213,6 +219,7 @@ export const useTypingSession = (
   const [testShape, setTestShape] = useState<TestShape | null>(null)
   const [drillOutcome, setDrillOutcome] = useState<DrillOutcome | null>(null)
   const [personalBest, setPersonalBest] = useState<PersonalBest | null>(null)
+  const [personalBestCheckedFor, setPersonalBestCheckedFor] = useState<string | null>(null)
   const initialWordCount = preference?.initial ?? DEFAULT_WORD_COUNT
   const [wordCount, setWordCountState] = useState<WordCount>(initialWordCount)
   const [target, setTarget] = useState<SessionTarget>(() =>
@@ -234,6 +241,7 @@ export const useTypingSession = (
     setTestShape(null)
     setDrillOutcome(null)
     setPersonalBest(null)
+    setPersonalBestCheckedFor(null)
   }
 
   // A ref for the same reason as the context above: the callback may be rebuilt
@@ -259,6 +267,7 @@ export const useTypingSession = (
     setTestShape(null)
       setDrillOutcome(null)
       setPersonalBest(null)
+      setPersonalBestCheckedFor(null)
     },
     [engine, provider],
   )
@@ -462,10 +471,14 @@ export const useTypingSession = (
         // late is fine; a missing one only costs the confetti.
         service.getAll().then(
           (history) => {
-            if (stillShowing()) setPersonalBest(personalBestOf(session, history))
+            if (!stillShowing()) return
+            setPersonalBest(personalBestOf(session, history))
+            setPersonalBestCheckedFor(session.id)
           },
           (error: unknown) => {
             console.warn('[sessions] could not read history for a personal best', error)
+            // Not a best, as far as anyone can tell: the test still ends.
+            if (stillShowing()) setPersonalBestCheckedFor(session.id)
           },
         )
       })
@@ -493,5 +506,6 @@ export const useTypingSession = (
     shape: testShape,
     drillOutcome,
     personalBest,
+    personalBestCheckedFor,
   }
 }

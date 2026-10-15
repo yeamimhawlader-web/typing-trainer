@@ -163,6 +163,13 @@ export interface UserPreferences {
   readonly sound: SoundPreference
   /** How loud sound is, 0–100. Full by default: the level the packs were made at. */
   readonly soundVolume: number
+  /**
+   * A recording chosen per moment, by the recording's id in the sound feature's
+   * catalogue (`features/sound/samples.ts`). A moment left out sounds as the
+   * pack makes it, or not at all. Plain strings for the reason `sound` is one:
+   * checked against the catalogue when preferences are read.
+   */
+  readonly soundSamples: Readonly<Record<string, string>>
   /** Whether a pace caret runs in the words, and at which of the typist's own speeds. */
   readonly pace: PaceChoice
   /** Whether ordinary practice is dressed as sentences: capitals, commas, endings. */

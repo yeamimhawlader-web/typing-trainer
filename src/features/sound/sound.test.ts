@@ -17,8 +17,10 @@ import type { EngineEvent, EngineEventListener, TypingEngine } from '@core/engin
 import type { HoverController, HoverProgress, HoverSignal } from '@features/ggtyping'
 import type { Keystroke } from '@core/types'
 
-import { ladderStep, playHoverSounds, playTypingSounds, voiceForKeystroke, voiceForSignal } from './connect.ts'
+import { createLaughWatcher, ladderStep, playHoverSounds, playIdleSound, playTypingSounds, voiceForKeystroke, voiceForSignal } from './connect.ts'
+import { pressesIn } from './presses.ts'
 import { createSoundEngine, type SoundEngine } from './sound-engine.ts'
+import type { SampleMoment } from './samples.ts'
 import { scaleRatio } from './synth.ts'
 import {
   buildPack,
@@ -642,17 +644,20 @@ const keystroke = (event: Partial<Keystroke>): Extract<EngineEvent, { type: 'key
   keystroke: { kind: 'character', key: 'a', expected: 'a', index: 0, correct: true, at: 0 as never, ...event },
 })
 
-const recorder = () => {
-  const played: { voice: SoundVoice; step: number | undefined }[] = []
+const recorder = (withSamples: readonly SampleMoment[] = []) => {
+  const played: { voice: SoundVoice | SampleMoment; step: number | undefined }[] = []
   const sound = {
     isEnabled: () => true,
     pack: () => DEFAULT_SOUND_PACK,
     choose: () => undefined,
     volume: () => 100,
     setVolume: () => undefined,
-    play: (voice: SoundVoice, options?: { step?: number }) => {
+    play: (voice: SoundVoice | SampleMoment, options?: { step?: number }) => {
       played.push({ voice, step: options?.step })
     },
+    setSamples: () => undefined,
+    hasSample: (moment: SampleMoment) => withSamples.includes(moment),
+    previewSample: () => undefined,
     preview: () => undefined,
     prepare: () => undefined,
     close: () => undefined,
@@ -714,8 +719,13 @@ describe('what plays when', () => {
 
   it("plays Hover Mode's signals, pitched by how far the word has come", () => {
     const { sound, played } = recorder()
-    let listener: (event: { signal: HoverSignal; record: { cleared: boolean } | null; progress: HoverProgress | null }) => void =
-      () => undefined
+    let listener: (event: {
+      signal: HoverSignal
+      snapshot: { testId: string; difficulty: string; focusId: number }
+      record: { cleared: boolean } | null
+      progress: HoverProgress | null
+    }) => void = () => undefined
+    const snapshot = { testId: 'a', difficulty: 'standard', focusId: 1 }
     const hover = {
       onSignal: (next: typeof listener) => {
         listener = next
@@ -724,10 +734,10 @@ describe('what plays when', () => {
     } as unknown as HoverController
 
     playHoverSounds(hover, sound)
-    listener({ signal: 'activated', record: null, progress: null })
-    listener({ signal: 'success', record: null, progress: { nodes: ['clean', 'clean', 'open'], groupSize: null } })
-    listener({ signal: 'released', record: { cleared: true }, progress: { nodes: ['clean'], groupSize: null } })
-    listener({ signal: 'ended', record: null, progress: null })
+    listener({ signal: 'activated', snapshot, record: null, progress: null })
+    listener({ signal: 'success', snapshot, record: null, progress: { nodes: ['clean', 'clean', 'open'], groupSize: null } })
+    listener({ signal: 'released', snapshot, record: { cleared: true }, progress: { nodes: ['clean'], groupSize: null } })
+    listener({ signal: 'ended', snapshot, record: null, progress: null })
 
     expect(played).toEqual([
       { voice: 'hoverCaught', step: 0 },
@@ -745,5 +755,189 @@ describe('what plays when', () => {
 
     expect(off).toHaveBeenCalled()
     expect(played).toEqual([])
+  })
+})
+
+// --- Recordings --------------------------------------------------------
+
+describe('cutting a recording into presses', () => {
+  const RATE = 1000
+  /** Silence with a 20ms click at each of `at` (in ms). */
+  const recording = (lengthMs: number, at: readonly number[]) => {
+    const samples = new Float32Array(lengthMs)
+    for (const start of at) samples.fill(0.8, start, start + 20)
+    return samples
+  }
+
+  it('finds each press after a quiet gap, and keeps none longer than a press', () => {
+    const presses = pressesIn(recording(3000, [100, 900, 1700]), RATE)
+
+    expect(presses).toHaveLength(3)
+    expect(presses.map(([from]) => from)).toEqual([95, 895, 1695])
+    for (const [from, to] of presses) expect(to - from).toBeLessThanOrEqual(450)
+  })
+
+  it('leaves a recording of one sound whole', () => {
+    expect(pressesIn(recording(1000, [100]), RATE)).toEqual([[0, 1000]])
+    expect(pressesIn(new Float32Array(500), RATE)).toEqual([[0, 500]])
+  })
+})
+
+describe('recordings in the engine', () => {
+  class DecodingContext extends FakeContext {
+    override createBuffer(channels: number, length: number, sampleRate: number) {
+      return { ...super.createBuffer(channels, length, sampleRate), copyToChannel: () => undefined }
+    }
+    decodeAudioData(bytes: ArrayBuffer) {
+      return Promise.resolve({ duration: 0.5, numberOfChannels: 1, sampleRate: 1000, length: bytes.byteLength, getChannelData: () => new Float32Array(500) })
+    }
+  }
+  const setup = (load = (_file: string) => Promise.resolve(new ArrayBuffer(8))) => {
+    const context = new DecodingContext()
+    const loads: string[] = []
+    const sound = createSoundEngine({
+      choice: DEFAULT_SOUND_PACK,
+      createContext: () => context as unknown as AudioContext,
+      wobble: () => ({ pitch: 0, gain: 0 }),
+      loadSample: (file) => {
+        loads.push(file)
+        return load(file)
+      },
+    })
+    return { sound, context, loads }
+  }
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+  it('plays the chosen recording in place of the built-in voice once it has loaded', async () => {
+    const { sound, context, loads } = setup()
+    sound.setSamples({ mistake: 'line-girl1-giku1' })
+    await settle()
+
+    sound.play('mistake')
+
+    expect(loads).toEqual(['soundeffect-lab/line-girl1-giku1.mp3'])
+    expect(sources(context, 'oscillator')).toHaveLength(0)
+    expect(sources(context, 'buffer-source').filter((source) => source.started !== null)).toHaveLength(1)
+  })
+
+  it('plays the built-in voice where nothing is chosen, and nothing for a moment with no voice', () => {
+    const { sound, context } = setup()
+
+    sound.play('key')
+    const built = context.nodes.length
+    sound.play('finish')
+
+    expect(built).toBeGreaterThan(0)
+    expect(context.nodes).toHaveLength(built)
+  })
+
+  it('fetches nothing while sound is off, and a recording only once', async () => {
+    const context = new DecodingContext()
+    const loads: string[] = []
+    const sound = createSoundEngine({
+      createContext: () => context as unknown as AudioContext,
+      loadSample: (file) => {
+        loads.push(file)
+        return Promise.resolve(new ArrayBuffer(8))
+      },
+    })
+    sound.setSamples({ key: 'cursor3' })
+    expect(loads).toEqual([])
+
+    sound.choose(DEFAULT_SOUND_PACK)
+    sound.setSamples({ key: 'cursor3' })
+    await settle()
+    expect(loads).toEqual(['soundeffect-lab/cursor3.mp3'])
+  })
+
+  it('stays quiet, rather than failing, when a recording will not load', async () => {
+    const { sound, context } = setup(() => Promise.reject(new Error('offline')))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    sound.setSamples({ finish: 'success1' })
+    await settle()
+
+    expect(() => sound.play('finish')).not.toThrow()
+    expect(sources(context, 'buffer-source').filter((source) => source.started !== null)).toHaveLength(0)
+    warn.mockRestore()
+  })
+})
+
+describe('moments counted for sound', () => {
+  const wrong = keystroke({ correct: false, key: 'x' })
+  const right = keystroke({})
+  const typing = (withSamples: readonly SampleMoment[]) => {
+    const { sound, played } = recorder(withSamples)
+    let listener: EngineEventListener = () => undefined
+    const engine = { on: (next: EngineEventListener) => ((listener = next), () => undefined) } as unknown as TypingEngine
+    playTypingSounds(engine, sound)
+    return { send: (event: EngineEvent) => listener(event), voices: () => played.map((play) => play.voice) }
+  }
+
+  it('plays the streak on the third wrong letter in a row, once, when a recording is chosen for it', () => {
+    const { send, voices } = typing(['mistakeStreak'])
+    for (const event of [wrong, wrong, wrong, wrong, right, wrong]) send(event)
+
+    expect(voices()).toEqual(['mistake', 'mistake', 'mistakeStreak', 'mistake', 'key', 'mistake'])
+  })
+
+  it('plays an ordinary mistake on the third when no streak recording is chosen', () => {
+    const { send, voices } = typing([])
+    for (const event of [wrong, wrong, wrong]) send(event)
+
+    expect(voices()).toEqual(['mistake', 'mistake', 'mistake'])
+  })
+
+  it('starts counting again on a new test', () => {
+    const { send, voices } = typing(['mistakeStreak'])
+    for (const event of [wrong, wrong, { type: 'reset' } as EngineEvent, wrong]) send(event)
+
+    expect(voices()).toEqual(['mistake', 'mistake', 'mistake'])
+  })
+
+  const signal = (focusId: number, difficulty = 'all-in', testId = 't1') =>
+    ({ signal: 'failure', snapshot: { focusId, difficulty, testId } }) as Parameters<ReturnType<typeof createLaughWatcher>>[0]
+
+  it('laughs in All In once a second word has had three repetitions go wrong, and only once', () => {
+    const laughs = createLaughWatcher()
+    const heard = [1, 1, 1, 2, 2, 2, 3, 3, 3].map((focus) => laughs(signal(focus)))
+
+    expect(heard).toEqual([false, false, false, false, false, true, false, false, false])
+  })
+
+  it('never laughs at Standard or Tired, and forgets a finished test', () => {
+    const laughs = createLaughWatcher()
+    expect([1, 1, 1, 2, 2, 2].some((focus) => laughs(signal(focus, 'tired')))).toBe(false)
+
+    for (const focus of [1, 1, 1, 2, 2]) laughs(signal(focus))
+    // A new test: the two words before it count for nothing.
+    expect(laughs(signal(2, 'all-in', 't2'))).toBe(false)
+  })
+})
+
+describe('the idle sound', () => {
+  it('plays once after a minute without a key, and again only after another key and another minute', () => {
+    vi.useFakeTimers()
+    let clock = 0
+    const { sound, played } = recorder(['idle'])
+    let listener: EngineEventListener = () => undefined
+    const engine = { on: (next: EngineEventListener) => ((listener = next), () => undefined) } as unknown as TypingEngine
+    const stop = playIdleSound([engine], sound, { afterMs: 60_000, now: () => clock })
+
+    const wait = (ms: number) => {
+      clock += ms
+      vi.advanceTimersByTime(ms)
+    }
+    wait(55_000)
+    expect(played).toEqual([])
+    wait(10_000)
+    wait(120_000)
+    expect(played.map((play) => play.voice)).toEqual(['idle'])
+
+    listener(keystroke({}))
+    wait(65_000)
+    expect(played.map((play) => play.voice)).toEqual(['idle', 'idle'])
+
+    stop()
+    vi.useRealTimers()
   })
 })
