@@ -39,6 +39,7 @@
 @tailwind utilities source(none);
 @source '../components/ui';
 @source '../features/gg-ui/pages/GGSignInPage.tsx';
+@source '../features/gg-ui/components/TopBar/TopBar.tsx';
 
 /* `dark:` follows the theme's scheme, which the settings keep on <html>. */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
