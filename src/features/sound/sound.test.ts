@@ -20,7 +20,7 @@ import type { Keystroke } from '@core/types'
 import { createLaughWatcher, ladderStep, playHoverSounds, playIdleSound, playTypingSounds, voiceForKeystroke, voiceForSignal } from './connect.ts'
 import { pressesIn } from './presses.ts'
 import { createSoundEngine, type SoundEngine } from './sound-engine.ts'
-import type { SampleMoment } from './samples.ts'
+import { isSampleFor, presetByChoice, presetChoice, presetMatching, SOUND_PRESETS, type SampleMoment } from './samples.ts'
 import { scaleRatio } from './synth.ts'
 import {
   buildPack,
@@ -939,5 +939,26 @@ describe('the idle sound', () => {
 
     stop()
     vi.useRealTimers()
+  })
+})
+
+describe('presets', () => {
+  it('each names a real pack, and real recordings for the moments they belong to', () => {
+    expect(new Set(SOUND_PRESETS.map((preset) => preset.id)).size).toBe(SOUND_PRESETS.length)
+    expect(new Set(SOUND_PRESETS.map((preset) => preset.name)).size).toBe(SOUND_PRESETS.length)
+    for (const preset of SOUND_PRESETS) {
+      expect(soundChoiceFromStored(preset.base)).toBe(preset.base)
+      for (const [moment, id] of Object.entries(preset.samples)) expect(isSampleFor(moment as SampleMoment, id)).toBe(true)
+    }
+  })
+
+  it('is recognised from its pack and recordings, and not once a sound is changed', () => {
+    const [first] = SOUND_PRESETS
+    if (first === undefined) throw new Error('no presets')
+    expect(presetByChoice(presetChoice(first))).toBe(first)
+    expect(presetMatching(first.base, first.samples)).toBe(first)
+    expect(presetMatching(first.base, { ...first.samples, key: 'cursor3' })).toBeNull()
+    expect(presetMatching('click', first.samples)).toBeNull()
+    expect(presetByChoice('thock')).toBeNull()
   })
 })

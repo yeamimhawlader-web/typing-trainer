@@ -70,7 +70,7 @@ import { useSyncAfterSave } from '@features/accounts'
 import { createHoverController, keepTroublesomeWords, newTestId, recordGoldenNuggets } from '@features/ggtyping'
 import { createTimedMode, SYLLABLE_MODE } from '@features/typing'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
-import { playHoverSounds, playIdleSound, playTypingSounds, useSound } from '@features/sound'
+import { playHoverSounds, playIdleSound, playTypingSounds, presetChoice, presetMatching, sampleChoicesFromStored, useSound } from '@features/sound'
 import {
   ResultAnnouncement,
   SessionHint,
@@ -368,7 +368,13 @@ export const GGTypingScreen = ({
   // difficulty last chosen.
   const rememberedDifficulty = useSettingsStore((state) => state.preferences.hoverDifficulty)
 
-  const soundChoice = useSettingsStore((state) => state.preferences.sound)
+  // A preset is shown as itself, not as the pack under it, while its sounds are unchanged.
+  const soundPack = useSettingsStore((state) => state.preferences.sound)
+  const soundSamples = useSettingsStore((state) => state.preferences.soundSamples)
+  const soundChoice = useMemo(() => {
+    const preset = soundPack === 'off' ? null : presetMatching(soundPack, sampleChoicesFromStored(soundSamples))
+    return preset === null ? soundPack : presetChoice(preset)
+  }, [soundPack, soundSamples])
   const setSound = useSettingsStore((state) => state.setSound)
   const changeSound = useCallback(
     (next: string) => {
@@ -450,6 +456,7 @@ export const GGTypingScreen = ({
           sound={soundChoice}
           onSoundChange={changeSound}
           soundVolume={soundVolume}
+          soundMixed={soundChoice === soundPack && Object.keys(soundSamples).length > 0}
           onSoundVolumeChange={changeSoundVolume}
           dress={
             dressable && drillSequence === null

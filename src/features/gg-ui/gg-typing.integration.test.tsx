@@ -915,9 +915,11 @@ describe('GG.Typing on the real typing session', () => {
         ...packsIn('mechanical').map((pack) => pack.id),
       ])
       const styles = screen.getByRole('radiogroup', { name: 'Sound style' })
-      expect(within(styles).getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual(
-        SOUND_CATEGORIES.map((style) => style.id),
-      )
+      // The recorded presets first, then the made styles.
+      expect(within(styles).getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual([
+        'recorded',
+        ...SOUND_CATEGORIES.map((style) => style.id),
+      ])
       expect(within(styles).getByRole('radio', { name: /^Mechanical/ })).toBeChecked()
       expect(within(packs).getByRole('radio', { name: /^Off/ })).toBeChecked()
       expect(soundNode()).toHaveAttribute('aria-expanded', 'true')

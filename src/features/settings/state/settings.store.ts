@@ -46,7 +46,7 @@ import { themeIdFromStored } from '@features/gg-ui/themes/themes.ts'
 import { clampTime, isValidTime } from '@features/typing/modes/timed.ts'
 // The sound packs themselves, for the same reason: one list of packs.
 import { soundChoiceFromStored } from '@features/sound/voices.ts'
-import { sampleChoicesFromStored, type SampleMoment } from '@features/sound/samples.ts'
+import { presetByChoice, sampleChoicesFromStored, type SampleMoment } from '@features/sound/samples.ts'
 
 export type SettingsStatus = 'idle' | 'loading' | 'ready'
 
@@ -62,6 +62,11 @@ export interface SettingsState {
   readonly setStreamFont: (font: StreamFont) => Promise<void>
   readonly setVocabulary: (vocabulary: Vocabulary) => Promise<void>
   readonly setHoverDifficulty: (difficulty: HoverDifficulty) => Promise<void>
+  /**
+   * Off, a pack, or a preset (`preset:<id>`). A preset is the pack under it and
+   * its recordings, set together; a pack on its own is that pack with none.
+   * Off keeps the recordings, for when sound comes back.
+   */
   readonly setSound: (sound: SoundPreference) => Promise<void>
   readonly setSoundVolume: (volume: number) => Promise<void>
   /** A recording for one moment, or null for its built-in sound. */
@@ -212,7 +217,12 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
 
       setHoverDifficulty: (hoverDifficulty) => persist({ ...get().preferences, hoverDifficulty }),
 
-      setSound: (sound) => persist({ ...get().preferences, sound }),
+      setSound: (sound) => {
+        const preset = presetByChoice(sound)
+        if (preset !== null) return persist({ ...get().preferences, sound: preset.base, soundSamples: preset.samples })
+        if (sound === 'off') return persist({ ...get().preferences, sound })
+        return persist({ ...get().preferences, sound, soundSamples: {} })
+      },
 
       setSoundVolume: (soundVolume) => persist({ ...get().preferences, soundVolume }),
 

@@ -24,15 +24,19 @@ export { pressesIn } from './presses.ts'
 export {
   isSampleFor,
   MOMENT_DETAILS,
+  presetByChoice,
+  presetChoice,
+  presetMatching,
   PRESS_MOMENTS,
   SAMPLE_MOMENTS,
   sampleById,
   sampleChoicesFromStored,
   SAMPLES,
+  SOUND_PRESETS,
   SOURCE_CREDITS,
   sourcesIn,
 } from './samples.ts'
-export type { MomentDetails, Sample, SampleChoices, SampleMoment, SampleSource } from './samples.ts'
+export type { MomentDetails, Sample, SampleChoices, SampleMoment, SampleSource, SoundPreset } from './samples.ts'
 export { SoundContext, useSound } from './context.ts'
 export { createSoundEngine } from './sound-engine.ts'
 export type { SoundEngine, SoundEngineOptions } from './sound-engine.ts'

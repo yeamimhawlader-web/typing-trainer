@@ -347,4 +347,20 @@ describe('settings store', () => {
     expect(store.getState().preferences.soundSamples).toEqual({ mistakeStreak: 'line-girl1-baka1' })
     expect(await adapter.read(STORAGE_KEYS.preferences)).toMatchObject({ soundSamples: { mistakeStreak: 'line-girl1-baka1' } })
   })
+
+  it('sets a preset as its pack and its recordings together, and a pack on its own with none', async () => {
+    const store = createSettingsStore(adapter)
+    await store.getState().hydrate()
+
+    await store.getState().setSound('preset:office-desk')
+    expect(store.getState().preferences.sound).toBe('thock')
+    expect(store.getState().preferences.soundSamples).toMatchObject({ key: 'pc-keyboard03-04single-mid' })
+
+    // Off keeps the recordings for when sound comes back.
+    await store.getState().setSound('off')
+    expect(store.getState().preferences.soundSamples).toMatchObject({ key: 'pc-keyboard03-04single-mid' })
+
+    await store.getState().setSound('click')
+    expect(store.getState().preferences).toMatchObject({ sound: 'click', soundSamples: {} })
+  })
 })

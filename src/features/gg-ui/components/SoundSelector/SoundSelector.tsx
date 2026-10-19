@@ -3,8 +3,9 @@
  *
  * The same object as Hover Mode's selector, holding a different kind of choice
  * — Off, and one branch per sound of a style, with the style and the master
- * volume beside them. Sounds come in styles — Mechanical keyboards, Neon air
- * and synths, Soft bubbles and glass, Arcade blips — and the branches are the
+ * volume beside them. Sounds come in styles — Recorded presets first, then
+ * Mechanical keyboards, Neon air and synths, Soft bubbles and glass, Arcade
+ * blips — and the branches are the
  * sounds of the style showing: choosing another style brings its sounds into
  * the same branches, and the tree opens on the style of the sound in use.
  * Pressing the speaker opens it; choosing a pack plays that pack and folds it
@@ -27,8 +28,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   categoryOf,
   packsIn,
+  presetByChoice,
+  presetChoice,
   SOUND_CATEGORIES,
   SOUND_PACK_LIST,
+  SOUND_PRESETS,
   useSound,
   type SoundPackDetails,
   type SoundPreference,
@@ -74,12 +78,30 @@ const itemOf = (pack: SoundPackDetails): UnfoldItem => {
   return { value: pack.id, label: pack.name, description: pack.description, marks: tone.marks, tone: tone.tone }
 }
 
-type StyleId = (typeof SOUND_CATEGORIES)[number]['id']
+/**
+ * The recorded presets, as a style of their own and the first one offered:
+ * sounds someone chose by ear, ahead of the ones made in the browser.
+ */
+const RECORDED = { id: 'recorded', name: 'Recorded', description: 'Real recordings and voices, ready-made' } as const
+
+type StyleId = typeof RECORDED.id | (typeof SOUND_CATEGORIES)[number]['id']
+
+const PRESET_ITEMS: readonly UnfoldItem[] = SOUND_PRESETS.map((preset, index) => ({
+  value: presetChoice(preset),
+  label: preset.name,
+  description: preset.description,
+  marks: index % 3 === 0 ? 3 : 2,
+  tone: 'committed',
+}))
 
 /** Off, and the sounds of one style. */
-const itemsIn = (style: StyleId): readonly UnfoldItem[] => [OFF, ...packsIn(style).map(itemOf)]
+const itemsIn = (style: StyleId): readonly UnfoldItem[] =>
+  style === RECORDED.id ? [OFF, ...PRESET_ITEMS] : [OFF, ...packsIn(style).map(itemOf)]
 
-const STYLE_OPTIONS: readonly PillOption<StyleId>[] = SOUND_CATEGORIES.map((style) => ({
+/** The style a choice belongs to: a preset's is Recorded. */
+const styleOf = (value: string): StyleId => (presetByChoice(value) === null ? categoryOf(value) : RECORDED.id)
+
+const STYLE_OPTIONS: readonly PillOption<StyleId>[] = [RECORDED, ...SOUND_CATEGORIES].map((style) => ({
   value: style.id,
   label: style.name,
   accessibleLabel: `${style.name}: ${style.description}`,
@@ -91,18 +113,20 @@ export interface SoundSelectorProps {
   readonly onChange: (value: SoundPreference) => void
   /** The master volume, 0–100. */
   readonly volume: number
+  /** Recordings changed a sound at a time: the pack is only what is under them. */
+  readonly mixed?: boolean
   readonly onVolumeChange: (volume: number) => void
 }
 
-export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: SoundSelectorProps) => {
+export const SoundSelector = ({ value, onChange, volume, onVolumeChange, mixed = false }: SoundSelectorProps) => {
   const trees = useBranchTrees()
   const open = useTreeOpen(trees, 'sound')
   const sound = useSound()
 
   // The style showing: the one of the sound in use each time the tree opens,
   // and whichever is chosen while it is out.
-  const [shown, setShown] = useState(() => ({ open, style: categoryOf(value) }))
-  if (shown.open !== open) setShown({ open, style: open ? categoryOf(value) : shown.style })
+  const [shown, setShown] = useState(() => ({ open, style: styleOf(value) }))
+  if (shown.open !== open) setShown({ open, style: open ? styleOf(value) : shown.style })
   const style = shown.style
   const items = useMemo(() => itemsIn(style), [style])
   const chooseStyle = useCallback((next: StyleId) => {
@@ -141,6 +165,18 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
     trees.toggle('sound', performance.now())
   }, [press, trees])
 
+  /** Heard as chosen: a pack's key, or a preset's own keystroke. */
+  const hear = useCallback(
+    (choice: string) => {
+      if (choice === 'off' || sound === null) return
+      const preset = presetByChoice(choice)
+      if (preset === null) sound.preview(choice as Parameters<typeof sound.preview>[0])
+      else if (preset.samples.key !== undefined) sound.previewSample(preset.samples.key)
+      else sound.preview(preset.base as Parameters<typeof sound.preview>[0])
+    },
+    [sound],
+  )
+
   const choose = useCallback(
     (next: string) => {
       // Folded away first — the choice is made — then kept and heard: the
@@ -148,14 +184,14 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
       trees.close('sound')
       onChange(next)
       // Heard as it is chosen, in the pack chosen — the description no words give.
-      if (next !== 'off') sound?.preview(next as Parameters<NonNullable<typeof sound>['preview']>[0])
+      hear(next)
     },
-    [onChange, sound, trees],
+    [hear, onChange, trees],
   )
 
   const on = value !== 'off'
-  const chosen = SOUND_PACK_LIST.find((pack) => pack.id === value)
-  const label = on && chosen !== undefined ? `Sound: ${chosen.name}` : 'Sound: off'
+  const chosenName = presetByChoice(value)?.name ?? SOUND_PACK_LIST.find((pack) => pack.id === value)?.name
+  const label = !on ? 'Sound: off' : mixed ? 'Sound: your own mix' : chosenName !== undefined ? `Sound: ${chosenName}` : 'Sound: off'
 
   return (
     <>
@@ -197,7 +233,7 @@ export const SoundSelector = ({ value, onChange, volume, onVolumeChange }: Sound
         onChange={open ? choose : undefined}
         onReselect={(again) => {
           // Heard again, and folded: the same choice, made once more.
-          if (again !== 'off') sound?.preview(again as Parameters<NonNullable<typeof sound>['preview']>[0])
+          hear(again)
           trees.close('sound')
         }}
         compact

@@ -212,3 +212,172 @@ export const sampleChoicesFromStored = (stored: unknown): SampleChoices => {
 export const sourcesIn = (choices: SampleChoices): readonly SampleSource[] => [
   ...new Set(Object.values(choices).flatMap((id) => (id === undefined ? [] : [sampleById(id)?.source ?? []].flat()))),
 ]
+
+/**
+ * A ready-made set of recordings, one choice for every moment at once.
+ *
+ * Choosing a preset puts its recordings on every moment it names and the pack
+ * under it on the rest — Hover Mode's notes, and any keyboard voice it leaves
+ * alone. What it chooses can still be changed a moment at a time afterwards;
+ * it is then no longer that preset, but the typist's own mix.
+ */
+export interface SoundPreset {
+  /** Stable: stored as `preset:<id>` in the sound choice the menu shows. */
+  readonly id: string
+  readonly name: string
+  /** What it sounds like, in a few words. */
+  readonly description: string
+  /** The built-in pack under it, for the moments it leaves alone. */
+  readonly base: string
+  readonly samples: SampleChoices
+}
+
+export const SOUND_PRESETS: readonly SoundPreset[] = [
+  {
+    id: 'mochi-pop',
+    name: 'Mochi Pop',
+    description: 'Little pops and a voice that sighs at mistakes',
+    base: 'bubble',
+    samples: {
+      key: 'nyu3',
+      space: 'onoma-pop01-1dry',
+      backspace: 'nes-action01-06throw',
+      mistake: 'line-girl1-n1',
+      mistakeStreak: 'line-girl1-chottofuzakenaideyo1',
+      finish: 'line-girl1-otsukaresamadeshita1',
+      best: 'people-performance-uwaa1',
+      selectorOpen: 'menu4',
+      selectorClose: 'cancel4',
+      hoverCleared: 'suck1',
+      hoverMissed: 'line-girl1-uu2',
+      hoverKept: 'maou_se_onepoint23',
+      allInLaugh: 'line-girl1-ahahaha2',
+      idle: 'line-girl1-suyasuya1',
+    },
+  },
+  {
+    id: 'office-desk',
+    name: 'Office Desk',
+    description: 'A real keyboard, and quiet otherwise',
+    base: 'thock',
+    samples: {
+      key: 'pc-keyboard03-04single-mid',
+      space: 'pc-keyboard05-10space-mid',
+      finish: 'success1',
+      best: 'info-lady1-levelupshimashita1',
+    },
+  },
+  {
+    id: 'ink-and-ribbon',
+    name: 'Ink & Ribbon',
+    description: 'A typewriter, with a bell for the finish',
+    base: 'typewriter',
+    samples: {
+      key: 'typewriter02-03type-single',
+      finish: 'success1',
+      best: 'people-performance-uwaa1',
+    },
+  },
+  {
+    id: 'kawaii-quest',
+    name: 'Kawaii Quest',
+    description: 'Soft pips and a healer cheering you on',
+    base: 'chime',
+    samples: {
+      key: 'cursor3',
+      space: 'decision34',
+      mistake: 'healer-damage1',
+      mistakeStreak: 'line-girl1-baka1',
+      finish: 'line-girl1-otsukaresamadeshita1',
+      best: 'info-lady1-levelupshimashita1',
+      selectorOpen: 'nyu2',
+      selectorClose: 'cancel4',
+      hoverCleared: 'healer-attack1',
+      hoverMissed: 'line-girl1-uu2',
+      hoverKept: 'maou_se_onepoint23',
+      allInLaugh: 'line-girl1-ahahaha2',
+      idle: 'line-girl1-munyamunya1',
+    },
+  },
+  {
+    id: 'arcade-gremlin',
+    name: 'Arcade Gremlin',
+    description: 'Blips, a balloon slap and a cat that hates typos',
+    base: 'blip',
+    samples: {
+      key: 'anime-motion31-1high',
+      space: 'balloon01-04slap',
+      backspace: 'nes-action01-06throw',
+      mistake: 'cat-synthetic01-1',
+      mistakeStreak: 'princess-guard2',
+      finish: 'success1',
+      best: 'people-performance-uwaa1',
+      selectorOpen: 'nyu2',
+      selectorClose: 'cancel4',
+      hoverCleared: 'line-girl1-yaa2',
+      hoverMissed: 'line-girl1-uu2',
+      hoverKept: 'maou_se_onepoint23',
+      allInLaugh: 'line-girl1-ahahaha2',
+      idle: 'line-girl1-zii1',
+    },
+  },
+  {
+    id: 'paper-stamp',
+    name: 'Paper Stamp',
+    description: 'Every letter stamped, and an ouch for a slip',
+    base: 'cream',
+    samples: {
+      key: 'peta1',
+      space: 'decision34',
+      mistake: 'thief-boy-damage1',
+      mistakeStreak: 'line-girl1-nanbisuruno1',
+      finish: 'success1',
+      best: 'info-lady1-levelupshimashita1',
+      selectorOpen: 'menu4',
+      selectorClose: 'cancel4',
+      idle: 'line-girl1-suyasuya1',
+    },
+  },
+  {
+    id: 'bamboo-whisper',
+    name: 'Bamboo Whisper',
+    description: 'Wooden taps and a gulp at a mistake',
+    base: 'hush',
+    samples: {
+      key: 'cursor12',
+      space: 'decision34',
+      mistake: 'line-girl1-giku1',
+      mistakeStreak: 'line-girl1-baka1',
+      finish: 'line-girl1-otsukaresamadeshita1',
+      best: 'people-performance-uwaa1',
+      hoverCleared: 'suck1',
+      hoverKept: 'maou_se_onepoint23',
+      idle: 'line-girl1-zii1',
+    },
+  },
+]
+
+const PRESET_PREFIX = 'preset:'
+
+/** How a preset is named in the sound choice the menu shows. */
+export const presetChoice = (preset: SoundPreset): string => `${PRESET_PREFIX}${preset.id}`
+
+/** The preset a choice names, or null for a pack or off. */
+export const presetByChoice = (choice: string): SoundPreset | null =>
+  choice.startsWith(PRESET_PREFIX) ? (SOUND_PRESETS.find((preset) => presetChoice(preset) === choice) ?? null) : null
+
+/**
+ * The preset this pack and these recordings are, or null when they are not one
+ * — a pack alone, or a mix the typist has changed.
+ */
+export const presetMatching = (pack: string, choices: SampleChoices): SoundPreset | null => {
+  const chosen = Object.entries(choices).filter(([, id]) => id !== undefined)
+  return (
+    SOUND_PRESETS.find(
+      (preset) =>
+        preset.base === pack &&
+        chosen.length === Object.keys(preset.samples).length &&
+        chosen.every(([moment, id]) => preset.samples[moment as SampleMoment] === id),
+    ) ?? null
+  )
+}
