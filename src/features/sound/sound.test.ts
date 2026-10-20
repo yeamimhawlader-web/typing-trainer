@@ -964,9 +964,11 @@ describe('presets', () => {
 })
 
 describe('the default sound', () => {
-  it('is Arcade Gremlin: its pack and every one of its recordings', async () => {
+  it('is Office Desk, the plain one: its pack and every one of its recordings, and no voice among them', async () => {
     const { DEFAULT_PREFERENCES } = await import('@config')
-    const gremlin = SOUND_PRESETS.find((preset) => preset.id === 'arcade-gremlin')
-    expect(presetMatching(DEFAULT_PREFERENCES.sound, DEFAULT_PREFERENCES.soundSamples)).toBe(gremlin)
+    const desk = SOUND_PRESETS.find((preset) => preset.id === 'office-desk')
+    expect(presetMatching(DEFAULT_PREFERENCES.sound, DEFAULT_PREFERENCES.soundSamples)).toBe(desk)
+    // The character voices are the ones a first visit should not be met with.
+    for (const id of Object.values(DEFAULT_PREFERENCES.soundSamples)) expect(id).not.toMatch(/line-girl|info-lady|healer|witch|thief|princess|sword/)
   })
 })

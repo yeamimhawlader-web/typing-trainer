@@ -16,8 +16,8 @@ const DEFAULTS: UserPreferences = {
   streamFont: 'slab',
   vocabulary: 'normal',
   hoverDifficulty: 'standard',
-  // Arcade Gremlin, the default preset: its pack, and its recordings as configured.
-  sound: 'blip',
+  // Office Desk, the default preset: its pack, and its recordings as configured.
+  sound: 'thock',
   soundVolume: 100,
   soundSamples: DEFAULT_PREFERENCES.soundSamples,
   pace: 'off',

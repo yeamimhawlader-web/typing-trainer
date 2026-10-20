@@ -1497,9 +1497,10 @@ maps onto the theme, so they are inside it rather than beside it. Its token plan
   and the credits are on the Settings page under the choices.
 - **Presets are the way in; a moment at a time is the way to tune.** Seven
   ready-made presets (`SOUND_PRESETS`) set every moment's recording and the pack
-  under them in one choice, and a fresh installation starts on one of them,
-  Arcade Gremlin — sound on from the first keystroke, its ~490 KB of recordings
-  fetched after the page is up. A stored choice, Off included, is kept, and a
+  under them in one choice, and a fresh installation starts on the plainest of
+  them, Office Desk — a real keyboard, no voices, sound on from the first
+  keystroke, its ~200 KB of recordings fetched after the page is up. The voiced
+  presets are a choice, not a first impression. A stored choice, Off included, is kept, and a
   sound chosen before recordings existed stays that sound alone. The Sound node
   on the typing screen is a link to Settings at `#sound`, which takes focus on
   arrival; the sound is chosen there in one radio group — the presets and Off,

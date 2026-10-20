@@ -258,13 +258,15 @@ export const SOUND_PRESETS: readonly SoundPreset[] = [
   {
     id: 'office-desk',
     name: 'Office Desk',
+    // The default: a real keyboard and nothing anyone has to like a style for —
+    // no voices, a chime at the end and a crowd for a personal best.
     description: 'A real keyboard, and quiet otherwise',
     base: 'thock',
     samples: {
       key: 'pc-keyboard03-04single-mid',
       space: 'pc-keyboard05-10space-mid',
       finish: 'success1',
-      best: 'info-lady1-levelupshimashita1',
+      best: 'people-performance-uwaa1',
     },
   },
   {

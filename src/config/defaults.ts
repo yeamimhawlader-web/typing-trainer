@@ -23,27 +23,19 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   vocabulary: 'normal',
   // The least persistent: a word is repeated for one cycle and let go.
   hoverDifficulty: 'standard',
-  // Arcade Gremlin, the recorded preset, from the first keystroke: the pack
-  // under it and its recordings, as SOUND_PRESETS has them (a test keeps the
-  // two the same). Only a preference never saved takes it — anyone who chose a
-  // sound, Off included, keeps what they chose. At the level the packs were made at.
-  sound: 'blip',
+  // Office Desk, the plainest recorded preset, from the first keystroke: a real
+  // keyboard, a chime at the end and a crowd for a personal best — no voices,
+  // nothing anyone has to like a style for. The pack under it and its
+  // recordings, as SOUND_PRESETS has them (a test keeps the two the same). Only
+  // a preference never saved takes it: anyone who chose a sound, Off included,
+  // keeps what they chose. At the level the packs were made at.
+  sound: 'thock',
   soundVolume: 100,
   soundSamples: {
-    key: 'anime-motion31-1high',
-    space: 'balloon01-04slap',
-    backspace: 'nes-action01-06throw',
-    mistake: 'cat-synthetic01-1',
-    mistakeStreak: 'princess-guard2',
+    key: 'pc-keyboard03-04single-mid',
+    space: 'pc-keyboard05-10space-mid',
     finish: 'success1',
     best: 'people-performance-uwaa1',
-    selectorOpen: 'nyu2',
-    selectorClose: 'cancel4',
-    hoverCleared: 'line-girl1-yaa2',
-    hoverMissed: 'line-girl1-uu2',
-    hoverKept: 'maou_se_onepoint23',
-    allInLaugh: 'line-girl1-ahahaha2',
-    idle: 'line-girl1-zii1',
   },
   // No caret to follow until one is chosen.
   pace: 'off',

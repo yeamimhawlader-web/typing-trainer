@@ -888,11 +888,11 @@ describe('GG.Typing on the real typing session', () => {
       delete (window as { AudioContext?: unknown }).AudioContext
     })
 
-    it('starts a fresh installation on Arcade Gremlin, and the node says so and leads to the sounds', async () => {
+    it('starts a fresh installation on Office Desk, and the node says so and leads to the sounds', async () => {
       fakeAudio()
       await firstTest(wordsProvider().provider)
 
-      expect(soundNode()).toHaveAccessibleName('Sound: Arcade Gremlin. Choose sounds')
+      expect(soundNode()).toHaveAccessibleName('Sound: Office Desk. Choose sounds')
       expect(soundNode()).toHaveAttribute('href', '/settings#sound')
       // The sounds are chosen in Settings now: nothing unfolds here.
       expect(screen.queryByRole('radiogroup', { name: 'Sound' })).not.toBeInTheDocument()
