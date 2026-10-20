@@ -1,7 +1,7 @@
 /**
  * Which branch tree is open: one answer, for every glass node on the page.
  *
- * Hover Mode's difficulties and the sound packs are two trees on one control,
+ * Hover Mode's difficulties and the pace caret's speeds are two trees on one control,
  * not two menus. So what is open is not each selector's own state: it is a
  * single value held here, and a selector is open exactly when that value is
  * its name. Two trees open at once is not a state this can be in.
@@ -25,7 +25,7 @@ import { createContext, useContext, useState, useSyncExternalStore } from 'react
 
 import { createUnfoldMemory, type UnfoldMemory } from './unfold-memory.ts'
 
-export type BranchTreeId = 'hover' | 'sound' | 'pace'
+export type BranchTreeId = 'hover' | 'pace'
 
 /** Where a tree's row is on the page and how much room it takes, at one moment. */
 export interface RowBox {

@@ -147,8 +147,11 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
     result.soundVolume = Math.round(volume)
   }
 
-  // Only recordings this build has, each for the moment it belongs to.
+  // Only recordings this build has, each for the moment it belongs to. A sound
+  // chosen before there were recordings is that sound alone: the default
+  // preset's recordings must not land on top of someone's own choice.
   if (record['soundSamples'] !== undefined) result.soundSamples = sampleChoicesFromStored(record['soundSamples'])
+  else if (sound !== null) result.soundSamples = {}
 
   const pace = PACE_CHOICES.find((option) => option === record['pace'])
   if (pace !== undefined) result.pace = pace

@@ -49,7 +49,8 @@ let now = 10_000
 
 const preferDifficulty = (hoverDifficulty: HoverDifficulty) => {
   settingsStore.setState({
-    preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15, hoverDifficulty },
+    // Sound off here unless a test turns it on: Hover Mode's own sounds are tested as made sounds.
+    preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15, hoverDifficulty, sound: 'off', soundSamples: {} },
     status: 'ready',
   })
 }

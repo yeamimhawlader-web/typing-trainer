@@ -1497,12 +1497,17 @@ maps onto the theme, so they are inside it rather than beside it. Its token plan
   and the credits are on the Settings page under the choices.
 - **Presets are the way in; a moment at a time is the way to tune.** Seven
   ready-made presets (`SOUND_PRESETS`) set every moment's recording and the pack
-  under them in one choice. They are the Sound menu's first style, Recorded, and
-  the first thing in Settings. The menu shows a preset as itself while its sounds
-  are unchanged, and "your own mix" once one is changed. Choosing a plain pack
-  clears the recordings; turning sound off keeps them. In Settings each moment's
-  sounds are a radio list that stays open and plays each option as it is
-  reached, arrow keys included, with the choice announced politely.
+  under them in one choice, and a fresh installation starts on one of them,
+  Arcade Gremlin — sound on from the first keystroke, its ~490 KB of recordings
+  fetched after the page is up. A stored choice, Off included, is kept, and a
+  sound chosen before recordings existed stays that sound alone. The Sound node
+  on the typing screen is a link to Settings at `#sound`, which takes focus on
+  arrival; the sound is chosen there in one radio group — the presets and Off,
+  the volume, the built-in packs behind a disclosure — and the node says which,
+  or "your own mix" once a preset is changed. Choosing a plain pack clears the
+  recordings; turning sound off keeps them. Each moment's sounds are a radio
+  list that stays open and plays each option as it is reached, arrow keys
+  included, with the choice announced politely.
 - **Master volume is one gain.** Everything GG.Typing plays goes through the
   engine's single master gain, so the packs keep their proportions exactly at
   any volume. The slider is squared rather than straight, because hearing is

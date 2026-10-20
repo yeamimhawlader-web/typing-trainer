@@ -375,13 +375,6 @@ export const GGTypingScreen = ({
     const preset = soundPack === 'off' ? null : presetMatching(soundPack, sampleChoicesFromStored(soundSamples))
     return preset === null ? soundPack : presetChoice(preset)
   }, [soundPack, soundSamples])
-  const setSound = useSettingsStore((state) => state.setSound)
-  const changeSound = useCallback(
-    (next: string) => {
-      void setSound(next)
-    },
-    [setSound],
-  )
   // The pace caret: the choice, the typist's speeds, and the one it keeps now.
   const paceChoice = useSettingsStore((state) => state.preferences.pace)
   const setPace = useSettingsStore((state) => state.setPace)
@@ -396,15 +389,6 @@ export const GGTypingScreen = ({
     saveState === 'saved' ? (lastSession?.id ?? null) : null,
   )
   const paceWpm = paceFor(paceChoice, paceTargets)
-
-  const soundVolume = useSettingsStore((state) => state.preferences.soundVolume)
-  const setSoundVolume = useSettingsStore((state) => state.setSoundVolume)
-  const changeSoundVolume = useCallback(
-    (next: number) => {
-      void setSoundVolume(next)
-    },
-    [setSoundVolume],
-  )
 
   /*
    * A pointer click on a control means the typist is about to type again, so
@@ -454,10 +438,7 @@ export const GGTypingScreen = ({
               : null
           }
           sound={soundChoice}
-          onSoundChange={changeSound}
-          soundVolume={soundVolume}
           soundMixed={soundChoice === soundPack && Object.keys(soundSamples).length > 0}
-          onSoundVolumeChange={changeSoundVolume}
           dress={
             dressable && drillSequence === null
               ? {

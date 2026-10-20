@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { STORAGE_KEYS, createMemoryAdapter } from '@core/persistence'
 import type { StorageAdapter } from '@core/persistence'
+import { DEFAULT_PREFERENCES } from '@config'
 import type { UserPreferences } from '@core/types'
 
 import { createSettingsStore } from './settings.store.ts'
@@ -15,9 +16,10 @@ const DEFAULTS: UserPreferences = {
   streamFont: 'slab',
   vocabulary: 'normal',
   hoverDifficulty: 'standard',
-  sound: 'off',
+  // Arcade Gremlin, the default preset: its pack, and its recordings as configured.
+  sound: 'blip',
   soundVolume: 100,
-  soundSamples: {},
+  soundSamples: DEFAULT_PREFERENCES.soundSamples,
   pace: 'off',
   lineScroll: 'glide',
   caret: 'bar',
@@ -338,6 +340,8 @@ describe('settings store', () => {
   it('chooses a recording for a moment, and goes back to the built-in sound', async () => {
     const store = createSettingsStore(adapter)
     await store.getState().hydrate()
+    // A pack on its own first, with no recordings to start from.
+    await store.getState().setSound('click')
 
     await store.getState().setSoundSample('key', 'cursor3')
     await store.getState().setSoundSample('mistakeStreak', 'line-girl1-baka1')
@@ -362,5 +366,14 @@ describe('settings store', () => {
 
     await store.getState().setSound('click')
     expect(store.getState().preferences).toMatchObject({ sound: 'click', soundSamples: {} })
+  })
+
+  it('keeps a sound chosen before there were recordings as that sound alone', async () => {
+    // Stored by an earlier version: a pack, and no recordings at all.
+    await adapter.write(STORAGE_KEYS.preferences, { theme: 'classic', sound: 'cream' })
+    const store = createSettingsStore(adapter)
+    await store.getState().hydrate()
+
+    expect(store.getState().preferences).toMatchObject({ sound: 'cream', soundSamples: {} })
   })
 })

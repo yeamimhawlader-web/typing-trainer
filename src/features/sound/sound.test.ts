@@ -962,3 +962,11 @@ describe('presets', () => {
     expect(presetByChoice('thock')).toBeNull()
   })
 })
+
+describe('the default sound', () => {
+  it('is Arcade Gremlin: its pack and every one of its recordings', async () => {
+    const { DEFAULT_PREFERENCES } = await import('@config')
+    const gremlin = SOUND_PRESETS.find((preset) => preset.id === 'arcade-gremlin')
+    expect(presetMatching(DEFAULT_PREFERENCES.sound, DEFAULT_PREFERENCES.soundSamples)).toBe(gremlin)
+  })
+})

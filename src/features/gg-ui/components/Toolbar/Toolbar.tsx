@@ -85,14 +85,10 @@ export interface ToolbarProps {
     /** False where only a number of words makes sense. */
     readonly timeOffered?: boolean
   } | null
-  /** Sound off, or the pack it is on, and how to change it. */
+  /** Sound off, the pack it is on, or the preset it is. Changed in Settings, where the node leads. */
   readonly sound: SoundPreference
-  readonly onSoundChange: (sound: SoundPreference) => void
-  /** The master volume, 0–100. */
-  readonly soundVolume: number
   /** Whether the sounds are a mix of recordings rather than a pack or a preset. */
   readonly soundMixed?: boolean
-  readonly onSoundVolumeChange: (volume: number) => void
   /**
    * How ordinary practice's text is dressed: punctuation, numbers, both or
    * neither. Null where the text is not ordinary practice's to dress.
@@ -119,10 +115,7 @@ export const Toolbar = ({
   onHoverDifficultyChange,
   shape,
   sound,
-  onSoundChange,
-  soundVolume,
   soundMixed = false,
-  onSoundVolumeChange,
   pace,
   onPaceChange,
   paceTargets,
@@ -180,13 +173,7 @@ export const Toolbar = ({
 
     <PaceSelector value={pace} onChange={onPaceChange} targets={paceTargets} wpm={paceWpm} />
 
-    <SoundSelector
-      value={sound}
-      onChange={onSoundChange}
-      volume={soundVolume}
-      mixed={soundMixed}
-      onVolumeChange={onSoundVolumeChange}
-    />
+    <SoundSelector value={sound} mixed={soundMixed} />
   </div>
   </BranchTreesScope>
 )

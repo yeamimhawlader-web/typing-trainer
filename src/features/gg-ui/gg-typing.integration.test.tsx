@@ -25,7 +25,6 @@ import { createSessionServiceOver, type SessionService } from '@core/sessions'
 import { createTelemetryServiceOver, type TelemetryService } from '@core/telemetry'
 import type { TextProvider, TextRequest } from '@core/text'
 import { createSettingsStore, settingsStore } from '@features/settings/state/settings.store.ts'
-import { packsIn, SOUND_CATEGORIES, SOUND_PACK_LIST } from '@features/sound'
 
 import { GGLayout } from './layout/GGLayout.tsx'
 import { GGDrillPage } from './pages/GGDrillPage.tsx'
@@ -883,137 +882,59 @@ describe('GG.Typing on the real typing session', () => {
       return built
     }
 
-    const soundNode = () => screen.getByRole('button', { name: /^Sound:/ })
+    const soundNode = () => screen.getByRole('link', { name: /^Sound:/ })
 
     afterEach(() => {
       delete (window as { AudioContext?: unknown }).AudioContext
     })
 
-    it('is off to begin with: no packs on show, and typing opens no audio at all', async () => {
-      const built = fakeAudio()
+    it('starts a fresh installation on Arcade Gremlin, and the node says so and leads to the sounds', async () => {
+      fakeAudio()
       await firstTest(wordsProvider().provider)
 
-      expect(soundNode()).toHaveAccessibleName('Sound: off')
-      expect(soundNode()).toHaveAttribute('aria-expanded', 'false')
+      expect(soundNode()).toHaveAccessibleName('Sound: Arcade Gremlin. Choose sounds')
+      expect(soundNode()).toHaveAttribute('href', '/settings#sound')
+      // The sounds are chosen in Settings now: nothing unfolds here.
       expect(screen.queryByRole('radiogroup', { name: 'Sound' })).not.toBeInTheDocument()
+    })
 
+    it('plays a built-in pack as you type, when that is what is chosen', async () => {
+      const built = fakeAudio()
+      settingsStore.setState({
+        preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15, sound: 'cream', soundSamples: {} },
+      })
+      await firstTest(wordsProvider().provider)
+
+      expect(soundNode()).toHaveAccessibleName('Sound: Cream. Choose sounds')
+      typeText('abc')
+
+      expect(built.contexts).toBe(1)
+      expect(built.oscillators).toBeGreaterThan(0)
+    })
+
+    it('is silent with sound off: typing opens no audio at all', async () => {
+      const built = fakeAudio()
+      settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15, sound: 'off' } })
+      await firstTest(wordsProvider().provider)
+
+      expect(soundNode()).toHaveAccessibleName('Sound: off. Choose sounds')
       typeText('typing')
 
       expect(built.contexts).toBe(0)
     })
 
-    it('unfolds into the keyboards to type on, off among them, with the other styles beside them', async () => {
+    it('says "your own mix" once a preset has been changed a sound at a time', async () => {
       fakeAudio()
-      const user = userEvent.setup()
+      settingsStore.setState({
+        preferences: {
+          ...DEFAULT_PREFERENCES,
+          practiceWordCount: 15,
+          soundSamples: { ...DEFAULT_PREFERENCES.soundSamples, key: 'cursor3' },
+        },
+      })
       await firstTest(wordsProvider().provider)
 
-      await user.click(soundNode())
-
-      const packs = screen.getByRole('radiogroup', { name: 'Sound' })
-      expect(within(packs).getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual([
-        'off',
-        ...packsIn('mechanical').map((pack) => pack.id),
-      ])
-      const styles = screen.getByRole('radiogroup', { name: 'Sound style' })
-      // The recorded presets first, then the made styles.
-      expect(within(styles).getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual([
-        'recorded',
-        ...SOUND_CATEGORIES.map((style) => style.id),
-      ])
-      expect(within(styles).getByRole('radio', { name: /^Mechanical/ })).toBeChecked()
-      expect(within(packs).getByRole('radio', { name: /^Off/ })).toBeChecked()
-      expect(soundNode()).toHaveAttribute('aria-expanded', 'true')
-      // Each one says what it is, for anyone who cannot hear it.
-      expect(within(packs).getByRole('radio', { name: `Thock: ${SOUND_PACK_LIST[0].description}` })).toBeInTheDocument()
-    })
-
-    it('plays a pack as it is chosen, then as you type, and remembers it', async () => {
-      const built = fakeAudio()
-      const user = userEvent.setup()
-      await firstTest(wordsProvider().provider)
-
-      await user.click(soundNode())
-      await user.click(screen.getByRole('radio', { name: /^Cream/ }))
-
-      // Heard as it is chosen: the context is opened by the click itself.
-      expect(built.contexts).toBe(1)
-      expect(built.oscillators).toBeGreaterThan(0)
-      expect(settingsStore.getState().preferences.sound).toBe('cream')
-      expect(soundNode()).toHaveAccessibleName('Sound: Cream')
-
-      const chosen = built.oscillators
-      typeText('abc')
-      expect(built.oscillators).toBeGreaterThan(chosen)
-
-      // A reload: the pack comes back with the rest of the preferences.
-      const reloaded = createSettingsStore(storage)
-      await reloaded.getState().hydrate()
-      expect(reloaded.getState().preferences.sound).toBe('cream')
-    })
-
-    it('shows the sounds of another style when it is chosen, and plays the one picked from them', async () => {
-      const built = fakeAudio()
-      const user = userEvent.setup()
-      await firstTest(wordsProvider().provider)
-
-      await user.click(soundNode())
-      await user.click(screen.getByRole('radio', { name: /^Neon/ }))
-
-      const packs = screen.getByRole('radiogroup', { name: 'Sound' })
-      expect(within(packs).getAllByRole('radio').map((radio) => radio.getAttribute('value'))).toEqual([
-        'off',
-        ...packsIn('neon').map((pack) => pack.id),
-      ])
-      // Choosing a style is not choosing a sound: the tree stays out.
-      expect(soundNode()).toHaveAttribute('aria-expanded', 'true')
-      expect(settingsStore.getState().preferences.sound).toBe('off')
-
-      await user.click(within(packs).getByRole('radio', { name: /^Woosh/ }))
-
-      expect(settingsStore.getState().preferences.sound).toBe('woosh')
-      expect(soundNode()).toHaveAccessibleName('Sound: Woosh')
-      expect(built.contexts).toBe(1)
-    })
-
-    it('opens on the style of the sound in use', async () => {
-      fakeAudio()
-      const user = userEvent.setup()
-      settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15, sound: 'chiptune' } })
-      await firstTest(wordsProvider().provider)
-
-      await user.click(soundNode())
-
-      expect(within(screen.getByRole('radiogroup', { name: 'Sound style' })).getByRole('radio', { name: /^Arcade/ })).toBeChecked()
-      expect(within(screen.getByRole('radiogroup', { name: 'Sound' })).getByRole('radio', { name: /^Chiptune/ })).toBeChecked()
-    })
-
-    it('goes quiet again when Off is chosen, keeping the audio it already opened', async () => {
-      const built = fakeAudio()
-      const user = userEvent.setup()
-      settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15, sound: 'thock' } })
-      await firstTest(wordsProvider().provider)
-
-      await user.click(soundNode())
-      await user.click(screen.getByRole('radio', { name: /^Off/ }))
-      const quiet = built.oscillators
-      typeText('abc')
-
-      expect(settingsStore.getState().preferences.sound).toBe('off')
-      expect(built.oscillators).toBe(quiet)
-      expect(built.contexts).toBeLessThanOrEqual(1)
-    })
-
-    it('folds the packs away again when the node is pressed a second time', async () => {
-      fakeAudio()
-      const user = userEvent.setup()
-      await firstTest(wordsProvider().provider)
-
-      await user.click(soundNode())
-      expect(screen.getByRole('radiogroup', { name: 'Sound' })).toBeInTheDocument()
-
-      await user.click(soundNode())
-
-      expect(screen.queryByRole('radiogroup', { name: 'Sound' })).not.toBeInTheDocument()
+      expect(soundNode()).toHaveAccessibleName('Sound: your own mix. Choose sounds')
     })
   })
 
@@ -1147,8 +1068,9 @@ describe('GG.Typing on the real typing session', () => {
       expect(within(screen.getByRole('main')).getAllByRole('button').map(label)).toEqual([
         'Restart test',
         'Pace: off',
-        'Sound: off',
       ])
+      // Sound is a way to the sounds in Settings, so a link rather than a button.
+      expect(within(screen.getByRole('main')).getByRole('link', { name: /^Sound:/ })).toHaveAttribute('href', '/settings#sound')
     })
   })
 })

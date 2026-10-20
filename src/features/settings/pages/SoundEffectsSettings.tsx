@@ -2,8 +2,10 @@
  * Sound effects: a preset in one choice, or each moment by ear.
  *
  * The presets come first, because they are what most people want: one choice
- * and every moment has a sound. The same presets are in the Sound menu on the
- * typing screen, under Recorded. Choosing one turns sound on.
+ * and every moment has a sound. Choosing one turns sound on. Beside them are
+ * Off and the volume, and under them the packs made in the browser. The Sound
+ * button on the typing screen leads here (`#sound`), and arriving that way
+ * puts focus on this section, so the next Tab is the first choice.
  *
  * Under them, each moment can be tuned on its own. A moment's options are a
  * list that stays open while you go through it — choosing one plays it and
@@ -23,17 +25,22 @@
  * The credits the recordings' licences ask for are at the end.
  */
 
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { useLocation } from 'react-router'
 
+// The volume slider the Sound menu had, the same control here.
+import { VolumeSlider } from '@features/gg-ui/components/SoundSelector/VolumeSlider.tsx'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import {
   MOMENT_DETAILS,
+  packsIn,
   presetChoice,
   presetMatching,
   SAMPLE_MOMENTS,
   sampleById,
   sampleChoicesFromStored,
   SAMPLES,
+  SOUND_CATEGORIES,
   SOUND_PRESETS,
   SOURCE_CREDITS,
   useSound,
@@ -116,64 +123,127 @@ const MomentRow = ({ moment, announce }: { readonly moment: SampleMoment; readon
   )
 }
 
-const PresetPicker = ({ announce }: { readonly announce: Announce }) => {
+/**
+ * The sound in one choice: a preset, Off, or a pack made in the browser — one
+ * group of radio buttons, so exactly one is ever chosen, laid out in three parts.
+ */
+const SoundPicker = ({ announce }: { readonly announce: Announce }) => {
   const name = useId()
   const sound = useSound()
   const pack = useSettingsStore((state) => state.preferences.sound)
   const samples = useSettingsStore((state) => state.preferences.soundSamples)
+  const volume = useSettingsStore((state) => state.preferences.soundVolume)
   const setSound = useSettingsStore((state) => state.setSound)
-  const current = presetMatching(pack, sampleChoicesFromStored(samples))
-  const ownMix = current === null && Object.keys(samples).length > 0
+  const setSoundVolume = useSettingsStore((state) => state.setSoundVolume)
+  const preset = presetMatching(pack, sampleChoicesFromStored(samples))
+  const ownMix = pack !== 'off' && preset === null && Object.keys(samples).length > 0
+  const current = pack === 'off' ? 'off' : preset !== null ? presetChoice(preset) : ownMix ? null : pack
+  // Shown open when a built-in pack is what is on, so the choice is in view.
+  const [packsShown] = useState(() => current !== null && current !== 'off' && preset === null)
 
-  const choose = (preset: SoundPreset) => {
-    void setSound(presetChoice(preset))
-    const key = preset.samples.key
+  const choosePreset = (chosen: SoundPreset) => {
+    void setSound(presetChoice(chosen))
+    const key = chosen.samples.key
     if (key !== undefined) sound?.previewSample(key)
-    announce(`Preset: ${preset.name}`)
+    announce(`Sound: ${chosen.name}`)
   }
+
+  const choosePack = (id: string, packName: string) => {
+    void setSound(id)
+    sound?.preview(id as Parameters<NonNullable<typeof sound>['preview']>[0])
+    announce(`Sound: ${packName}`)
+  }
+
+  const radio = (value: string, onChoose: () => void) => (
+    <input type="radio" name={name} value={value} checked={current === value} onChange={onChoose} />
+  )
 
   return (
     <fieldset className={styles.presets}>
-      <legend className={styles.subLegend}>Presets</legend>
+      <legend className={styles.subLegend}>The sound</legend>
       <p className={styles.hint}>One choice for every sound. Choosing one turns sound on.</p>
+
       <div className={styles.presetList}>
-        {SOUND_PRESETS.map((preset) => (
-          <label key={preset.id} className={styles.preset}>
-            <input
-              type="radio"
-              name={name}
-              value={preset.id}
-              checked={current?.id === preset.id}
-              onChange={() => choose(preset)}
-            />
+        {SOUND_PRESETS.map((choice) => (
+          <label key={choice.id} className={styles.preset}>
+            {radio(presetChoice(choice), () => choosePreset(choice))}
             <span className={styles.presetText}>
-              <span className={styles.title}>{preset.name}</span>
-              <span className={styles.when}>{preset.description}</span>
+              <span className={styles.title}>{choice.name}</span>
+              <span className={styles.when}>{choice.description}</span>
             </span>
           </label>
         ))}
+        <label className={styles.preset}>
+          {radio('off', () => {
+            void setSound('off')
+            announce('Sound: off')
+          })}
+          <span className={styles.presetText}>
+            <span className={styles.title}>Off</span>
+            <span className={styles.when}>No sound at all</span>
+          </span>
+        </label>
       </div>
       {ownMix && <p className={styles.hint}>Your own mix: changed from a preset, a sound at a time.</p>}
+
+      <div className={styles.volume}>
+        <VolumeSlider value={volume} onChange={(next) => void setSoundVolume(next)} />
+      </div>
+
+      <details className={styles.builtIn} open={packsShown}>
+        <summary className={styles.summary}>Built-in sounds, made in the browser</summary>
+        {SOUND_CATEGORIES.map((category) => (
+          <div key={category.id} className={styles.category} role="group" aria-label={category.name}>
+            <span className={styles.categoryName} aria-hidden="true">
+              {category.name}
+            </span>
+            <div className={styles.packs}>
+              {packsIn(category.id).map((choice) => (
+                <label key={choice.id} className={styles.option} title={choice.description}>
+                  {radio(choice.id, () => choosePack(choice.id, choice.name))}
+                  <span>{choice.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </details>
     </fieldset>
   )
 }
 
+/** Where the Sound button leads: this section, by its id. */
+export const SOUND_SECTION_ID = 'sound'
+
 export const SoundEffectsSettings = () => {
-  const soundOff = useSettingsStore((state) => state.preferences.sound === 'off')
   const [message, setMessage] = useState('')
+  const section = useRef<HTMLFieldSetElement>(null)
+  const { hash } = useLocation()
+
+  // Arriving from the Sound button: brought into view, and focus put here, so
+  // a keyboard or a screen reader starts at the sounds rather than the top.
+  useEffect(() => {
+    if (hash !== `#${SOUND_SECTION_ID}`) return
+    const element = section.current
+    if (element === null) return
+    element.scrollIntoView({ block: 'start' })
+    element.focus({ preventScroll: true })
+  }, [hash])
 
   return (
-    <fieldset className={styles.group}>
+    <fieldset
+      ref={section}
+      id={SOUND_SECTION_ID}
+      tabIndex={-1}
+      className={styles.group}
+      aria-describedby={`${SOUND_SECTION_ID}-intro`}
+    >
       <legend className={styles.legend}>Sound effects</legend>
+      <p id={`${SOUND_SECTION_ID}-intro`} className={styles.hint}>
+        Choose a sound below. Play works even with sound off.
+      </p>
 
-      {soundOff && (
-        <p className={styles.hint}>
-          Sound is off. Choose a preset, or turn sound on with the Sound button on the typing screen. Play works
-          either way.
-        </p>
-      )}
-
-      <PresetPicker announce={setMessage} />
+      <SoundPicker announce={setMessage} />
 
       <section className={styles.tune} aria-labelledby="sound-tune-heading">
         <h3 id="sound-tune-heading" className={styles.subLegend}>
