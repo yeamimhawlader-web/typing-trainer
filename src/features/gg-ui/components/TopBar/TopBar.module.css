@@ -46,34 +46,105 @@
   border-radius: var(--gg-radius-pill);
 }
 
-/* The mark brings its own ground, so the chip that used to stand in for one is
-   gone; what is left is the corner radius the rest of the chrome uses and a
-   hairline to seat it against a light page. */
+/* The Cursor H, bare: no tile, no chip. Drawn in the scheme's ink — graphite
+   lines on a light page, paper lines on a dark one — by the theme
+   (--gg-brand-mark, themes.ts), with its mint caret either way. */
 .mark {
   display: block;
   flex: none;
-  width: 36px;
+  width: 17px;
   height: 36px;
-  border-radius: var(--gg-radius-logo);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--gg-liquid-edge) 12%, transparent);
-  object-fit: cover;
+  background: var(--gg-brand-mark) center / contain no-repeat;
 }
 
+/* HOVER TYPING in Space Grotesk capitals, in the brand's own colours rather
+   than the theme's: the logo is the same logo on every page. */
 .wordmark {
-  font-size: 1.0625rem;
+  font-family: 'Space Grotesk Variable', var(--gg-font-ui);
+  font-size: 1.125rem;
   font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   line-height: 1;
   white-space: nowrap;
 }
 
 .gg {
-  color: var(--gg-accent);
-  font-weight: var(--font-weight-bold);
+  color: var(--gg-brand-word);
 }
 
 .rest {
-  color: var(--gg-muted);
+  position: relative;
+  display: inline-block;
+  color: var(--gg-brand-accent);
+}
+
+/* --- The wordmark's one play (Wordmark.tsx) ---------------------------- */
+
+.letters {
+  display: inline-block;
+  transform-origin: 50% 100%;
+}
+
+/* Letters not yet typed keep their place, faint, so nothing moves. */
+.letters [data-state='ahead'] {
+  opacity: 0.18;
+}
+
+.letters [data-state='slip'] {
+  color: var(--gg-error);
+}
+
+.caret,
+.pool,
+.nodes {
+  position: absolute;
+  pointer-events: none;
+}
+
+.caret {
+  left: 0;
+  top: 0.06em;
+  width: 0.08em;
+  height: 0.86em;
+  border-radius: 0.04em;
+  background: var(--gg-brand-accent);
+  opacity: 0;
+}
+
+.rest[data-typing] .caret {
+  opacity: 1;
+}
+
+.pool {
+  left: 6%;
+  right: 6%;
+  bottom: -0.18em;
+  height: 0.14em;
+  border-radius: 50%;
+  background: var(--gg-brand-accent);
+  filter: blur(4px);
+  opacity: 0;
+}
+
+.nodes {
+  left: 50%;
+  bottom: -0.6em;
+  display: flex;
+  gap: 0.18em;
+  translate: -50% 0;
+}
+
+.node {
+  width: 0.2em;
+  height: 0.2em;
+  box-sizing: border-box;
+  border: 0.05em solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.node[data-clean] {
+  background: currentColor;
 }
 
 /* --- Right cluster -------------------------------------------------- */

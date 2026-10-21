@@ -40,6 +40,8 @@ import { cx } from '@shared/lib'
 
 import { PaletteIcon, SignInIcon } from '../icons.tsx'
 
+import { Wordmark } from './Wordmark.tsx'
+
 import styles from './TopBar.module.css'
 
 export interface TopBarProps {
@@ -128,19 +130,10 @@ export const TopBar = ({
     <header className={styles.bar} data-recede="">
       <div className={styles.inner}>
         <Link to={ROUTES.home} className={styles.brand} aria-label={appConfig.appName}>
-          {/* The mark keeps its own ground across all eleven themes, the way
-              an application's icon does; the wordmark beside it is themed. */}
-          <img
-            className={styles.mark}
-            src="/logo-mark.png"
-            alt=""
-            width={36}
-            height={36}
-          />
-          <span className={styles.wordmark} aria-hidden="true">
-            <span className={styles.gg}>HOVER</span>
-            <span className={styles.rest}> TYPING</span>
-          </span>
+          {/* The bare Cursor H in the scheme's ink, and the wordmark in the
+              brand's colours: the same logo on every theme. */}
+          <span className={styles.mark} aria-hidden="true" />
+          <Wordmark />
         </Link>
 
         <nav className={styles.cluster} aria-label="Main">

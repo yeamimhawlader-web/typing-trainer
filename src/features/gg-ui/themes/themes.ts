@@ -293,7 +293,21 @@ export const themeById = (id: string): GGTheme =>
  * names directly — they read the semantic tokens in gg-foundation.css, which are
  * built from them.
  */
+/**
+ * The brand's own colours, which do not follow the theme: the logo is the same
+ * logo on every page. Only the scheme picks between its two inks — graphite and
+ * deep teal on a light page, paper and mint on a dark one — and the mark's cut-
+ * out drawn in the matching ink (public/brand-mark*.png).
+ */
+const BRAND = {
+  light: { word: '#15181C', accent: '#0E6E63', mark: "url('/brand-mark.png')" },
+  dark: { word: '#F4F6F3', accent: '#14B886', mark: "url('/brand-mark-on-dark.png')" },
+} as const
+
 export const themeProperties = (theme: GGTheme): Readonly<Record<string, string>> => ({
+  '--gg-brand-word': BRAND[theme.scheme].word,
+  '--gg-brand-accent': BRAND[theme.scheme].accent,
+  '--gg-brand-mark': BRAND[theme.scheme].mark,
   '--gg-base-bg': theme.colors.bg,
   '--gg-base-surface': theme.colors.surface,
   '--gg-base-fg': theme.colors.fg,

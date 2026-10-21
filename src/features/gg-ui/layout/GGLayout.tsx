@@ -65,6 +65,8 @@ import '@fontsource-variable/geist-mono/wght.css'
 import '@fontsource-variable/inter/wght.css'
 import '@fontsource-variable/lora/wght.css'
 import '@fontsource-variable/roboto-slab/wght.css'
+// The wordmark's face, in the top bar on every page.
+import '@fontsource-variable/space-grotesk/wght.css'
 import '../styles/gg-foundation.css'
 import styles from './GGLayout.module.css'
 
