@@ -12,7 +12,9 @@
  *
  * Built into index.html at build time (see vite.config.ts) from the theme
  * registry itself, so a new dark theme needs no change here. No DOM types: the
- * build reads this file too.
+ * build reads this file too. The Content-Security-Policy in vercel.json allows
+ * the script by its hash, so changing the output means updating that hash;
+ * src/styles/first-paint-csp.test.ts says which one.
  */
 
 import { GG_THEMES } from './themes.ts'

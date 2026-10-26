@@ -53,6 +53,14 @@ cache the hashed bundles forever and the HTML not at all, so a new build reaches
 people on their next visit rather than whenever their browser gives up on a stale
 copy.
 
+Every response also carries security headers. The Content-Security-Policy names
+exactly what the page may load: its own files, photographs from Unsplash, Google
+profile pictures, and Supabase for accounts. Anything new from another address
+(an analytics script, a font service, another image host) is refused until it is
+added there. The one inline script, which sets the theme before first paint, is
+allowed by its hash; `src/styles/first-paint-csp.test.ts` fails with the new hash
+if that script changes.
+
 ## What friends should know
 
 - Their results are stored in **their own browser**. Clearing site data clears
