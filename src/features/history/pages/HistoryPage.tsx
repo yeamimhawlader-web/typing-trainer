@@ -18,7 +18,7 @@ import {
   formatWpm,
   toIsoString,
 } from '@features/results'
-import { ConfirmAction, Page } from '@shared/ui'
+import { ConfirmAction, EmptyState, Page } from '@shared/ui'
 
 import { useHistoryStore } from '../state/history.store.ts'
 
@@ -97,10 +97,9 @@ export const HistoryPage = () => {
     return (
       <Page title="History">
         <UndoNotice />
-        <p className={styles.empty}>
-          No tests recorded yet. <Link to={PRACTICE_PATH}>Take one</Link> and it will
-          appear here.
-        </p>
+        <EmptyState title="No tests recorded yet." action={{ to: PRACTICE_PATH, label: 'Start typing' }}>
+          Take one and it will appear here.
+        </EmptyState>
       </Page>
     )
   }

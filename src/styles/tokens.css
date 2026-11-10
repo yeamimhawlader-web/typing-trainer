@@ -135,6 +135,8 @@
   --font-size-2xl: 1.953rem;
   --font-size-3xl: 2.441rem;
   --font-size-4xl: 3.052rem;
+  --font-size-5xl: 3.815rem;
+  --font-size-6xl: 4.768rem;
 
   /* The typing surface gets its own tokens: tuned for legibility at a fixed
      reading distance, not for the document scale above. */

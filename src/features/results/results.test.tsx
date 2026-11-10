@@ -107,6 +107,33 @@ describe('session summary', () => {
     expect(detailValue('Completed')).not.toBe('')
   })
 
+  it('keeps every figure open by default, as the detail page shows it', () => {
+    renderSummary(makeSession())
+
+    expect(screen.queryByText('All figures')).not.toBeInTheDocument()
+    expect(screen.getByText('Duration').closest('details')).toBeNull()
+  })
+
+  it('folds the full figures behind one press when a test has just ended, with what to do next above them', () => {
+    render(
+      <MemoryRouter>
+        <SessionSummary session={makeSession()} collapsed actions={<button type="button">Try again</button>} />
+      </MemoryRouter>,
+    )
+
+    const folded = screen.getByText('All figures').closest('details')
+    expect(folded).not.toHaveAttribute('open')
+    expect(folded).toContainElement(screen.getByText('Duration'))
+    // Still all there, one press away.
+    expect(detailValue('Duration')).toBe('7s')
+
+    // The action sits before the folded figures, not after them.
+    const tryAgain = screen.getByRole('button', { name: 'Try again' })
+    expect(tryAgain.compareDocumentPosition(folded as HTMLElement) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // The speed is still the headline.
+    expect(screen.getByText('128')).toBeInTheDocument()
+  })
+
   it('displays exactly what is stored, without recalculating it', () => {
     // Deliberately inconsistent numbers: were the screen deriving accuracy from
     // the character counts, it could not show 50%.

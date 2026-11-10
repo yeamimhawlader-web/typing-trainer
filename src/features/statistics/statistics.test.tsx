@@ -93,7 +93,7 @@ describe('statistics page', () => {
     renderPage()
 
     expect(await screen.findByText(/no tests recorded yet/i)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /take one/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Start typing' })).toHaveAttribute('href', '/gg')
   })
 
   it('refuses to draw a trend from a single test', async () => {
