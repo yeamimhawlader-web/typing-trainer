@@ -83,6 +83,28 @@ const Progress = ({ engine, total }: { engine: TypingEngine; total: number | nul
   return <Figure value={total === null ? String(done) : `${done}/${total}`} unit="words" />
 }
 
+/**
+ * The figures, out of sight until there is something to read. Before the first
+ * key they say "— wpm, 100%, 0s", which is four things to look at and nothing
+ * to know. They keep their place, so the row does not move when they arrive.
+ */
+const Figures = ({ engine, children }: { engine: TypingEngine; children: React.ReactNode }) => {
+  const idle = useEngineValue(engine, (snapshot) => snapshot.status === 'idle')
+  return (
+    // Named so it can be told apart from the result announcement, which is
+    // the status region that does speak.
+    <div
+      className={styles.figures}
+      role="status"
+      aria-live="off"
+      aria-label="Live statistics"
+      data-idle={idle ? '' : undefined}
+    >
+      {children}
+    </div>
+  )
+}
+
 export interface ControlRowProps {
   readonly engine: TypingEngine
   /** The text provider's name, "Common words", or the drill; or the mode's. */
@@ -112,14 +134,12 @@ export const ControlRow = ({
       </p>
 
       <div className={styles.actions}>
-        {/* Named so it can be told apart from the result announcement, which is
-            the status region that does speak. */}
-        <div className={styles.figures} role="status" aria-live="off" aria-label="Live statistics">
+        <Figures engine={engine}>
           <Speed engine={engine} />
           <Accuracy engine={engine} />
           <Time engine={engine} limitSeconds={limitSeconds} />
           <Progress engine={engine} total={words} />
-        </div>
+        </Figures>
         <span className={styles.gap} aria-hidden="true" />
         {/* Together, so on a narrow screen they wrap as a pair. */}
         <span className={styles.buttons} data-recede="">

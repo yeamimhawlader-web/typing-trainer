@@ -253,6 +253,16 @@ describe('GG.Typing on the real typing session', () => {
       expect(figure('words')).toBe('0/15')
     })
 
+    it('stay out of sight until the first key, and hold their place while they do', async () => {
+      await firstTest(wordsProvider().provider)
+
+      // Still in the row, so nothing shifts when they arrive.
+      expect(figures()).toHaveAttribute('data-idle')
+
+      typeText('a', 250)
+      expect(figures()).not.toHaveAttribute('data-idle')
+    })
+
     it('move with the test: speed after the first second, accuracy on a mistake, words as they finish', async () => {
       await firstTest(wordsProvider().provider)
 
