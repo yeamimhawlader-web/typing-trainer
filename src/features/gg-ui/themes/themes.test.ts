@@ -90,9 +90,9 @@ describe('GG themes', () => {
     expect(names('dark')).toEqual(['Default (Dark)', 'Glow', 'Nord', 'Midnight', 'Valentine'])
   })
 
-  it('opens a fresh installation in Classic Milk, and falls back to it for an unknown id', () => {
-    expect(DEFAULT_THEME_ID).toBe('classic-milk')
-    expect(themeById('no-such-theme').id).toBe('classic-milk')
+  it('opens a fresh installation in Mint, and falls back to it for an unknown id', () => {
+    expect(DEFAULT_THEME_ID).toBe('mint')
+    expect(themeById('no-such-theme').id).toBe('mint')
   })
 
   it('carries the themes of earlier versions over to their own scheme, never to the new default', () => {

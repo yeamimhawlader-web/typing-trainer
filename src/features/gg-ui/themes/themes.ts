@@ -112,9 +112,7 @@ export const GG_THEMES = [
       surface: '#fefcf8',
       fg: '#24221e',
       muted: '#6a655d',
-      // The brand's Deep Teal (BRAND below): the default theme's buttons and
-      // the logo beside them are one colour, not brown beside teal.
-      accent: '#0e6e63',
+      accent: '#86592f',
       error: '#b42318',
     },
     glass: MILK_GLASS,
@@ -270,8 +268,11 @@ export type GGThemeId = (typeof GG_THEMES)[number]['id']
  * The theme a fresh installation opens in, and the fallback for an id this build
  * does not know. A theme someone already chose is never replaced by it: the
  * default only fills a preference that was never saved.
+ *
+ * Mint, because it is the theme nearest the brand's own mint and teal (BRAND
+ * below): the logo and the buttons beside it read as one family.
  */
-export const DEFAULT_THEME_ID: GGThemeId = 'classic-milk'
+export const DEFAULT_THEME_ID: GGThemeId = 'mint'
 
 /**
  * The theme a stored preference names, or null if it names none.

@@ -1422,7 +1422,7 @@ maps onto the theme, so they are inside it rather than beside it. Its token plan
   old `dark`/`light` values migrated to the defaults of the same scheme), the
   text size and the practice length are stored with the other preferences. The
   classic pages follow the chosen theme's scheme. A fresh installation opens in
-  Classic Milk; only a preference never saved takes the default, so a theme
+  Mint, the theme nearest the brand's colours; only a preference never saved takes the default, so a theme
   someone chose — including the dark theme that used to be the default — stays.
 - **The first paint is in the saved scheme.** The stylesheet on its own draws
   the page dark until the application has run. A few lines inlined into the page

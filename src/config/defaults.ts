@@ -8,9 +8,10 @@
 import type { UserPreferences } from '@core/types'
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
-  // Classic Milk: the first impression of a fresh installation. Only a
-  // preference that was never saved takes it; a chosen theme is kept.
-  theme: 'classic-milk',
+  // Mint: the first impression of a fresh installation, and the theme nearest
+  // the brand's colours. Only a preference that was never saved takes it; a
+  // chosen theme is kept.
+  theme: 'mint',
   practiceWordCount: 30,
   // Words by default, as the application has always opened; thirty seconds is
   // the timed test it offers first.

@@ -8,7 +8,7 @@ import type { UserPreferences } from '@core/types'
 import { createSettingsStore } from './settings.store.ts'
 
 const DEFAULTS: UserPreferences = {
-  theme: 'classic-milk',
+  theme: 'mint',
   practiceWordCount: 30,
   practiceMode: 'words',
   practiceSeconds: 30,
@@ -38,16 +38,16 @@ describe('settings store', () => {
   it('starts on defaults before hydration', () => {
     const store = createSettingsStore(adapter)
 
-    expect(store.getState().preferences.theme).toBe('classic-milk')
+    expect(store.getState().preferences.theme).toBe('mint')
     expect(store.getState().status).toBe('idle')
   })
 
-  it('opens a fresh installation in Classic Milk', async () => {
+  it('opens a fresh installation in Mint', async () => {
     const store = createSettingsStore(adapter)
 
     await store.getState().hydrate()
 
-    expect(store.getState().preferences.theme).toBe('classic-milk')
+    expect(store.getState().preferences.theme).toBe('mint')
     // Nothing is written just by opening: the default is not saved as a choice.
     await expect(adapter.read(STORAGE_KEYS.preferences)).resolves.toBeNull()
   })

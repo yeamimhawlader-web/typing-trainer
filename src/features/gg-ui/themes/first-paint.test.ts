@@ -28,11 +28,11 @@ describe('the first paint', () => {
     expect(PREFERENCES_STORAGE_KEY).toBe(`${buildKeyPrefix(appConfig.persistence)}${STORAGE_KEYS.preferences}`)
   })
 
-  it('is light for a fresh installation, which opens in Classic Milk', () => {
+  it('is light for a fresh installation, which opens in Mint', () => {
     expect(run()).toBe('light')
   })
 
-  it('is light for Classic Milk and every other light theme', () => {
+  it('is light for Mint and every other light theme', () => {
     for (const theme of GG_THEMES.filter((candidate) => candidate.scheme === 'light')) {
       save({ theme: theme.id })
       expect(run()).toBe('light')
