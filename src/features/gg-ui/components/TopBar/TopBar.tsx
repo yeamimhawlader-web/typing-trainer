@@ -13,32 +13,33 @@
  * name, because that is the one thing a typist checks a bar for.
  *
  * The brand leads home, to the front page and its ways to practise; Typing
- * Test goes straight to the words. The four pages are icons, and the one you
- * are on opens to show its name (src/components/ui/expandable-tabs.tsx): the
- * bar says where you are without spelling out everywhere you could go. Each
- * icon still carries its page's name for a screen reader and a pointer.
+ * Test goes straight to the words. The four pages sit in one pill of water
+ * (src/components/ui/liquid-glass-navbar.tsx): a drop rests on the page you are
+ * on and travels to the one you pick. On a page that is none of the four —
+ * home, sign in — there is no drop. Each is a real link, named for a screen
+ * reader and a pointer, and its name is written out where the bar has room.
  *
- * The moving version is fetched on its own, after the page: framer-motion and
- * what comes with it more than doubled what every page loads first, for a bar
- * that only moves when a page is changed. Until it arrives — a moment — the
- * same icons are drawn still, as plain links, at the place the moving version
- * comes to rest, so the swap does not show.
+ * The water is still between interactions: its idle shimmer would spend a
+ * frame every frame in a bar that is on screen while someone types.
  * The theme button is the one thing in the bar
  * drawn to be found: a tinted pill with its name and the colours of the theme on
  * now, because changing how the page looks is the first thing people try.
  */
 
-import { lazy, Suspense, type Ref } from 'react'
+import type { CSSProperties, Ref } from 'react'
 import { ChartColumn, History, Keyboard, Settings } from 'lucide-react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router'
 
+import { LiquidNavbar, type LiquidNavItem } from '@/components/ui/liquid-glass-navbar.tsx'
 import { PRACTICE_PATH, ROUTES } from '@app/routes.ts'
 import { appConfig } from '@config'
 import { accountService, type AccountService } from '@core/accounts'
 import { useAccount } from '@features/accounts'
+import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { cx } from '@shared/lib'
 
 import { PaletteIcon, SignInIcon } from '../icons.tsx'
+import { DEFAULT_THEME_ID, themeById, themeIdFromStored } from '../../themes/themes.ts'
 
 import { Wordmark } from './Wordmark.tsx'
 
@@ -59,7 +60,20 @@ const NAV = [
   { to: ROUTES.settings, label: 'Settings', icon: Settings, end: false },
 ] as const
 
-const NAV_TABS = NAV.map(({ to, label, icon }) => ({ title: label, icon, href: to }))
+/** Each page as an item of the water nav, with the small scene its icon plays when picked. */
+const NAV_ITEMS: LiquidNavItem[] = [
+  { label: NAV[0].label, href: NAV[0].to, icon: <Keyboard size={20} aria-hidden="true" />, fx: 'pop' },
+  { label: NAV[1].label, href: NAV[1].to, icon: <History size={20} aria-hidden="true" />, fx: 'spin' },
+  { label: NAV[2].label, href: NAV[2].to, icon: <ChartColumn size={20} aria-hidden="true" />, fx: 'wave' },
+  { label: NAV[3].label, href: NAV[3].to, icon: <Settings size={20} aria-hidden="true" />, fx: 'spin' },
+]
+
+/** The theme's own ink and accent, in place of the component's fixed navy and blue. */
+const NAV_INK = {
+  '--n-fg': 'var(--gg-fg)',
+  '--n-fg-soft': 'var(--gg-muted)',
+  '--n-focus': 'var(--gg-accent)',
+} as CSSProperties
 
 /** The page `pathname` is on, as NavLink would match it: exactly, or anywhere beneath. */
 const pageIndex = (pathname: string): number | null => {
@@ -68,47 +82,6 @@ const pageIndex = (pathname: string): number | null => {
   )
   return index === -1 ? null : index
 }
-
-/** The tabs at rest, as plain links: what shows until the moving ones arrive, or if they never do. */
-const StillTabs = ({ selected }: { readonly selected: number | null }) => (
-  <div className="flex flex-wrap items-center gap-1">
-    {NAV.map(({ to, label, icon: Icon, end }, index) => (
-      <NavLink
-        key={to}
-        to={to}
-        end={end}
-        aria-label={label}
-        title={label}
-        className={
-          index === selected
-            ? 'relative flex items-center gap-2 rounded-xl bg-muted px-4 py-2 text-sm font-medium text-foreground'
-            : 'relative flex items-center rounded-xl px-2 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground'
-        }
-      >
-        <Icon size={20} aria-hidden="true" />
-        {index === selected && (
-          <span className="overflow-hidden whitespace-nowrap" aria-hidden="true">
-            {label}
-          </span>
-        )}
-      </NavLink>
-    ))}
-  </div>
-)
-
-// Asked for as this module loads, so it is on its way while the page renders.
-// A fetch that fails — offline, or a deploy that replaced the file — leaves the
-// still tabs in place for good, rather than the bar without its pages.
-const loadTabs = import('@/components/ui/expandable-tabs.tsx').then(
-  (module) => module.ExpandableTabs,
-  () =>
-    ({ selected }: { readonly selected?: number | null }) => (
-      <StillTabs selected={selected ?? null} />
-    ),
-)
-const ExpandableTabs = lazy(() =>
-  loadTabs.then((component) => ({ default: component })),
-)
 
 /** A name to fit a bar: the first of them, or the email's own name. */
 const shortName = (name: string | null, email: string | null): string =>
@@ -125,6 +98,9 @@ export const TopBar = ({
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const selected = pageIndex(pathname)
+  const theme = useSettingsStore((state) =>
+    themeById(themeIdFromStored(state.preferences.theme) ?? DEFAULT_THEME_ID),
+  )
 
   return (
     <header className={styles.bar} data-recede="">
@@ -137,18 +113,19 @@ export const TopBar = ({
         </Link>
 
         <nav className={styles.cluster} aria-label="Main">
-          <Suspense fallback={<StillTabs selected={selected} />}>
-            <ExpandableTabs
-              tabs={NAV_TABS}
-              selected={selected}
-              onChange={(index) => {
-                const page = index === null ? undefined : NAV[index]
-                if (page !== undefined) void navigate(page.to)
-              }}
-              className="gap-1 border-0 bg-transparent p-0 shadow-none"
-              activeColor="text-foreground"
-            />
-          </Suspense>
+          <LiquidNavbar
+            as="div"
+            className={styles.pages}
+            style={NAV_INK}
+            items={NAV_ITEMS}
+            active={selected ?? -1}
+            tone={theme.scheme}
+            accent={theme.colors.accent}
+            ambient={false}
+            onChange={(_index, item) => {
+              if (item.href !== undefined) void navigate(item.href)
+            }}
+          />
 
           <NavLink
             to={ROUTES.ggSignIn}

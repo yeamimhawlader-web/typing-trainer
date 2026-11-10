@@ -176,7 +176,7 @@
      top of page comes to about 72; this application's came to 283 before the
      measuring, of which the bar was the largest single piece that was not
      doing anything with the room. */
-  --gg-bar-height: 48px;
+  --gg-bar-height: 60px;
 
   --gg-radius-logo: 10px;
   /* A capsule, the shape the glass nodes and the buttons already are: a chosen
