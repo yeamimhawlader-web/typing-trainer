@@ -19,14 +19,29 @@
   align-items: center;
 }
 
+/* The test's settings sit in one tray, so a dozen small choices read as one
+   object with parts rather than as words scattered along a line. The radius is
+   half the tray's one-line height: a capsule on one line, and still a sensible
+   corner when a narrow screen wraps it onto two. */
 .settings {
   grid-area: settings;
+  justify-self: start;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  row-gap: 0.75rem;
+  row-gap: 0.375rem;
   min-width: 0;
-  margin-top: 14px;
+  max-width: 100%;
+  margin-top: 12px;
+  padding: 4px 6px 4px 14px;
+  border: 1px solid var(--gg-hairline);
+  border-radius: calc(var(--gg-pill-height) / 2 + 5px);
+  background-color: var(--gg-liquid-fill);
+}
+
+/* Nothing to choose — a drill is the material it was built as — so no tray. */
+.settings:empty {
+  display: none;
 }
 
 /* The typefaces' "Aa"s, each set in the face it chooses, a size up from the

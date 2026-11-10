@@ -214,9 +214,13 @@
 }
 
 /* A group's own name, where two groups sit side by side and which is which matters. */
+/* Small capitals, so a name is never mistaken for one of the choices after it. */
 .caption {
-  margin-right: 0.25rem;
-  font-size: var(--gg-text-pill);
+  margin-right: 0.375rem;
+  font-size: var(--gg-text-caption);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
   color: var(--gg-muted);
   user-select: none;
 }

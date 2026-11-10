@@ -152,7 +152,7 @@ export const HoverSelector = ({ mode, difficulty, onDifficultyChange }: HoverSel
           <Link
             ref={node}
             to={ROUTES.ggHover}
-            className={unfold.node}
+            className={`${unfold.node} ${styles.mode}`}
             data-open={mode === 'hover'}
             // Part of Hover Mode's tree (see BRANCH_TREE_ATTRIBUTE), and its node.
             data-branch-tree="hover"
@@ -179,7 +179,7 @@ export const HoverSelector = ({ mode, difficulty, onDifficultyChange }: HoverSel
 
           <Link
             to={ROUTES.ggSyllables}
-            className={unfold.node}
+            className={`${unfold.node} ${styles.mode}`}
             data-open={mode === 'syllable'}
             aria-current={mode === 'syllable' ? 'page' : undefined}
             title={SYLLABLE_DESCRIPTION}

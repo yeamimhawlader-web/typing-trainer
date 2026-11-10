@@ -160,6 +160,8 @@
   --gg-text-nav: 0.9375rem;
   --gg-text-control: 0.9375rem;
   --gg-text-pill: 0.8125rem;
+  /* The name of a group of controls: "Words", "Time", "High Speed Trainer". */
+  --gg-text-caption: 0.6875rem;
 
   /* Word stream sizes. The block around them never changes height. */
   --gg-stream-scale: 1;
@@ -177,7 +179,9 @@
   --gg-bar-height: 48px;
 
   --gg-radius-logo: 10px;
-  --gg-radius-pill: 8px;
+  /* A capsule, the shape the glass nodes and the buttons already are: a chosen
+     pill beside a node was a rounded rectangle beside a capsule. */
+  --gg-radius-pill: 9999px;
   --gg-radius-input: 14px;
   --gg-radius-full: 9999px;
 

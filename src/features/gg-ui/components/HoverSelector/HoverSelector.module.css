@@ -1,7 +1,9 @@
 /* The mode nav: ordinary practice, and the High Speed Trainer beside it. */
+/* Wraps before it would run under Pace and Sound at the other end of the row. */
 .modes {
   grid-area: modes;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   min-width: 0;
@@ -23,8 +25,8 @@
 }
 
 /* The High Speed Trainer: its two mechanisms under the name they share, set a
-   hairline apart from ordinary practice. The name is a small technical label,
-   two short lines, so it takes the width of neither node. */
+   hairline apart from ordinary practice. The name is a caption like the
+   toolbar's others (controls.module.css), on one line. */
 .trainer {
   display: flex;
   align-items: center;
@@ -36,14 +38,31 @@
 }
 
 .trainerLabel {
-  max-width: 7.6em;
-  margin-right: 4px;
-  font-size: 0.625rem;
+  margin-right: 0.375rem;
+  font-size: var(--gg-text-caption);
   font-weight: var(--font-weight-medium);
-  line-height: 1.15;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
+  white-space: nowrap;
   color: var(--gg-muted);
+}
+
+/* A mode is text until it is the one on, as every other choice here is: the
+   node's glass is for the mode in use and the one pointed at. The glass keeps
+   its box, so the unfolding measures what it always did. */
+.mode:not([data-open='true']) > span {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.mode:not([data-open='true']) > span::before {
+  opacity: 0;
+}
+
+@media (hover: hover) {
+  .mode:not([data-open='true']):hover > span {
+    background-color: color-mix(in oklab, var(--gg-liquid-fill-chosen) 45%, transparent);
+  }
 }
 
 /* The Syllable Trainer's mark: a word as two chunks with a breath between.
