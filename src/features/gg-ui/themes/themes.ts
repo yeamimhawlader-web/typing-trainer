@@ -112,7 +112,9 @@ export const GG_THEMES = [
       surface: '#fefcf8',
       fg: '#24221e',
       muted: '#6a655d',
-      accent: '#86592f',
+      // The brand's Deep Teal (BRAND below): the default theme's buttons and
+      // the logo beside them are one colour, not brown beside teal.
+      accent: '#0e6e63',
       error: '#b42318',
     },
     glass: MILK_GLASS,

@@ -54,7 +54,7 @@ is blurred.
 
 | Theme | bg | accent | fg | error |
 | --- | --- | --- | --- | --- |
-| Classic Milk | `#f7f4ee` | `#86592f` | `#24221e` | `#b42318` |
+| Classic Milk | `#f7f4ee` | `#0e6e63` | `#24221e` | `#b42318` |
 | Default (Light) | `#fafafa` | `#2563eb` | `#18181b` | `#d92d20` |
 | Classic | `#f2ede3` | `#1f4e8c` | `#2a2622` | `#b42318` |
 | Lemondrop | `#fff8d6` | `#8a5a00` | `#2b260f` | `#c0262d` |

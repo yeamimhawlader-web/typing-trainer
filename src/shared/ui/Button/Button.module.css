@@ -42,8 +42,12 @@
   transform: scale(0.97);
 }
 
+/* Not available, whichever variant it is: flat and neutral, with no rim to
+   catch the light. A primary button at half strength still read as primary. */
 .button:disabled {
-  opacity: 0.5;
+  background-color: color-mix(in oklab, var(--color-text-primary) 8%, transparent);
+  box-shadow: none;
+  color: var(--color-text-tertiary);
   cursor: not-allowed;
 }
 
