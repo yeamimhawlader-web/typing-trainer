@@ -19,27 +19,27 @@
   align-items: center;
 }
 
-/* The test's settings sit in one tray, so a dozen small choices read as one
-   object with parts rather than as words scattered along a line. The radius is
-   half the tray's one-line height: a capsule on one line, and still a sensible
-   corner when a narrow screen wraps it onto two. */
+/* The test's settings sit on one card, each kind under its own name — Words,
+   Time, Vocabulary, Add — so a dozen small choices read as four labelled
+   groups rather than as words along a line. The groups are columns with room
+   between them, and wrap whole onto a second row where the page is narrow. */
 .settings {
   grid-area: settings;
   justify-self: start;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  row-gap: 0.375rem;
+  align-items: flex-start;
+  gap: 0.625rem 1.75rem;
   min-width: 0;
   max-width: 100%;
   margin-top: 12px;
-  padding: 4px 6px 4px 14px;
+  padding: 10px 14px 10px 8px;
   border: 1px solid var(--gg-hairline);
-  border-radius: calc(var(--gg-pill-height) / 2 + 5px);
+  border-radius: 16px;
   background-color: var(--gg-liquid-fill);
 }
 
-/* Nothing to choose — a drill is the material it was built as — so no tray. */
+/* Nothing to choose — a drill is the material it was built as — so no card. */
 .settings:empty {
   display: none;
 }

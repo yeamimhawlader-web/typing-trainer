@@ -42,7 +42,7 @@ import {
 import type { SoundPreference } from '@features/sound'
 import type { WordCount } from '@features/typing'
 
-import { PillGroup, Separator, TogglePill, type PillOption } from '../controls/controls.tsx'
+import { ControlField, PillGroup, TogglePill, type PillOption } from '../controls/controls.tsx'
 import { HoverSelector, type GGMode } from '../HoverSelector/HoverSelector.tsx'
 import { PaceSelector } from '../PaceSelector/PaceSelector.tsx'
 import { SoundSelector } from '../SoundSelector/SoundSelector.tsx'
@@ -144,15 +144,16 @@ export const Toolbar = ({
 
       {dress !== null && (
         <>
-          <Separator />
-          <PillGroup
-            name="gg-vocabulary"
-            label="Vocabulary"
-            options={VOCABULARY_OPTIONS}
-            value={dress.vocabulary}
-            onChange={dress.onVocabulary}
-          />
-          <Separator />
+          <ControlField label="Vocabulary">
+            <PillGroup
+              name="gg-vocabulary"
+              label="Vocabulary"
+              options={VOCABULARY_OPTIONS}
+              value={dress.vocabulary}
+              onChange={dress.onVocabulary}
+            />
+          </ControlField>
+          <ControlField label="Add">
           <div role="group" aria-label="Text" className={styles.dress}>
             <TogglePill
               label="Punctuation"
@@ -167,6 +168,7 @@ export const Toolbar = ({
               onChange={dress.onNumbers}
             />
           </div>
+          </ControlField>
         </>
       )}
     </div>

@@ -145,7 +145,7 @@ export const HoverSelector = ({ mode, difficulty, onDifficultyChange }: HoverSel
         />
 
         <div role="group" aria-labelledby={trainerLabel} className={styles.trainer}>
-          <span id={trainerLabel} className={styles.trainerLabel}>
+          <span id={trainerLabel} className="visually-hidden">
             High Speed Trainer
           </span>
 

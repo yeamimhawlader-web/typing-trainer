@@ -225,6 +225,26 @@
   user-select: none;
 }
 
+/* A named group: the name above, its controls in a row beneath. The name is
+   inset to sit over the first pill's label rather than over its edge. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.field > .caption {
+  margin: 0 0 0 0.625rem;
+}
+
+.fieldControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 0.5rem;
+}
+
 .separator {
   flex: none;
   width: 1px;
