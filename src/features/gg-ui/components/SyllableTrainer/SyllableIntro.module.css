@@ -17,8 +17,48 @@
 
 /* --- Header ----------------------------------------------------------- */
 
+/* The title on the left; the way to the explanation at the far end of its last line. */
 .header {
+  position: relative;
   margin-bottom: 18px;
+}
+
+.how {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  padding: 0 13px;
+  border: 1px solid var(--gg-glass-border);
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-glass-fill);
+  box-shadow: inset 0 1px 0 var(--gg-glass-highlight);
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--gg-muted);
+  cursor: pointer;
+  transition: transform var(--gg-duration-touch) var(--gg-ease-touch);
+}
+
+.how[aria-expanded='true'] {
+  background-color: var(--gg-accent-tint);
+  color: var(--gg-fg);
+}
+
+@media (hover: hover) {
+  .how:hover {
+    color: var(--gg-fg);
+    transform: translateY(-1px);
+  }
+}
+
+.how:active {
+  transform: translateY(0.5px) scale(0.96);
+}
+
+.how:focus-visible {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 2px;
 }
 
 .eyebrow {
@@ -139,15 +179,24 @@
 
 /* --- The demonstration ------------------------------------------------ */
 
+/* The word and its rhythm on the left; the keyboard it is typed on, on the right. */
 .stage {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 28px;
+  min-height: 116px;
+  padding-top: 8px;
+}
+
+.demo {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 16px;
-  min-height: 116px;
-  padding-top: 8px;
+  min-width: 0;
 }
 
 .word {
@@ -417,6 +466,13 @@
 
 /* --- Narrower --------------------------------------------------------- */
 
+@media (max-width: 1080px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+}
+
 @media (max-width: 860px) {
   .body {
     grid-template-columns: minmax(0, 1fr);
@@ -443,6 +499,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .how,
   .replay,
   .chunk,
   .chunk::after,
@@ -457,6 +514,8 @@
     transition: none;
   }
 
+  .how:hover,
+  .how:active,
   .replay:hover,
   .replay:active {
     transform: none;

@@ -20,6 +20,14 @@
  * typist is typing — and with reduced motion it is only ever that resting
  * diagram, which says the same thing standing still.
  *
+ * Beside the word, the same demonstration from the hands' side: the keyboard,
+ * tilted away, with each key going down as its letter is typed and the
+ * distance between keys drawn and counted (KeyTravel.tsx).
+ *
+ * Under the two cards, why it helps and the measurements behind it
+ * (SyllableExplainer.tsx): open the first time someone arrives, and after that
+ * only when "How it works" is pressed.
+ *
  * The drawing is for the eye. What it shows is also said in words, once, for
  * anyone not looking at it.
  */
@@ -40,6 +48,10 @@ import { prefersReducedMotion } from '@features/ggtyping'
 import { useEngineValue } from '@features/typing'
 
 import { RestartIcon } from '../icons.tsx'
+
+import { KeyTravel } from './KeyTravel.tsx'
+import { explainerSeen, rememberExplainerSeen } from './explainer-seen.ts'
+import { SyllableExplainer } from './SyllableExplainer.tsx'
 
 import styles from './SyllableIntro.module.css'
 
@@ -82,6 +94,12 @@ export const SyllableIntro = ({ engine }: SyllableIntroProps) => {
   // A test starting stops it, for good: back to the diagram, until it is asked for again.
   if (typing && playback.playing) setPlayback(RESTING)
   const playing = playback.playing && !typing
+  // The explanation: there on a first visit, and from then on only when asked for.
+  const [explaining, setExplaining] = useState(() => !explainerSeen())
+  const closeExplainer = () => {
+    rememberExplainerSeen()
+    setExplaining(false)
+  }
 
   useEffect(() => {
     if (!playing) return undefined
@@ -138,6 +156,15 @@ export const SyllableIntro = ({ engine }: SyllableIntroProps) => {
           Syllable Trainer
         </h1>
         <p className={styles.subtitle}>Train long words as rhythm, not as one block.</p>
+        <button
+          type="button"
+          className={styles.how}
+          aria-expanded={explaining}
+          aria-controls={`${describedBy}-how`}
+          onClick={() => (explaining ? closeExplainer() : setExplaining(true))}
+        >
+          How it works
+        </button>
       </header>
 
       <div className={styles.body}>
@@ -169,6 +196,7 @@ export const SyllableIntro = ({ engine }: SyllableIntroProps) => {
             aria-hidden="true"
             style={{ '--gg-demo-letter': `${SYLLABLE_RHYTHM.demo.characterMs}ms` } as CSSProperties}
           >
+            <div className={styles.demo}>
             <div className={styles.word}>
               {chunks.map((chunk) => (
                 <Fragment key={`${entry.word}-${chunk.index}`}>
@@ -210,6 +238,14 @@ export const SyllableIntro = ({ engine }: SyllableIntroProps) => {
                 </svg>
               </span>
             </div>
+            </div>
+
+            <KeyTravel
+              word={entry}
+              typed={phase === 'whole' || phase === 'chunk' ? 0 : typed}
+              pressing={phase === 'type'}
+              letterMs={SYLLABLE_RHYTHM.demo.characterMs}
+            />
           </div>
         </figure>
 
@@ -224,6 +260,10 @@ export const SyllableIntro = ({ engine }: SyllableIntroProps) => {
           ))}
         </ol>
       </div>
+
+      {explaining && (
+        <SyllableExplainer id={`${describedBy}-how`} words={DEMO_WORDS} onClose={closeExplainer} />
+      )}
     </section>
   )
 }

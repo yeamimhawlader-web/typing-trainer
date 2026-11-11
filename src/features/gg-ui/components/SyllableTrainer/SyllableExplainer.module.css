@@ -1,0 +1,262 @@
+/*
+ * The explanation under the demonstration: why chunks help on the left, the
+ * measurements on the right, one piece of glass like the cards above it.
+ *
+ * It rises in when it is opened — opacity and a few pixels of transform — and
+ * its bars grow from the left one row after another. Nothing changes a colour
+ * over time, and with reduced motion it is simply there.
+ */
+
+.panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 10px 32px;
+  margin-top: 14px;
+  padding: 16px 18px 14px;
+  border: 1px solid var(--gg-glass-border);
+  border-radius: 18px;
+  background-color: var(--gg-glass-fill);
+  box-shadow:
+    inset 0 1px 0 var(--gg-glass-highlight),
+    var(--gg-glass-depth),
+    var(--gg-glass-shadow);
+  backdrop-filter: var(--gg-glass-filter);
+  -webkit-backdrop-filter: var(--gg-glass-filter);
+  animation: explain-rise 360ms var(--gg-ease-touch) both;
+}
+
+@keyframes explain-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+}
+
+.heading {
+  margin: 0 0 8px;
+  font-size: 0.6875rem;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gg-muted);
+}
+
+.text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  color: var(--gg-fg);
+}
+
+/* The builder's own word on it, set apart by a rule in the accent. */
+.note {
+  position: relative;
+  margin: 12px 0 0;
+  padding-left: 12px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--gg-fg);
+}
+
+.note::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-accent);
+}
+
+.note p {
+  margin: 0;
+}
+
+.note footer {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--gg-muted);
+}
+
+/* --- The measurements ------------------------------------------------- */
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.word {
+  font-family: var(--gg-font-mono);
+  font-size: 0.8125rem;
+  color: var(--gg-fg);
+  white-space: nowrap;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* A bar is a full-width track scaled to its share, so growing it is a transform. */
+.bar {
+  height: 5px;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-muted);
+  opacity: 0.45;
+  transform: scaleX(var(--gg-explain-size));
+  transform-origin: left center;
+  animation: explain-grow 620ms var(--gg-ease-touch) both;
+  animation-delay: calc(140ms + var(--gg-explain-order) * 90ms);
+}
+
+.bar[data-kind='chunk'] {
+  background-color: var(--gg-accent);
+  opacity: 1;
+  animation-delay: calc(260ms + var(--gg-explain-order) * 90ms);
+}
+
+@keyframes explain-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.figures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.figure {
+  font-family: var(--gg-font-mono);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--gg-muted);
+}
+
+.figure[data-kind='chunk'] {
+  font-weight: var(--font-weight-semibold);
+  color: var(--gg-accent);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin: 10px 0 0;
+  font-size: 0.75rem;
+  color: var(--gg-muted);
+}
+
+.swatch {
+  width: 14px;
+  height: 5px;
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-muted);
+  opacity: 0.45;
+}
+
+.swatch[data-kind='chunk'] {
+  margin-left: 8px;
+  background-color: var(--gg-accent);
+  opacity: 1;
+}
+
+.formula {
+  margin-left: auto;
+  font-family: var(--gg-font-mono);
+  font-size: 0.6875rem;
+  white-space: nowrap;
+}
+
+.small {
+  margin: 6px 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--gg-muted);
+}
+
+/* --- Putting it away --------------------------------------------------- */
+
+.close {
+  grid-column: 1 / -1;
+  justify-self: end;
+  height: 28px;
+  padding: 0 14px;
+  border: 1px solid var(--gg-glass-border);
+  border-radius: var(--gg-radius-full);
+  background-color: var(--gg-glass-fill-strong);
+  box-shadow: inset 0 1px 0 var(--gg-glass-highlight);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--gg-fg);
+  cursor: pointer;
+  transition: transform var(--gg-duration-touch) var(--gg-ease-touch);
+}
+
+@media (hover: hover) {
+  .close:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.close:active {
+  transform: translateY(0.5px) scale(0.97);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 860px) {
+  .panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .bars {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .bar {
+    animation: none;
+  }
+
+  .close {
+    transition: none;
+  }
+
+  .close:hover,
+  .close:active {
+    transform: none;
+  }
+}

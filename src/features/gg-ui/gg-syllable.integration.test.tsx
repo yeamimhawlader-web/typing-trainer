@@ -11,7 +11,7 @@
  * Layout and motion are judged in a browser; jsdom has neither.
  */
 
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -144,6 +144,49 @@ describe('the Syllable Trainer', () => {
       typeText('m')
 
       expect(stage()?.dataset.demoPhase).toBe('diagram')
+    })
+
+    it('shows the word on a keyboard, with the distance it covers once it stands as a diagram', async () => {
+      await renderTrainer()
+
+      // Still whole: nothing typed, so nothing travelled.
+      expect(screen.getByText('key widths travelled').previousElementSibling).toHaveTextContent('0.0')
+
+      typeText('m')
+
+      // At rest on "mountain", typed out: the layout's own figure for it, to one place.
+      expect(screen.getByText('key widths travelled').previousElementSibling).toHaveTextContent('22.1')
+    })
+
+    it('explains itself on a first visit, with what it measured and nothing it cannot show', async () => {
+      await renderTrainer()
+
+      const how = screen.getByRole('button', { name: 'How it works' })
+      expect(how).toHaveAttribute('aria-expanded', 'true')
+      const panel = screen.getByRole('region', { name: 'How the Syllable Trainer works' })
+      expect(within(panel).getByText('Why chunks work')).toBeInTheDocument()
+      // Each demonstration word: its whole travel, and its longest chunk's.
+      expect(within(panel).getByText('moun·tain').closest('li')).toHaveTextContent(/22\.1.*13\.1/)
+      expect(within(panel).getByText('in·for·ma·tion').closest('li')).toHaveTextContent(/36\.6.*9\.9/)
+      // It says what the figure is, and does not promise a result.
+      expect(within(panel).getByText(/Distance is not difficulty or speed/)).toBeInTheDocument()
+      expect(panel).not.toHaveTextContent(/proven|guarantee|expert/i)
+    })
+
+    it('is put away with "Got it", stays away on the next visit, and comes back when asked for', async () => {
+      await renderTrainer()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Got it' }))
+      expect(screen.queryByRole('region', { name: 'How the Syllable Trainer works' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'How it works' })).toHaveAttribute('aria-expanded', 'false')
+
+      // The next visit: remembered in this browser.
+      cleanup()
+      await renderTrainer()
+      expect(screen.queryByRole('region', { name: 'How the Syllable Trainer works' })).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: 'How it works' }))
+      expect(screen.getByRole('region', { name: 'How the Syllable Trainer works' })).toBeInTheDocument()
     })
 
     it('offers a number of words and no time, and leaves ordinary practice’s choice of time alone', async () => {

@@ -1,0 +1,157 @@
+/*
+ * The keyboard in the demonstration card: three rows of keys lying tilted away
+ * from the viewer, with the word's path drawn a little above them.
+ *
+ * It is real depth, not a drawing of it: the board is one plane turned back in
+ * a perspective, each key stands a few pixels off it and sinks when pressed,
+ * and the path floats above the keys. So a key going down is a transform, the
+ * tint that marks it is a layer whose opacity fades, and nothing here changes
+ * a colour over time.
+ *
+ * Sizes are in key widths (--gg-key), so the board is one number to resize.
+ */
+
+.travel {
+  --gg-key: 30px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The viewer: close enough that the far row is visibly further away. */
+.scene {
+  perspective: 620px;
+  perspective-origin: 50% -20%;
+  padding: 0 10px;
+}
+
+.board {
+  position: relative;
+  width: calc(var(--gg-board-width) * var(--gg-key));
+  height: calc(var(--gg-board-height) * var(--gg-key));
+  transform: rotateX(46deg) rotateZ(-7deg);
+  transform-style: preserve-3d;
+}
+
+/* The plate the keys stand on, a little larger than the keys themselves. */
+.board::before {
+  content: '';
+  position: absolute;
+  inset: -7px -8px;
+  border-radius: 11px;
+  background-color: color-mix(in oklab, var(--gg-fg) 7%, transparent);
+  box-shadow: 0 10px 18px -8px color-mix(in oklab, var(--gg-fg) 28%, transparent);
+}
+
+.key {
+  position: absolute;
+  left: calc(var(--gg-key-x) * var(--gg-key) + 1.5px);
+  top: calc(var(--gg-key-y) * var(--gg-key) + 1.5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--gg-key) - 3px);
+  height: calc(var(--gg-key) - 3px);
+  border-radius: 6px;
+  background-color: var(--gg-surface);
+  box-shadow:
+    0 3px 0 color-mix(in oklab, var(--gg-fg) 18%, transparent),
+    inset 0 0 0 1px var(--gg-hairline);
+  font-family: var(--gg-font-mono);
+  font-size: 0.6875rem;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--gg-muted);
+  transform: translateZ(7px);
+  transition: transform 110ms var(--gg-ease-touch);
+}
+
+/* The tint of a key that has been typed: a layer, so only its opacity moves. */
+.key::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--gg-accent);
+  opacity: 0;
+  transition: opacity 160ms var(--gg-ease-out);
+}
+
+.key[data-state='typed']::after {
+  opacity: 0.22;
+}
+
+/* Down: nearly to the plate, and fully lit. */
+.key[data-state='pressed'] {
+  transform: translateZ(0.5px);
+}
+
+.key[data-state='pressed']::after {
+  opacity: 0.55;
+}
+
+/* The path, floating above the keys so it is never hidden by one. */
+.path {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: translateZ(12px);
+  pointer-events: none;
+}
+
+/* A line draws from its first key to its second in the time the key takes. */
+.segment {
+  fill: none;
+  stroke: var(--gg-accent);
+  stroke-width: 0.1;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0.95;
+  transition: stroke-dashoffset var(--gg-key-letter) linear;
+}
+
+.segment[data-drawn='true'] {
+  stroke-dashoffset: 0;
+}
+
+/* Between two chunks: crossed during the breath, so it is there and faint. */
+.segment[data-bridge='true'] {
+  stroke-width: 0.06;
+  opacity: 0.35;
+}
+
+.readout {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+}
+
+.value {
+  min-width: 3.2ch;
+  font-family: var(--gg-font-mono);
+  font-size: 0.9375rem;
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--gg-fg);
+}
+
+.unit {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--gg-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key,
+  .key::after,
+  .segment {
+    transition: none;
+  }
+}
