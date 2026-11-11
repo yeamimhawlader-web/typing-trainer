@@ -271,6 +271,9 @@ describe('typing screen', () => {
     renderTest()
     await user.click(screen.getByRole('button', { name: '15' }))
     await user.keyboard(renderedText())
+    // The result is built after the last keystroke is drawn, so it is waited
+    // for: only once it is there can stray keys be shown to leave it alone.
+    await screen.findByRole('region', { name: 'Test result' })
 
     await user.keyboard('xxxx')
 
