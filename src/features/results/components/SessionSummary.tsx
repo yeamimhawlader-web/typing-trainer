@@ -121,11 +121,13 @@ const CompositionBar = ({ session }: { session: TypingSession }) => {
 
 interface DetailProps {
   readonly label: string
+  /** Takes two columns: a value too long for one, like the completion time. */
+  readonly wide?: boolean
   readonly children: React.ReactNode
 }
 
-const Detail = ({ label, children }: DetailProps) => (
-  <div className={styles.detail}>
+const Detail = ({ label, wide = false, children }: DetailProps) => (
+  <div className={styles.detail} data-wide={wide ? '' : undefined}>
     <dt className={styles.label}>{label}</dt>
     <dd className={styles.detailValue}>{children}</dd>
   </div>
@@ -140,14 +142,42 @@ export interface SessionSummaryProps {
    * for sessions recorded before telemetry existed.
    */
   readonly sequences?: SequenceReport | null
+  /**
+   * What to do next, placed straight under the headline so it is in sight the
+   * moment a test ends rather than below every figure.
+   */
+  readonly actions?: React.ReactNode
+  /**
+   * Folds the full figures behind "All figures". The moment a test ends is for
+   * the speed and what to do next; the detail page shows everything open.
+   */
+  readonly collapsed?: boolean
 }
 
 export const SessionSummary = ({
   session,
   label = 'Test result',
   sequences = null,
+  actions = null,
+  collapsed = false,
 }: SessionSummaryProps) => {
   const { metrics } = session
+
+  const details = (
+    <dl className={styles.details}>
+      <Detail label="Duration">{formatDuration(session.durationMs)}</Detail>
+      <Detail label="Characters">{formatCount(metrics.totalCharacters)}</Detail>
+      <Detail label="Correct">{formatCount(metrics.correctCharacters)}</Detail>
+      <Detail label="Incorrect">{formatCount(metrics.incorrectCharacters)}</Detail>
+      <Detail label="Corrected">{formatCount(metrics.correctedCharacters)}</Detail>
+      <Detail label="Errors">{formatCount(metrics.errorCount)}</Detail>
+      <Detail label="Mode">{formatMode(session)}</Detail>
+      <Detail label="Source">{formatSource(session)}</Detail>
+      <Detail label="Completed" wide>
+        <time dateTime={toIsoString(session)}>{formatCompletedAt(session)}</time>
+      </Detail>
+    </dl>
+  )
 
   return (
     <section className={styles.summary} aria-label={label}>
@@ -173,19 +203,16 @@ export const SessionSummary = ({
 
       <CompositionBar session={session} />
 
-      <dl className={styles.details}>
-        <Detail label="Duration">{formatDuration(session.durationMs)}</Detail>
-        <Detail label="Characters">{formatCount(metrics.totalCharacters)}</Detail>
-        <Detail label="Correct">{formatCount(metrics.correctCharacters)}</Detail>
-        <Detail label="Incorrect">{formatCount(metrics.incorrectCharacters)}</Detail>
-        <Detail label="Corrected">{formatCount(metrics.correctedCharacters)}</Detail>
-        <Detail label="Errors">{formatCount(metrics.errorCount)}</Detail>
-        <Detail label="Mode">{formatMode(session)}</Detail>
-        <Detail label="Source">{formatSource(session)}</Detail>
-        <Detail label="Completed">
-          <time dateTime={toIsoString(session)}>{formatCompletedAt(session)}</time>
-        </Detail>
-      </dl>
+      {actions}
+
+      {collapsed ? (
+        <details className={styles.more}>
+          <summary className={styles.moreSummary}>All figures</summary>
+          {details}
+        </details>
+      ) : (
+        details
+      )}
 
       <SlowSequences report={sequences} />
     </section>

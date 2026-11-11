@@ -149,6 +149,38 @@
 
 /* --- Right cluster -------------------------------------------------- */
 
+/* The four pages, in one pill of water (liquid-glass-navbar.tsx). Its type is
+   the bar's, and its names are written out only where the bar has the room:
+   narrower than this, each page is its icon, still named for a pointer and a
+   screen reader. */
+/* Named twice over so these win over the component's own defaults, which
+   arrive in a stylesheet of its own after this one. */
+.cluster .pages {
+  --n-item-h: 38px;
+  --n-item-px: 14px;
+  flex: none;
+  font-family: inherit;
+}
+
+.pages :global(.nimbus-item) {
+  font-size: var(--gg-text-nav);
+}
+
+@media (max-width: 1180px) {
+  .pages :global(.nimbus-item) {
+    padding: 0 12px;
+  }
+
+  .pages :global(.nimbus-label) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
 .cluster {
   display: flex;
   align-items: center;

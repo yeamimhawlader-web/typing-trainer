@@ -11,7 +11,6 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router'
 
 import { PRACTICE_PATH } from '@app/routes.ts'
 import {
@@ -26,7 +25,7 @@ import {
 import { sessionService, type TypingSession } from '@core/sessions'
 import { formatCompletedAt } from '@features/results'
 import { cx } from '@shared/lib'
-import { Page } from '@shared/ui'
+import { EmptyState, Page } from '@shared/ui'
 
 import {
   formatDecimal,
@@ -155,10 +154,9 @@ export const StatisticsPage = () => {
   if (sessions.length === 0) {
     return (
       <Page title="Statistics">
-        <p className={styles.empty}>
-          No tests recorded yet. <Link to={PRACTICE_PATH}>Take one</Link> and your
-          figures will appear here.
-        </p>
+        <EmptyState title="No tests recorded yet." action={{ to: PRACTICE_PATH, label: 'Start typing' }}>
+          Take one and your figures will appear here.
+        </EmptyState>
       </Page>
     )
   }

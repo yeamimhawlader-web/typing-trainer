@@ -7,6 +7,7 @@
  * - `PillLink` — a pill for navigation, such as choosing a mode.
  * - `TogglePill` — a pill that is on or off, as a native checkbox.
  * - `Separator` — the hairline between groups.
+ * - `ControlField` — a group of controls under its name.
  *
  * Choices use native radio inputs rather than buttons with ARIA: arrow keys,
  * "2 of 5" announcements and form semantics come from the browser, not from code
@@ -150,6 +151,24 @@ export const TogglePill = ({ label, description, checked, onChange }: TogglePill
       {label}
     </span>
   </label>
+)
+
+// --- Control field -----------------------------------------------------
+
+export interface ControlFieldProps {
+  /** The name shown above the controls. They carry their own spoken name, so this is for the eye. */
+  readonly label: string
+  readonly children: ReactNode
+}
+
+/** A group of controls under a small name: one column of a settings card. */
+export const ControlField = ({ label, children }: ControlFieldProps) => (
+  <div className={styles.field}>
+    <span className={styles.caption} aria-hidden="true">
+      {label}
+    </span>
+    <div className={styles.fieldControls}>{children}</div>
+  </div>
 )
 
 // --- Separator ---------------------------------------------------------

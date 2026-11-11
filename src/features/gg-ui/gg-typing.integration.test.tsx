@@ -253,6 +253,16 @@ describe('GG.Typing on the real typing session', () => {
       expect(figure('words')).toBe('0/15')
     })
 
+    it('stay out of sight until the first key, and hold their place while they do', async () => {
+      await firstTest(wordsProvider().provider)
+
+      // Still in the row, so nothing shifts when they arrive.
+      expect(figures()).toHaveAttribute('data-idle')
+
+      typeText('a', 250)
+      expect(figures()).not.toHaveAttribute('data-idle')
+    })
+
     it('move with the test: speed after the first second, accuracy on a mistake, words as they finish', async () => {
       await firstTest(wordsProvider().provider)
 
@@ -939,14 +949,14 @@ describe('GG.Typing on the real typing session', () => {
   })
 
   describe('themes', () => {
-    it('opens a fresh installation in Classic Milk', async () => {
+    it('opens a fresh installation in Mint', async () => {
       // What hydrating an empty store leaves: the defaults, nothing saved.
       settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES }, status: 'ready' })
       renderGG(ROUTES.gg, wordsProvider().provider)
       await screen.findByRole('region', { name: 'Words to type' })
 
-      expect(document.documentElement.dataset.ggTheme).toBe('classic-milk')
-      expect(document.documentElement.style.getPropertyValue('--gg-base-bg')).toBe('#f7f4ee')
+      expect(document.documentElement.dataset.ggTheme).toBe('mint')
+      expect(document.documentElement.style.getPropertyValue('--gg-base-bg')).toBe('#eaf6ef')
       expect(document.documentElement.style.getPropertyValue('color-scheme')).toBe('light')
     })
 

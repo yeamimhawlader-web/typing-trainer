@@ -43,21 +43,8 @@ export const TestResult = ({
   drill = null,
   practicePath = ROUTES.practice,
   personalBest = null,
-}: TestResultProps) => (
-  <div className={styles.panel}>
-    {personalBest !== null && <PersonalBestCelebration best={personalBest} wpm={session.metrics.netWpm} />}
-
-    <SessionSummary session={session} sequences={sequences} />
-
-    {shape !== null && <TestShapeChart shape={shape} />}
-
-    {drill !== null && (
-      <DrillResult outcome={drill.outcome} comparison={drill.comparison} />
-    )}
-
-    {/* From the saved record, so it is the same account history keeps. */}
-    {session.context.hover !== undefined && <HoverResult record={session.context.hover} />}
-
+}: TestResultProps) => {
+  const actions = (
     <div className={styles.actions}>
       <Button
         variant="primary"
@@ -97,5 +84,22 @@ export const TestResult = ({
         </span>
       )}
     </div>
-  </div>
-)
+  )
+
+  return (
+    <div className={styles.panel}>
+      {personalBest !== null && <PersonalBestCelebration best={personalBest} wpm={session.metrics.netWpm} />}
+
+      <SessionSummary session={session} sequences={sequences} actions={actions} collapsed />
+
+      {shape !== null && <TestShapeChart shape={shape} />}
+
+      {drill !== null && (
+        <DrillResult outcome={drill.outcome} comparison={drill.comparison} />
+      )}
+
+      {/* From the saved record, so it is the same account history keeps. */}
+      {session.context.hover !== undefined && <HoverResult record={session.context.hover} />}
+    </div>
+  )
+}

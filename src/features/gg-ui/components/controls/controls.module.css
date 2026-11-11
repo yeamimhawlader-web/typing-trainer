@@ -214,11 +214,35 @@
 }
 
 /* A group's own name, where two groups sit side by side and which is which matters. */
+/* Small capitals, so a name is never mistaken for one of the choices after it. */
 .caption {
-  margin-right: 0.25rem;
-  font-size: var(--gg-text-pill);
+  margin-right: 0.375rem;
+  font-size: var(--gg-text-caption);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
   color: var(--gg-muted);
   user-select: none;
+}
+
+/* A named group: the name above, its controls in a row beneath. The name is
+   inset to sit over the first pill's label rather than over its edge. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.field > .caption {
+  margin: 0 0 0 0.625rem;
+}
+
+.fieldControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 0.5rem;
 }
 
 .separator {

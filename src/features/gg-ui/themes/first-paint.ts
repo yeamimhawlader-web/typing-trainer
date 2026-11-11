@@ -3,11 +3,11 @@
  *
  * The stylesheet arrives before the application's script runs, and on its own
  * it draws the page dark: that is the classic palette with no scheme chosen.
- * A fresh installation opens in Classic Milk, so for the moment before the
+ * A fresh installation opens in Mint, so for the moment before the
  * script runs its first impression would be a flash of near-black. This is a
  * few lines run inline in the page head, before anything is painted: they read
  * the saved theme straight from storage and set its scheme. With nothing saved
- * — a fresh installation — the scheme is Classic Milk's, light. A saved dark
+ * — a fresh installation — the scheme is Mint's, light. A saved dark
  * theme stays dark, so nobody who chose one gets a flash of light instead.
  *
  * Built into index.html at build time (see vite.config.ts) from the theme

@@ -1,7 +1,7 @@
 /**
  * What ends a test: a number of words, or a length of time.
  *
- * Two groups of pills, one caption each, in the order they are usually wanted.
+ * Two groups of pills, each under its own name, in the order they are usually wanted.
  * Only one of them has a choice made in it, and that is the shape the next test
  * takes — so which kind of test is on is visible without a mode switch beside
  * it. Choosing in the other group changes both at once, which is what pressing
@@ -21,7 +21,7 @@ import { useEffect, useRef, useState } from 'react'
 import { PRACTICE_WORD_COUNTS, type PracticeMode, type PracticeWordCount } from '@core/types'
 import { CUSTOM_TIME, isValidTime, TIME_OPTIONS } from '@features/typing'
 
-import { PillGroup, type PillOption } from '../controls/controls.tsx'
+import { ControlField, PillGroup, type PillOption } from '../controls/controls.tsx'
 
 import styles from './TestShape.module.css'
 
@@ -89,49 +89,51 @@ export const TestShape = ({ mode: chosenMode, words, seconds, onWords, onTime, t
   }
 
   return (
-    <div className={styles.shape}>
-      <PillGroup
-        name="gg-length"
-        label="Test length in words"
-        caption="Words"
-        options={WORD_OPTIONS}
-        value={mode === 'words' ? words : null}
-        onChange={onWords}
-      />
+    <>
+      <ControlField label="Words">
+        <PillGroup
+          name="gg-length"
+          label="Test length in words"
+          options={WORD_OPTIONS}
+          value={mode === 'words' ? words : null}
+          onChange={onWords}
+        />
+      </ControlField>
 
       {timeOffered && (
-      <PillGroup
-        name="gg-time"
-        label="Test length in time"
-        caption="Time"
-        options={TIME_PILLS}
-        value={mode === 'time' ? (custom ? CUSTOM : String(seconds)) : null}
-        onChange={chooseTime}
-      />
-      )}
-
-      {editing && (
-        <span className={styles.custom}>
-          <input
-            ref={field}
-            type="number"
-            className={styles.field}
-            inputMode="numeric"
-            min={CUSTOM_TIME.min}
-            max={CUSTOM_TIME.max}
-            step={5}
-            value={draft}
-            aria-label="Custom time in seconds"
-            aria-invalid={draft !== '' && !isValidTime(Number(draft))}
-            aria-describedby="gg-custom-time-range"
-            onChange={(event) => typeTime(event.target.value)}
-            onBlur={() => setDraft(String(seconds))}
+        <ControlField label="Time">
+          <PillGroup
+            name="gg-time"
+            label="Test length in time"
+            options={TIME_PILLS}
+            value={mode === 'time' ? (custom ? CUSTOM : String(seconds)) : null}
+            onChange={chooseTime}
           />
-          <span className={styles.unit} id="gg-custom-time-range">
-            s ({CUSTOM_TIME.min}–{CUSTOM_TIME.max})
-          </span>
-        </span>
+
+          {editing && (
+            <span className={styles.custom}>
+              <input
+                ref={field}
+                type="number"
+                className={styles.field}
+                inputMode="numeric"
+                min={CUSTOM_TIME.min}
+                max={CUSTOM_TIME.max}
+                step={5}
+                value={draft}
+                aria-label="Custom time in seconds"
+                aria-invalid={draft !== '' && !isValidTime(Number(draft))}
+                aria-describedby="gg-custom-time-range"
+                onChange={(event) => typeTime(event.target.value)}
+                onBlur={() => setDraft(String(seconds))}
+              />
+              <span className={styles.unit} id="gg-custom-time-range">
+                s ({CUSTOM_TIME.min}–{CUSTOM_TIME.max})
+              </span>
+            </span>
+          )}
+        </ControlField>
       )}
-    </div>
+    </>
   )
 }

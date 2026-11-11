@@ -73,6 +73,8 @@ export const fontSize = {
   '2xl': cssVar('font-size-2xl'),
   '3xl': cssVar('font-size-3xl'),
   '4xl': cssVar('font-size-4xl'),
+  '5xl': cssVar('font-size-5xl'),
+  '6xl': cssVar('font-size-6xl'),
   typing: cssVar('font-size-typing'),
 } as const
 

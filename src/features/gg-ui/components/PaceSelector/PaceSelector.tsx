@@ -17,7 +17,6 @@ import { useCallback, useRef, useState } from 'react'
 import type { PaceTargets } from '@core/statistics'
 import type { PaceChoice } from '@core/types'
 
-import { Separator } from '../controls/controls.tsx'
 import { PaceIcon } from '../icons.tsx'
 import { useBranchTrees, useTreeOpen } from '../Unfold/branch-trees.ts'
 import unfold from '../Unfold/Unfold.module.css'
@@ -86,7 +85,6 @@ export const PaceSelector = ({ value, onChange, targets, wpm }: PaceSelectorProp
   return (
     <>
       <span className={styles.cell}>
-        <Separator />
         <button
           ref={node}
           type="button"

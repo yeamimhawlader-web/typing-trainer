@@ -1,7 +1,9 @@
 /* The mode nav: ordinary practice, and the High Speed Trainer beside it. */
+/* Wraps before it would run under Pace and Sound at the other end of the row. */
 .modes {
   grid-area: modes;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   min-width: 0;
@@ -22,9 +24,9 @@
   font-weight: var(--font-weight-semibold);
 }
 
-/* The High Speed Trainer: its two mechanisms under the name they share, set a
-   hairline apart from ordinary practice. The name is a small technical label,
-   two short lines, so it takes the width of neither node. */
+/* The High Speed Trainer: its two mechanisms, set a hairline apart from
+   ordinary practice. The name they share is spoken, not shown: the four modes
+   read as one row of tabs. */
 .trainer {
   display: flex;
   align-items: center;
@@ -35,15 +37,25 @@
   border-left: 1px solid var(--gg-divider);
 }
 
-.trainerLabel {
-  max-width: 7.6em;
-  margin-right: 4px;
-  font-size: 0.625rem;
-  font-weight: var(--font-weight-medium);
-  line-height: 1.15;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: var(--gg-muted);
+/* A mode is text until it is the one on, as every other choice here is: the
+   node's glass is for the mode in use and the one pointed at. The glass keeps
+   its box, so the unfolding measures what it always did. */
+.mode:not([data-open='true']) > span {
+  /* The glass's own switch, turned off here: with no fill over it, its
+     saturation would still tint the page behind the label. */
+  --gg-glass-filter: none;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.mode:not([data-open='true']) > span::before {
+  opacity: 0;
+}
+
+@media (hover: hover) {
+  .mode:not([data-open='true']):hover > span {
+    background-color: color-mix(in oklab, var(--gg-liquid-fill-chosen) 45%, transparent);
+  }
 }
 
 /* The Syllable Trainer's mark: a word as two chunks with a breath between.
@@ -89,11 +101,5 @@
     margin-left: 0;
     padding-left: 0;
     border-left: 0;
-  }
-
-  .trainerLabel {
-    flex-basis: 100%;
-    max-width: none;
-    margin: 0 0 -2px 2px;
   }
 }

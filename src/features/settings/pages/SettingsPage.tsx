@@ -111,7 +111,7 @@ export const SettingsPage = () => {
         </div>
 
         <p className={styles.hint}>
-          Classic Milk is the default. The same themes are in the palette in the
+          Mint is the default. The same themes are in the palette in the
           top bar, on every page.
         </p>
       </fieldset>

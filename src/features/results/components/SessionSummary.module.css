@@ -23,7 +23,8 @@
 
 .primaryValue {
   font-family: var(--font-mono);
-  font-size: var(--font-size-4xl);
+  /* The one figure the test was taken for, so the largest thing on the page. */
+  font-size: var(--font-size-6xl);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-tight);
   letter-spacing: var(--letter-spacing-tight);
@@ -132,6 +133,28 @@
   margin: 0;
   padding-top: var(--space-5);
   border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* Everything but the headline, one press away when a test has just ended. */
+.more > .details {
+  margin-top: var(--space-4);
+}
+
+.moreSummary {
+  width: fit-content;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.moreSummary:hover,
+.more[open] > .moreSummary {
+  color: var(--color-text-primary);
+}
+
+.detail[data-wide] {
+  grid-column: span 2;
 }
 
 .detail {

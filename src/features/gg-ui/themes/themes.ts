@@ -268,8 +268,11 @@ export type GGThemeId = (typeof GG_THEMES)[number]['id']
  * The theme a fresh installation opens in, and the fallback for an id this build
  * does not know. A theme someone already chose is never replaced by it: the
  * default only fills a preference that was never saved.
+ *
+ * Mint, because it is the theme nearest the brand's own mint and teal (BRAND
+ * below): the logo and the buttons beside it read as one family.
  */
-export const DEFAULT_THEME_ID: GGThemeId = 'classic-milk'
+export const DEFAULT_THEME_ID: GGThemeId = 'mint'
 
 /**
  * The theme a stored preference names, or null if it names none.
