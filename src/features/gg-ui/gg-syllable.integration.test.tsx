@@ -189,21 +189,53 @@ describe('the Syllable Trainer', () => {
       expect(screen.getByRole('region', { name: 'How the Syllable Trainer works' })).toBeInTheDocument()
     })
 
-    it('offers a number of words and no time, and leaves ordinary practice’s choice of time alone', async () => {
-      settingsStore.setState({ preferences: { ...DEFAULT_PREFERENCES, practiceWordCount: 15, practiceMode: 'time' } })
+    it('offers a number of words or a time, custom included, the choice ordinary practice remembers', async () => {
       await renderTrainer()
 
-      expect(screen.queryByRole('radiogroup', { name: 'Test length in time' })).not.toBeInTheDocument()
       const words = screen.getByRole('radiogroup', { name: 'Test length in words' })
+      const times = screen.getByRole('radiogroup', { name: 'Test length in time' })
       expect(within(words).getByRole('radio', { name: '15 words' })).toBeChecked()
+      expect(within(times).getAllByRole('radio').map((radio) => radio.getAttribute('aria-label'))).toEqual([
+        '15 seconds',
+        '30 seconds',
+        '60 seconds',
+        'A custom time',
+      ])
+
+      act(() => {
+        fireEvent.click(within(times).getByRole('radio', { name: '15 seconds' }))
+      })
+      expect(settingsStore.getState().preferences).toMatchObject({ practiceMode: 'time', practiceSeconds: 15 })
+      // Enough words for the time, still drawn as syllables.
+      expect(stream().querySelectorAll('[data-word]').length).toBeGreaterThan(60)
+      expect(syllablesOf(0).length).toBeGreaterThan(1)
 
       act(() => {
         fireEvent.click(within(words).getByRole('radio', { name: '60 words' }))
       })
-
       expect(stream().querySelectorAll('[data-word]')).toHaveLength(60)
-      expect(settingsStore.getState().preferences.practiceMode).toBe('time')
-      expect(settingsStore.getState().preferences.practiceWordCount).toBe(60)
+      expect(settingsStore.getState().preferences).toMatchObject({ practiceMode: 'words', practiceWordCount: 60 })
+    })
+
+    it('ends a timed test on the clock, and saves it as the Syllable Trainer with its time', async () => {
+      settingsStore.setState({
+        preferences: { ...DEFAULT_PREFERENCES, practiceMode: 'time', practiceSeconds: 15 },
+        status: 'ready',
+      })
+      await renderTrainer()
+
+      typeText('mountain ', 100)
+      // Past the fifteen seconds, mid-word: the test is over on that key.
+      typeText('be', 8_000)
+
+      await waitFor(async () => {
+        expect(await sessions.getAll()).toHaveLength(1)
+      })
+      const [stored] = await sessions.getAll()
+      expect(stored?.context.mode).toBe('syllable')
+      expect(stored?.context.durationSeconds).toBe(15)
+      expect(stored?.status).toBe('completed')
+      expect(isTrainingMode(stored?.context.mode ?? 'words')).toBe(true)
     })
   })
 

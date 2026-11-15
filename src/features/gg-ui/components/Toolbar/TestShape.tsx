@@ -7,8 +7,7 @@
  * it. Choosing in the other group changes both at once, which is what pressing
  * "30s" means.
  *
- * Where a test's shape is words alone — the Syllable Trainer, whose rhythm is
- * a thing of words and not of a clock — only the words are offered.
+ * Where a test's shape is words alone, only the words are offered.
  *
  * A custom time is the last pill. Pressing it shows a small field, already
  * holding the time in use, and any whole number of seconds inside the range is

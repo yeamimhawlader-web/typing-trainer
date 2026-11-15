@@ -392,6 +392,11 @@ to show), or the same (still single blocks). Only clean transitions count: next 
 each other, both right, in the same word, never across a space. It reports and does
 not grade; it is gone when the next test starts.
 
+**Length.** A number of words, or a time — 15s, 30s, 1m or a custom time — the
+same choice ordinary practice remembers. Against the clock it is the timed test's
+rules (the time ends it, idle time counts) and is still saved as the Syllable
+Trainer, with the time it ran for.
+
 **What is recorded.** The same session, telemetry and Golden Nuggets as ordinary
 practice, over the same engine; the syllables are drawn over the text and never
 typed. The test is saved as the Syllable Trainer, a training mode, so history names

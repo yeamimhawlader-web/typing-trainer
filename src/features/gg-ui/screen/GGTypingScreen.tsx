@@ -68,7 +68,7 @@ import { createCommonWordsProvider, createSyllableWordsProvider } from '@core/te
 import type { HoverDifficulty, PaceChoice, Timestamp } from '@core/types'
 import { useSyncAfterSave } from '@features/accounts'
 import { createHoverController, keepTroublesomeWords, newTestId, recordGoldenNuggets } from '@features/ggtyping'
-import { createTimedMode, SYLLABLE_MODE } from '@features/typing'
+import { createTimedMode, createTimedSyllableMode, SYLLABLE_MODE } from '@features/typing'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { playHoverSounds, playIdleSound, playTypingSounds, presetChoice, presetMatching, sampleChoicesFromStored, useSound } from '@features/sound'
 import {
@@ -130,19 +130,23 @@ export const GGTypingScreen = ({
   /*
    * What ends an ordinary test: its word count, or the clock. Hover Mode and
    * drills bring their own rule, so the choice is only offered — and only
-   * applied — where neither does.
+   * applied — where neither does. The Syllable Trainer takes either, the same
+   * choice ordinary practice remembers.
    */
   const practiceMode = useSettingsStore((state) => state.preferences.practiceMode)
   const practiceSeconds = useSettingsStore((state) => state.preferences.practiceSeconds)
-  const timed = mode === 'standard' && (options.drill ?? null) === null && practiceMode === 'time'
-  const timedMode = useMemo(() => (timed ? createTimedMode(practiceSeconds) : null), [timed, practiceSeconds])
+  const timed = (mode === 'standard' || syllable) && (options.drill ?? null) === null && practiceMode === 'time'
+  const timedMode = useMemo(
+    () => (!timed ? null : syllable ? createTimedSyllableMode(practiceSeconds) : createTimedMode(practiceSeconds)),
+    [practiceSeconds, syllable, timed],
+  )
 
   const training = useMemo(
     () =>
       hover !== null
         ? { mode: 'hover' as const, hooks: hover }
         : syllable
-          ? { mode: 'syllable' as const, hooks: SYLLABLE_MODE }
+          ? { mode: 'syllable' as const, hooks: timedMode ?? SYLLABLE_MODE }
           : timedMode !== null
             ? { mode: 'time' as const, hooks: timedMode }
             : undefined,
@@ -337,12 +341,10 @@ export const GGTypingScreen = ({
 
   const changeWordCount = useCallback(
     (count: WordCount) => {
-      // Only ordinary practice has words and time to choose between: the
-      // Syllable Trainer's length leaves that choice where it was.
-      if (!syllable) void setPracticeMode('words')
+      void setPracticeMode('words')
       setWordCount(count)
     },
-    [setPracticeMode, setWordCount, syllable],
+    [setPracticeMode, setWordCount],
   )
 
   // A time is a different shape of test: the engine's clock rule changes with
@@ -431,9 +433,9 @@ export const GGTypingScreen = ({
                   seconds: practiceSeconds,
                   onWords: changeWordCount,
                   onTime: changeTime,
-                  // Only ordinary practice runs on the clock (see `timed`);
-                  // offering a time anywhere else would change nothing.
-                  timeOffered: mode === 'standard',
+                  // Ordinary practice and the Syllable Trainer run on the clock
+                  // (see `timed`); offering a time anywhere else would change nothing.
+                  timeOffered: mode === 'standard' || syllable,
                 }
               : null
           }
