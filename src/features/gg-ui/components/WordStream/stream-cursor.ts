@@ -154,6 +154,8 @@ export const createStreamCursor = (): StreamCursor => {
   let source: CursorSource | null = null
   let layout: StreamLayout | null = null
   let scroll = Number.NaN
+  /** The line kept first in the view, as last placed. */
+  let firstLine = 0
   let placedIndex = Number.NaN
   let placedAnchor = Number.NaN
   const measureListeners = new Set<() => void>()
@@ -177,13 +179,25 @@ export const createStreamCursor = (): StreamCursor => {
    * reading it. So the hiding waits for the glide, and a line crossed before
    * the last one finished simply replaces what is waiting.
    */
-  const hideWhenSettled = (spans: readonly HTMLElement[]): void => {
+  const hideWhenSettled = (spans: readonly HTMLElement[], goingBack: boolean): void => {
     clearTimeout(settling)
-    if (lineGlideMs === 0) {
+    /*
+     * Going back a line — Backspace over a line break — is the other way
+     * round: the line being returned to is the one that was hidden, and it is
+     * the line the typist is now on. It is shown at once, as it glides back
+     * into view, rather than after the glide, which left the whole line blank
+     * for those 150ms.
+     */
+    if (lineGlideMs === 0 || goingBack) {
       setHidden(spans)
       return
     }
-    settling = setTimeout(() => setHidden(spans), lineGlideMs)
+    const forLine = firstLine
+    settling = setTimeout(() => {
+      // Only if the view is still on the line this was scheduled for: a line
+      // may never be hidden by a decision made about a different one.
+      if (firstLine === forLine) setHidden(spans)
+    }, lineGlideMs)
   }
 
   /** One frame pending at a time: a run of line breaks asks for one restore. */
@@ -218,8 +232,10 @@ export const createStreamCursor = (): StreamCursor => {
     const offset = (layout.lineTops[line] as number) - (layout.lineTops[0] ?? 0)
 
     if (offset !== scroll) {
+      const goingBack = offset < scroll
       content.style.transform = `translate3d(0, ${-offset}px, 0)`
       scroll = offset
+      firstLine = line
       /*
        * A line change moves the cursor the width of a line, which is the one
        * move it must not make on its usual slide: sliding it there drags it
@@ -242,7 +258,7 @@ export const createStreamCursor = (): StreamCursor => {
       } else {
         cursor.style.transition = 'none'
         restoreSlide()
-        hideWhenSettled(above)
+        hideWhenSettled(above, goingBack)
       }
     }
     cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`

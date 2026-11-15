@@ -235,6 +235,42 @@ describe('stream cursor', () => {
     expect(visibility()).toEqual(['', '', '', '', '', '', ''])
   })
 
+  it('shows the line again at once on the way back, even while the words are gliding', () => {
+    vi.useFakeTimers()
+    try {
+      const { content, controller, type } = connect(7, ['abc', 'def'])
+      const visibility = () => Array.from(content.children, (span) => (span as HTMLElement).style.visibility)
+      controller.setLineGlide(150)
+
+      type('abc ')
+      vi.advanceTimersByTime(150)
+      expect(visibility()).toEqual(['hidden', 'hidden', 'hidden', 'hidden', '', '', ''])
+
+      // Back over the line break: the line being typed on is never blank, not even for the glide.
+      type(['Backspace'])
+      expect(visibility()).toEqual(['', '', '', '', '', '', ''])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('never hides a line by a decision made about another: forward, then straight back', () => {
+    vi.useFakeTimers()
+    try {
+      const { content, controller, type } = connect(7, ['abc', 'def'])
+      const visibility = () => Array.from(content.children, (span) => (span as HTMLElement).style.visibility)
+      controller.setLineGlide(150)
+
+      type('abc ')
+      type(['Backspace'])
+      vi.advanceTimersByTime(400)
+
+      expect(visibility()).toEqual(['', '', '', '', '', '', ''])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('draws where the engine puts the cursor, not one step per key', () => {
     const { cursor, content, engine, type } = connect(7, ['abc', 'def'])
 
