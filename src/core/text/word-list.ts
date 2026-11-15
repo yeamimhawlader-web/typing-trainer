@@ -1,7 +1,7 @@
 /**
  * The default practice vocabulary.
  *
- * The two hundred or so most frequent English words, which is the standard
+ * Some two hundred and sixty of the most frequent English words, which is the standard
  * basis for typing practice: they cover a large share of real text, they are
  * short enough that word boundaries come often, and they exercise the common
  * letter transitions rather than unusual ones.
@@ -232,4 +232,47 @@ export const COMMON_WORDS: readonly string[] = [
   'group',
   'number',
   'world',
+  // More of the everyday words typing tests share, added from a typist's list.
+  'again',
+  'program',
+  'question',
+  'country',
+  'woman',
+  'through',
+  'between',
+  'child',
+  'problem',
+  'against',
+  'such',
+  'each',
+  'really',
+  'week',
+  'may',
+  'three',
+  'try',
+  'mean',
+  'right',
+  'become',
+  'small',
+  'student',
+  'family',
+  'thing',
+  'man',
+  'company',
+  'put',
+  'always',
+  'life',
+  'government',
+  'hand',
+  'school',
+  'down',
+  'off',
+  'every',
+  'during',
+  'big',
+  'system',
+  'should',
+  'another',
+  'something',
+  'high',
 ]

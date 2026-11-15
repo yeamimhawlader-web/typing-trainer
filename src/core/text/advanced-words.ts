@@ -1,7 +1,7 @@
 /**
  * The advanced practice vocabulary: a wider set of everyday English words.
  *
- * Common words from beyond the two hundred most frequent, the sort any adult
+ * Common words from beyond the few hundred most frequent, the sort any adult
  * reads every day, and on average half as long again as those. They bring the
  * letter combinations the frequent words never reach, so they train the hands
  * across more of the keyboard. None of them is in the normal list (`word-list.ts`):
@@ -13,9 +13,9 @@
 
 export const ADVANCED_WORDS: readonly string[] = `
 ability absence academy accept access accident account achieve acquire action
-active actually address admire advance advice affect afford afraid against
+active actually address admire advance advice affect afford afraid
 agency agenda ahead airline alive allow almost alone along already although
-always amazing amount analysis ancient anger angle animal annual another
+amazing amount analysis ancient anger angle animal annual
 answer anxiety anybody anyway apart apparent appeal apply approach approve
 argue arrange arrive article artist aspect assess assume attack attempt attend
 attitude attract audience author autumn available average avoid award aware
@@ -28,7 +28,7 @@ ceiling celebrate center central century ceremony certain chairman challenge
 champion channel chapter character charge charity cheap chemical chicken
 children chocolate choice circle citizen civil claim classic climate clinic
 clothes coffee collapse colleague collect college colony column combine
-comfort command comment commit community company compare compete complain
+comfort command comment commit community compare compete complain
 complete complex computer concept concern concert conclude condition conduct
 confirm conflict connect constant contain content context contract control
 convince cooking corner correct cottage council county couple courage course
@@ -38,7 +38,7 @@ defeat defend define degree deliver demand depend deposit depth describe
 desert design desire detail detect develop device dialogue diamond differ
 digital dinner direct director discover discuss disease display distance
 distinct district divide doctor document domestic dominate double dozen drama
-dramatic drawing driver during earn economy edition editor educate effect
+dramatic drawing driver earn economy edition editor educate effect
 effort eight either elderly elect element eleven eliminate elsewhere embrace
 emerge emotion emphasis empire employ enable encounter encourage energy engage
 engine enhance enormous enough ensure enter entire entrance envelope episode
@@ -88,10 +88,10 @@ political popular portion portrait position positive possess possible potato
 potential poverty powder power practice praise predict prefer prepare presence
 present preserve president pressure pretend pretty prevent previous price
 pride primary prince principal principle priority prison private prize
-probably problem proceed process product profession profile profit program
+probably proceed process product profession profile profit
 progress project promise promote proper property proposal protect protein
 protest proud prove provide public publish purchase purple purpose pursue
-puzzle quality quantity quarter question quick quiet quite quote rabbit
+puzzle quality quantity quarter quick quiet quite quote rabbit
 radical radio railway rainbow random range rapid rarely rather rating ratio
 react reader ready reality realize reason recall recent recipe record recover
 reduce reflect reform refuse regard region regular reject relate relative
@@ -109,9 +109,9 @@ society soldier solid solution somebody somewhat source southern space speaker
 special species specific spectrum speech spirit spread spring square stable
 stadium stage standard station statue status steady stomach storage strange
 stranger strategy stream street strength stretch strict strike string strong
-structure student studio subject submit succeed success sudden suffer sugar
+structure studio subject submit succeed success sudden suffer sugar
 summer summit supply suppose surface surprise surround survey survive suspect
-sustain symbol system table talent target teacher teaspoon technique teenager
+sustain symbol table talent target teacher teaspoon technique teenager
 telephone temple tender tension terrible territory theater theory therapy
 thinking thirty thought thousand threat throw ticket timber tissue title
 together tomato tomorrow tongue tonight topic total toward towel tower
