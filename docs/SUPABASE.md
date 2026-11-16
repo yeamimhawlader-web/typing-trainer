@@ -94,10 +94,17 @@ It should say **Success. No rows returned**. Running it again is safe.
 ## Part 3 — Where the link is allowed to land (about 1 minute)
 
 10. Left sidebar: **Authentication** → **URL Configuration**.
-11. **Site URL**: `https://typing-trainer-1bvi.vercel.app`
-12. **Redirect URLs** → **Add URL**, twice:
-    - `https://typing-trainer-1bvi.vercel.app/gg/sign-in`
+11. **Site URL**: the address the site is actually served from, with no
+    trailing slash. Today that is `https://typing-trainer-1bvi.vercel.app`; on
+    a custom domain it is that domain instead, and this has to be changed on
+    the day the domain goes live or the email link will send people to the old
+    address.
+12. **Redirect URLs** → **Add URL**, once for each address the site answers on:
+    - `<site url>/gg/sign-in`
     - `http://localhost:5173/gg/sign-in` (so it can be tried locally)
+
+    Keeping the old `vercel.app` entry alongside a new domain is fine and
+    saves a locked-out afternoon while the domain settles.
 
 The link in the email lands on exactly these, and Supabase refuses any address
 not on the list.
@@ -180,8 +187,9 @@ this, and the two dashboards below have to agree with each other exactly.
    under **Test users**. Without it Google refuses with "app has not completed
    verification".
 6. **Clients** → **Create client** → **Web application**:
-   - **Authorised JavaScript origins**: `https://typing-trainer-1bvi.vercel.app`
-     and `http://localhost:5173`
+   - **Authorised JavaScript origins**: every address the site answers on, so
+     `https://typing-trainer-1bvi.vercel.app` today, the custom domain as well
+     once there is one, and `http://localhost:5173`
    - **Authorised redirect URIs**: the callback from step 1. It is the
      **supabase.co** address, not the Hover Typing one. This is the single most
      common mistake.

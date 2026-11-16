@@ -1,0 +1,9 @@
+# Hover Typing — https://github.com/yeamimhawlader-web/typing-trainer
+#
+# Everything here is public practice material and safe to index. The pages that
+# look private — history, statistics, Golden Nuggets — hold nothing of anyone's
+# on the server: what a typist does is kept in their own browser, so there is
+# nothing here for a crawler to find that a visitor would not see first.
+
+User-agent: *
+Allow: /

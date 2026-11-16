@@ -1,0 +1,27 @@
+# Keeps the libraries up to date by opening pull requests, so an update is read
+# and its checks are run before it goes anywhere near the site.
+#
+# This file asks for version updates. Security *alerts* — the warning that a
+# library you already use has a known hole — are a switch in the repository's
+# own settings (Settings -> Code security) and cannot be turned on from here.
+#
+# Grouped on purpose: one pull request a week to read, rather than twenty.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # A patch or minor bump of anything: the uninteresting majority.
+      routine:
+        update-types: [minor, patch]
+      # Majors come one at a time, since each needs reading.
+      react:
+        patterns: [react, react-dom, '@types/react', '@types/react-dom']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
