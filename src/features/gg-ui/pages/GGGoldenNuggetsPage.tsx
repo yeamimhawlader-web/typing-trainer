@@ -78,8 +78,8 @@ export const GGGoldenNuggetsPage = ({ service = goldenNuggetService }: GGGoldenN
 
       {loaded.status === 'ready' && loaded.nuggets.length === 0 && (
         <p className={styles.empty}>
-          None yet. When a word is still giving you trouble at the end of its repetitions in Hover Mode, it is kept
-          here.
+          None yet. Get a word wrong three times in Hover Mode, or five times in one test anywhere else, and it is
+          kept here.
         </p>
       )}
 

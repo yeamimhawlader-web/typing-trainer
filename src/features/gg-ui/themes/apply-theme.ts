@@ -90,7 +90,11 @@ export const switchTheme = (
     applyTheme(theme)
     return
   }
-  start.call(crossfade, () => applyTheme(theme))
+  const transition = start.call(crossfade, () => applyTheme(theme)) as { readonly ready?: Promise<unknown>; readonly finished?: Promise<unknown> } | undefined
+  // A crossfade the browser skips — a tab nobody is looking at — rejects these.
+  // The theme is applied all the same, so there is nothing to report.
+  transition?.ready?.catch(() => undefined)
+  transition?.finished?.catch(() => undefined)
 }
 
 /** Takes the theme's properties back off `:root`, for leaving the GG shell. */
