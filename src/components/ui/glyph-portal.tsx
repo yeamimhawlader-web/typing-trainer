@@ -173,7 +173,13 @@ export default function GlyphPortal({
     });
     glyph.style.fontFamily = [...available, DEFAULT_FONT].join(",");
     // A pending requested face may also hold WebKit's render loop. Keep that mount static.
-    pendingFace = available.length < families.length;
+    // Only a web font actually on its way counts. A face `check` says no to may
+    // simply not be on this machine (Inter, Arial Black) or be hidden by a
+    // browser's fingerprinting protection, and it will never arrive: holding
+    // still for it left the portal static for good in those browsers.
+    const bare = (family: string) => family.trim().replace(/^["']|["']$/g, "").toLowerCase();
+    const wanted = new Set(families.map(bare));
+    pendingFace = Array.from(document.fonts).some((face) => face.status === "loading" && wanted.has(bare(face.family)));
 
     const readInk = () => {
       if (!context) return false;
