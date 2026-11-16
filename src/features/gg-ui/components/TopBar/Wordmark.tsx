@@ -176,14 +176,23 @@ export const Wordmark = () => {
   useEffect(() => {
     const element = word.current
     if (element === null || alreadyPlayed() || asksForLessMotion()) return undefined
-    markPlayed()
     element.dataset.typing = ''
     const stop = new AbortController()
     // After the web font, so the letters it measures are the letters it shows.
     void (document.fonts?.ready ?? Promise.resolve())
-      .then(() => play(element, stop.signal))
+      .then(() => {
+        // Marked as seen only once it really starts: a top bar that is mounted
+        // and at once replaced (a redirect on arrival) has shown nothing yet,
+        // and must not use up the visit's one showing.
+        if (stop.signal.aborted) return undefined
+        markPlayed()
+        return play(element, stop.signal)
+      })
       .catch(() => undefined)
-    return () => stop.abort()
+    return () => {
+      stop.abort()
+      delete element.dataset.typing
+    }
   }, [])
 
   return (
