@@ -54,8 +54,9 @@ const WEIGHT = 900
 /** How long to wait for the face before setting the portal in the fallback instead. */
 const FACE_WAIT_MS = 6000
 
-/** Colourful keycaps, from Unsplash, seen through the letters and inside them. */
-const INSIDE_PHOTO = 'https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&w=2000&q=70'
+/** Colourful keycaps, seen through the letters and inside them. The same
+ * photograph the sign-in page uses, larger: see ways-to-practise.ts. */
+const INSIDE_PHOTO = '/photos/photo-1595225476474-87563907a212-2000.webp'
 
 const PORTAL_COLOURS: GlyphPortalStyle = {
   '--gp-paper': 'var(--color-bg-base)',

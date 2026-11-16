@@ -36,9 +36,8 @@ import { useGGDocumentTitle } from '../layout/useGGDocumentTitle.ts'
 
 import styles from './GGSignInPage.module.css'
 
-/** Keycaps, from Unsplash. */
-export const SIGN_IN_HERO_IMAGE =
-  'https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&w=1400&q=80'
+/** Keycaps, from Unsplash, served from here. See ways-to-practise.ts. */
+export const SIGN_IN_HERO_IMAGE = '/photos/photo-1595225476474-87563907a212-1400.webp'
 
 export const ACCOUNTS_NOT_YET =
   "Accounts aren't switched on yet, so nothing was sent anywhere. Your practice is saved in this browser in the meantime."

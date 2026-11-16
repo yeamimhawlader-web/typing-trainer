@@ -110,9 +110,9 @@ describe('the front page', () => {
     expect(images).toHaveLength(WAYS_TO_PRACTISE.length)
     for (const image of images) {
       expect(image).toHaveAttribute('alt', '')
-      expect(image.getAttribute('src')).toMatch(
-        /^https:\/\/images\.unsplash\.com\/photo-\d+-[0-9a-f]+\?/,
-      )
+      // Served from here, not from Unsplash: a visitor's address is not handed
+      // to a company they did not choose to visit. See ways-to-practise.ts.
+      expect(image.getAttribute('src')).toMatch(/^\/photos\/photo-\d+-[0-9a-f]+\.webp$/u)
     }
   })
 })
