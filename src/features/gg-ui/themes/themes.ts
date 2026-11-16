@@ -307,7 +307,10 @@ const BRAND = {
   dark: { word: '#F4F6F3', accent: '#14B886', mark: "url('/brand-mark-on-dark.png')" },
 } as const
 
-export const themeProperties = (theme: GGTheme): Readonly<Record<string, string>> => ({
+/** A Golden Nugget's own gold: a thing's colour, the same on every theme. */
+export const NUGGET_GOLD = { fill: '#F2C230', edge: '#B8860B', ink: '#2A1F00' } as const
+
+export const themeProperties =(theme: GGTheme): Readonly<Record<string, string>> => ({
   '--gg-brand-word': BRAND[theme.scheme].word,
   '--gg-brand-accent': BRAND[theme.scheme].accent,
   '--gg-brand-mark': BRAND[theme.scheme].mark,

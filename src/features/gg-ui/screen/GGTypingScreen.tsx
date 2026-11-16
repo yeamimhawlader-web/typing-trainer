@@ -67,7 +67,9 @@ import { layoutSyllables, readRhythm, type RhythmReading as Reading } from '@cor
 import { createCommonWordsProvider, createSyllableWordsProvider } from '@core/text'
 import type { HoverDifficulty, PaceChoice, Timestamp } from '@core/types'
 import { useSyncAfterSave } from '@features/accounts'
-import { createHoverController, keepTroublesomeWords, newTestId, recordGoldenNuggets } from '@features/ggtyping'
+import { createHoverController, keepAfterThreeStrikes, keepTroublesomeWords, newTestId, recordGoldenNuggets } from '@features/ggtyping'
+
+import { flyNugget } from '../components/NuggetFlight/nugget-flight.ts'
 import { createTimedMode, createTimedSyllableMode, SYLLABLE_MODE } from '@features/typing'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { playHoverSounds, playIdleSound, playTypingSounds, presetChoice, presetMatching, sampleChoicesFromStored, useSound } from '@features/sound'
@@ -273,6 +275,34 @@ export const GGTypingScreen = ({
         : recordGoldenNuggets(hover, goldenNuggets, { language: DEFAULT_SESSION_CONTEXT.language }),
     [goldenNuggets, hover],
   )
+
+  /*
+   * Three mistakes on a word in Hover Mode keep it there and then, and it is
+   * seen going: a gold copy flies from the word to the Golden Nuggets link.
+   */
+  const nuggetsLink = useRef<HTMLAnchorElement>(null)
+  const [keptNote, setKeptNote] = useState('')
+  useEffect(() => {
+    if (hover === null) return undefined
+    let stopFlight: (() => void) | undefined
+    const stopKeeping = keepAfterThreeStrikes(hover, goldenNuggets, {
+      language: DEFAULT_SESSION_CONTEXT.language,
+      onKeep: ({ word, wordIndex }) => {
+        setKeptNote(`“${word}” kept in Golden Nuggets.`)
+        const from =
+          document.querySelector<HTMLElement>('[data-hover-state]') ??
+          document.querySelector<HTMLElement>(`[data-word="${wordIndex}"]`)
+        const link = nuggetsLink.current
+        if (from === null || link === null) return
+        stopFlight?.()
+        stopFlight = flyNugget(word, from, link)
+      },
+    })
+    return () => {
+      stopKeeping()
+      stopFlight?.()
+    }
+  }, [goldenNuggets, hover])
 
   /*
    * A word that keeps costing mistakes is kept: five of them in one test make it
@@ -496,10 +526,13 @@ export const GGTypingScreen = ({
         {hover !== null && (
           <p className={styles.nuggets} data-recede="">
             A word that does not clear is kept in{' '}
-            <Link to={ROUTES.ggNuggets} className={styles.nuggetsLink}>
+            <Link ref={nuggetsLink} to={ROUTES.ggNuggets} className={styles.nuggetsLink}>
               Golden Nuggets
             </Link>
             .
+            <span role="status" className={styles.keptNote}>
+              {keptNote}
+            </span>
           </p>
         )}
 

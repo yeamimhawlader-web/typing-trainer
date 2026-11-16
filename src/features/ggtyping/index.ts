@@ -44,6 +44,8 @@ export { HOVER_DIFFICULTY_DETAILS, HOVER_DIFFICULTY_OPTIONS } from './hover/diff
 export type { HoverDifficultyDetails } from './hover/difficulty.ts'
 export { recordGoldenNuggets } from './hover/golden-nuggets.ts'
 export { keepTroublesomeWords } from './hover/word-mistakes.ts'
+export { keepAfterThreeStrikes, STRIKES_TO_KEEP } from './hover/three-strikes.ts'
+export type { KeptWord } from './hover/three-strikes.ts'
 export { newTestId } from './hover/hover-controller.ts'
 export type { WordMistakeOptions } from './hover/word-mistakes.ts'
 export type { GoldenNuggetRecorderOptions } from './hover/golden-nuggets.ts'

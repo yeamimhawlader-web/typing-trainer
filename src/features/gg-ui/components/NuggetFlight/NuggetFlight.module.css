@@ -1,0 +1,37 @@
+/**
+ * The gold copy of a kept word, on its way to Golden Nuggets (nugget-flight.ts).
+ *
+ * Fixed to the window and out of the page's flow: it is drawn over everything,
+ * takes no clicks, and moves by transform alone. Its colours are handed in as
+ * properties, because a nugget is the same gold on every theme.
+ */
+.across {
+  position: fixed;
+  z-index: 900;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.arc {
+  width: 0;
+  height: 0;
+}
+
+/* Centred on the point it is placed at, whatever the word's length. */
+.nugget {
+  position: absolute;
+  translate: -50% -50%;
+  padding: 0.12em 0.5em 0.16em;
+  border: 1.5px solid var(--gg-nugget-edge);
+  border-radius: 999px;
+  background: var(--gg-nugget-fill);
+  color: var(--gg-nugget-ink);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow:
+    0 6px 16px color-mix(in srgb, var(--gg-nugget-edge) 35%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 55%, transparent);
+  will-change: transform, opacity;
+}
