@@ -70,6 +70,7 @@ import { useSyncAfterSave } from '@features/accounts'
 import { createHoverController, keepAfterThreeStrikes, keepTroublesomeWords, newTestId, recordGoldenNuggets } from '@features/ggtyping'
 
 import { flyNugget } from '../components/NuggetFlight/nugget-flight.ts'
+import { NuggetNote } from '../components/NuggetNote/NuggetNote.tsx'
 import { createTimedMode, createTimedSyllableMode, SYLLABLE_MODE } from '@features/typing'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 import { playHoverSounds, playIdleSound, playTypingSounds, presetChoice, presetMatching, sampleChoicesFromStored, useSound } from '@features/sound'
@@ -544,6 +545,8 @@ export const GGTypingScreen = ({
           Typing here needs a physical keyboard. On-screen keyboards are not supported.
         </p>
       </div>
+
+      <NuggetNote service={goldenNuggets} engine={engine} />
 
       <ResultAnnouncement session={lastSession} saveState={saveState} />
 

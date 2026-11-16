@@ -310,7 +310,10 @@ const BRAND = {
 /** A Golden Nugget's own gold: a thing's colour, the same on every theme. */
 export const NUGGET_GOLD = { fill: '#F2C230', edge: '#B8860B', ink: '#2A1F00' } as const
 
-export const themeProperties =(theme: GGTheme): Readonly<Record<string, string>> => ({
+/** The sticky note about Golden Nuggets: paper, pin and ink, the same on every theme. */
+export const NUGGET_NOTE = { paper: '#FEFEC8', pin: '#FE0000', ink: '#070400', shade: '#A66E1C' } as const
+
+export const themeProperties = (theme: GGTheme): Readonly<Record<string, string>> => ({
   '--gg-brand-word': BRAND[theme.scheme].word,
   '--gg-brand-accent': BRAND[theme.scheme].accent,
   '--gg-brand-mark': BRAND[theme.scheme].mark,
