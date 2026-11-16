@@ -91,7 +91,6 @@
   border: 1.5px solid var(--gg-note-ink);
   border-radius: 999px;
   text-decoration: none;
-  transition: background-color 150ms ease, color 150ms ease;
 }
 
 .go:hover {

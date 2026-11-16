@@ -49,16 +49,14 @@
   color: var(--gg-muted);
 }
 
+/* A kept word has just landed here (nugget-flight.ts). The colour is not
+   transitioned -- no colour here is -- so that changing theme lands on one
+   frame instead of animating every word on the screen. */
 .nuggetsLink {
+  display: inline-block;
   color: var(--gg-fg);
   text-decoration: underline;
   text-underline-offset: 0.2em;
-}
-
-/* A kept word has just landed here (nugget-flight.ts). */
-.nuggetsLink {
-  display: inline-block;
-  transition: color 300ms ease;
 }
 
 .nuggetsLink[data-nugget-landed] {

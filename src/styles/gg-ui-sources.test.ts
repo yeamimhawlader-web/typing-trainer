@@ -77,12 +77,21 @@ describe('GG.Typing UI sources', () => {
       }
     })
 
+    /*
+     * One blur is written by hand on purpose: the wordmark's glow pool, a soft
+     * mint light under the letters. The glass tokens describe a pane to see
+     * through rather than a light to cast, so borrowing --gg-glass-blur for it
+     * would say something untrue about what it is. Named here rather than
+     * quietly exempted, so that the next hand-written blur is still caught.
+     */
+    const GLOW = /TopBar\.module\.css$/
+
     it('is only ever made from those tokens: no blur, backdrop or glass shadow written by hand', () => {
       const offenders = components.flatMap(({ file, contents }) => [
         ...[...contents.matchAll(/backdrop-filter:\s*([^;]+);/g)]
           .filter((match) => match[1]?.trim() !== 'var(--gg-glass-filter)')
           .map((match) => `${file}: ${match[0]}`),
-        ...[...contents.matchAll(/blur\(/g)].map((match) => `${file}: ${match[0]}`),
+        ...(GLOW.test(file) ? [] : [...contents.matchAll(/\bblur\(/g)].map((match) => `${file}: ${match[0]}`)),
       ])
 
       expect(offenders).toEqual([])
@@ -121,7 +130,13 @@ describe('GG.Typing UI sources', () => {
     it('never transitions a colour, so a theme switch and a state change land on one frame', () => {
       const offenders = stylesheets.flatMap(({ file, contents }) =>
         [...contents.matchAll(/transition(?:-property)?:\s*([^;]+);/g)]
-          .filter((match) => /(color|background|background-color|border-color|fill|stroke|box-shadow|filter)/.test(match[1] ?? ''))
+          // Whole property names, not prefixes: `stroke-dashoffset` is a length
+          // on its way somewhere, and a word boundary alone would call it a colour.
+          .filter((match) =>
+            /(?:^|[\s,])(?:color|background|background-color|border-color|fill|stroke|box-shadow|filter)(?:[\s,]|$)/.test(
+              match[1] ?? '',
+            ),
+          )
           .map((match) => `${file}: ${match[0]}`),
       )
 
