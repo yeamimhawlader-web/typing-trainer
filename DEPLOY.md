@@ -61,11 +61,32 @@ added there. The one inline script, which sets the theme before first paint, is
 allowed by its hash; `src/styles/first-paint-csp.test.ts` fails with the new hash
 if that script changes.
 
+## Moving to a custom domain
+
+A browser treats two addresses as two unrelated places, so everything saved
+under the `vercel.app` address stays there: every visitor, the author included,
+arrives at the new domain with an empty history. There is no way around that
+from the server. What there is, is **Settings → Your data** — save a copy on
+the old address, restore it on the new one.
+
+Three things to do on the day, none of them in this repository:
+
+1. Point the old address at the new one (Vercel → Domains → Redirect), or both
+   stay live as two separate sites, each with its own saved data.
+2. If sign-in is connected, add the new domain in Supabase (Site URL and
+   Redirect URLs) and in Google's OAuth client, or the email link will send
+   people back to the old address. See `docs/SUPABASE.md`.
+3. Nothing in `vercel.json` names the domain, so the headers follow by
+   themselves.
+
 ## What friends should know
 
 - Their results are stored in **their own browser**. Clearing site data clears
   their history; a different browser or device starts empty. Nothing is
   uploaded, and there is no account.
+- **Settings → Your data** saves all of it to one file and puts it back, which
+  is how a typist moves to another computer -- or follows the site to a new
+  address. Restoring replaces whatever is in that browser rather than merging.
 - Sound is off until they choose a keyboard in the toolbar.
 - It needs a physical keyboard: on-screen keyboards are not supported, and the
   screen says so on a touch device.

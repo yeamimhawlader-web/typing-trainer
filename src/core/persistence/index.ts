@@ -14,6 +14,9 @@ export type { PersistenceErrorOptions } from './types.ts'
 export { createStorage, storage } from './storage.ts'
 export type { CreateStorageOptions } from './storage.ts'
 
+export { packStored, readTransferFile, restoreStored, TRANSFER_FORMAT, TransferError } from './transfer.ts'
+export type { TransferFile } from './transfer.ts'
+
 export { buildKeyPrefix, withNamespace } from './namespace.ts'
 export type { NamespaceOptions } from './namespace.ts'
 

@@ -1,0 +1,67 @@
+/**
+ * The "Your data" section (DataTransferSettings.tsx), built to sit among the
+ * other settings groups rather than beside them, so its first four rules match
+ * SettingsPage.module.css deliberately.
+ */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: var(--layout-reading-width);
+  padding: 0;
+  border: none;
+}
+
+.legend {
+  padding: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* The file input is driven by the buttons above it; it is never shown, but it
+   stays in the page rather than being display:none so that it keeps working
+   with assistive technology and with a browser that focuses it. */
+.picker {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A question that replaces everything, or the answer to one: set apart from the
+   settings around it, because neither is a setting. */
+.asking {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+.question {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.failed {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
