@@ -48,7 +48,9 @@ Keep those two for Part 4.
 ## Part 2 — The tables (about 2 minutes)
 
 7. Left sidebar: **SQL Editor** → **New query**.
-8. Paste all of this and press **Run** (or Ctrl+Enter):
+8. Open `docs/supabase-setup.sql`, copy the whole file, paste it here and press
+   **Run** (or Ctrl+Enter). It is the same thing as the block below, in one
+   file, so there is nothing to pick out of the page:
 
 ```sql
 -- Finished tests. Written once and never edited, so the id is the whole story.
@@ -90,6 +92,25 @@ It should say **Success. No rows returned**. Running it again is safe.
 
 9. Check it landed: **Table Editor** in the sidebar now lists `sessions` and
    `texts`, both empty.
+
+10. **Prove the lock is on**, which is the part worth doing properly. With your
+    project URL and public key in `.env.local`, run:
+
+    ```
+    npm run check:supabase
+    ```
+
+    It asks your database for everything in it with no account and no password,
+    exactly as a stranger would, and says in plain words whether it got
+    anything. Nothing is written or deleted. You want to see:
+
+    ```
+    VERDICT: safe. A stranger with the public key cannot read or write anything.
+    ```
+
+    Anything else tells you what to fix. Run it again whenever the database
+    changes — a restore from a backup, a table rebuilt by hand, or an AI
+    editing the schema can all switch the lock off without saying so.
 
 ## Part 3 — Where the link is allowed to land (about 1 minute)
 
