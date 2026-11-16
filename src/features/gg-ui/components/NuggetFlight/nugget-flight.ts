@@ -32,13 +32,13 @@ import styles from './NuggetFlight.module.css'
 
 export const NUGGET_FLIGHT = {
   /** The pop and bounce where the word is. */
-  bounceMs: 520,
+  bounceMs: 460,
   /** The flight to the link. */
-  flightMs: 680,
+  flightMs: 760,
   /** How high the arc rises above where it started, in pixels. */
-  riseBy: 70,
+  riseBy: 48,
   /** The link's bounce as the nugget lands. */
-  landMs: 560,
+  landMs: 480,
 } as const
 
 const prefersLessMotion = (): boolean =>
@@ -51,7 +51,8 @@ const centreOf = (rect: DOMRect): { readonly x: number; readonly y: number } => 
 
 /** The link's own bounce, and its moment of gold. */
 const land = (target: HTMLElement, still: boolean): void => {
-  target.style.setProperty('--gg-nugget-gold', GOLD.edge)
+  const accent = getComputedStyle(target).getPropertyValue('--gg-accent').trim()
+  target.style.setProperty('--gg-nugget-gold', accent === '' ? GOLD.edge : accent)
   target.dataset.nuggetLanded = ''
   const done = (): void => {
     delete target.dataset.nuggetLanded
@@ -63,9 +64,9 @@ const land = (target: HTMLElement, still: boolean): void => {
   const bounce = target.animate(
     [
       { transform: 'scale(1)' },
-      { transform: 'scale(1.28)', offset: 0.22 },
-      { transform: 'scale(0.92)', offset: 0.48 },
-      { transform: 'scale(1.08)', offset: 0.72 },
+      { transform: 'scale(1.16)', offset: 0.25 },
+      { transform: 'scale(0.96)', offset: 0.55 },
+      { transform: 'scale(1.03)', offset: 0.78 },
       { transform: 'scale(1)' },
     ],
     { duration: NUGGET_FLIGHT.landMs, easing: 'ease-out' },
@@ -99,9 +100,12 @@ export const flyNugget = (word: string, from: HTMLElement, target: HTMLElement):
   nugget.textContent = word
   nugget.style.fontFamily = font.fontFamily
   nugget.style.fontSize = font.fontSize
-  across.style.setProperty('--gg-nugget-fill', GOLD.fill)
-  across.style.setProperty('--gg-nugget-edge', GOLD.edge)
-  across.style.setProperty('--gg-nugget-ink', GOLD.ink)
+  // The page's own colours, read where the word is: the copy sits on the body,
+  // outside the theme, and should still look like it came from this page.
+  const theme = (name: string, fallback: string): string => font.getPropertyValue(name).trim() || fallback
+  across.style.setProperty('--gg-nugget-fill', theme('--gg-surface', theme('--gg-bg', GOLD.fill)))
+  across.style.setProperty('--gg-nugget-edge', theme('--gg-accent', GOLD.edge))
+  across.style.setProperty('--gg-nugget-ink', theme('--gg-fg', GOLD.ink))
   across.style.left = `${start.x}px`
   across.style.top = `${start.y}px`
   across.setAttribute('aria-hidden', 'true')
@@ -123,10 +127,10 @@ export const flyNugget = (word: string, from: HTMLElement, target: HTMLElement):
   // 1. Pops out of the word and bounces, twice, lower the second time.
   const bounce = nugget.animate(
     [
-      { transform: 'translateY(0) scale(0.5)', opacity: 0 },
-      { transform: 'translateY(-26px) scale(1.2)', opacity: 1, offset: 0.3 },
-      { transform: 'translateY(0) scale(0.94, 1.02)', offset: 0.55 },
-      { transform: 'translateY(-11px) scale(1.05)', offset: 0.75 },
+      { transform: 'translateY(0) scale(0.85)', opacity: 0 },
+      { transform: 'translateY(-18px) scale(1.06)', opacity: 1, offset: 0.35 },
+      { transform: 'translateY(0) scale(1.03, 0.96)', offset: 0.62 },
+      { transform: 'translateY(-5px) scale(1)', offset: 0.82 },
       { transform: 'translateY(0) scale(1)', opacity: 1 },
     ],
     { duration: bounceMs, easing: 'cubic-bezier(0.3, 0, 0.3, 1)', fill: 'forwards' },
@@ -151,8 +155,8 @@ export const flyNugget = (word: string, from: HTMLElement, target: HTMLElement):
     const shrink = nugget.animate(
       [
         { transform: 'scale(1) rotate(0deg)', opacity: 1 },
-        { transform: 'scale(0.75) rotate(-8deg)', opacity: 1, offset: 0.7 },
-        { transform: 'scale(0.35) rotate(0deg)', opacity: 0 },
+        { transform: 'scale(0.8) rotate(-3deg)', opacity: 1, offset: 0.75 },
+        { transform: 'scale(0.5) rotate(0deg)', opacity: 0 },
       ],
       { duration: flightMs, easing: 'ease-in', fill: 'forwards' },
     )
