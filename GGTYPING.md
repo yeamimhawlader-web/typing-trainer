@@ -226,10 +226,17 @@ way — a reload, the back button — shows it already open.
 | The last word focused | The test stays open until it is released |
 | Restart, new text, word count or difficulty change | Everything cleared; nothing goes to Golden Nuggets |
 
-**Golden Nuggets.** A word is kept two ways: it costs five mistakes in one test,
-anywhere in GG.Typing, or Hover Mode releases it without it having cleared —
-still costing mistakes when its difficulty's repetitions ran out. Either is kept
-at `/gg/nuggets`, reached
+**Golden Nuggets.** A word is kept three ways: it costs five mistakes in one test,
+anywhere in GG.Typing outside Hover Mode; it is got wrong three times in Hover
+Mode — the slip that started the focus and two repetitions, say — and is kept
+there and then, a copy of it flying to the Golden Nuggets link (no flight for
+someone who asked for less motion); or Hover Mode releases it without it having
+cleared — still costing mistakes when its difficulty's repetitions ran out. The
+third mistake writes no mistakes of its own: the focus hands its whole count
+over when it is released, so nothing is counted twice. Each ten words kept
+(ten, twenty, …) pins a sticky note to the corner of the typing screen saying
+they are worth practising, once per ten and never while a test is running. All
+are kept at `/gg/nuggets`, reached
 from Hover Mode's own screen (a line under the hint, and the result) rather than
 the top bar, which has no room for a fourth link on a phone. One record per word per language, whose counts rise each time:
 how often the word was released unresolved, the Hover Mode tests it came up in,
