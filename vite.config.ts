@@ -82,6 +82,10 @@ export default defineConfig({
           name: 'browser',
           environment: 'jsdom',
           setupFiles: ['./src/test/setup.ts'],
+          // Room for an integration test that renders a screen, types a text
+          // and waits on storage while other files run beside it. See the
+          // async timeout in the setup file, which these waits sit inside.
+          testTimeout: 15_000,
           include: [
             'src/core/persistence/**/*.test.ts',
             'src/core/sessions/**/*.test.ts',

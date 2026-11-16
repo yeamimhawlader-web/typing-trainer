@@ -35,11 +35,26 @@ export const NUGGET_FLIGHT = {
   bounceMs: 460,
   /** The flight to the link. */
   flightMs: 760,
-  /** How high the arc rises above where it started, in pixels. */
-  riseBy: 48,
+  /**
+   * How high the arc rises above the higher of its two ends. A share of the
+   * distance travelled, so a throw across a wide screen arcs like a throw
+   * rather than sliding flat, held between a floor — a short hop still looks
+   * thrown — and a ceiling, past which it leaves the page and comes back.
+   */
+  riseOfDistance: 0.16,
+  riseAtLeast: 48,
+  riseAtMost: 150,
   /** The link's bounce as the nugget lands. */
   landMs: 480,
+  /** How far through the flight the link begins to bounce. */
+  landsAt: 0.93,
 } as const
+
+/** The arc's height for a flight of this length. */
+export const riseFor = (dx: number, dy: number): number => {
+  const { riseOfDistance, riseAtLeast, riseAtMost } = NUGGET_FLIGHT
+  return Math.min(riseAtMost, Math.max(riseAtLeast, Math.hypot(dx, dy) * riseOfDistance))
+}
 
 const prefersLessMotion = (): boolean =>
   typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -113,16 +128,30 @@ export const flyNugget = (word: string, from: HTMLElement, target: HTMLElement):
   across.append(arc)
   document.body.append(across)
 
+  const { bounceMs, flightMs, landsAt } = NUGGET_FLIGHT
+
   let stopped = false
+  let sweep = 0
   const stop = (): void => {
     if (stopped) return
     stopped = true
+    window.clearTimeout(sweep)
     across.remove()
   }
 
-  const { bounceMs, flightMs, riseBy } = NUGGET_FLIGHT
+  /*
+   * The copy leaves the page whatever becomes of the animations.
+   *
+   * Everything below hangs off the bounce reporting that it finished, and a
+   * browser that never reports it — a tab asleep through the whole flight,
+   * an engine that drops the event — would otherwise leave a word sitting
+   * over the page for good. Long enough to be a backstop and not a schedule.
+   */
+  sweep = window.setTimeout(stop, (bounceMs + flightMs) * 3 + 1_000)
+
   const dx = end.x - start.x
   const dy = end.y - start.y
+  const rise = riseFor(dx, dy)
 
   // 1. Pops out of the word and bounces, twice, lower the second time.
   const bounce = nugget.animate(
@@ -147,7 +176,7 @@ export const flyNugget = (word: string, from: HTMLElement, target: HTMLElement):
     arc.animate(
       [
         { transform: 'translateY(0)', easing: 'cubic-bezier(0.2, 0.7, 0.4, 1)' },
-        { transform: `translateY(${Math.min(-riseBy, dy - riseBy)}px)`, offset: 0.42, easing: 'cubic-bezier(0.55, 0, 0.9, 0.5)' },
+        { transform: `translateY(${Math.min(-rise, dy - rise)}px)`, offset: 0.42, easing: 'cubic-bezier(0.55, 0, 0.9, 0.5)' },
         { transform: `translateY(${dy}px)` },
       ],
       { duration: flightMs, fill: 'forwards' },
@@ -160,10 +189,10 @@ export const flyNugget = (word: string, from: HTMLElement, target: HTMLElement):
       ],
       { duration: flightMs, easing: 'ease-in', fill: 'forwards' },
     )
-    // 3. Lands a touch before the copy has quite gone, so the two read as one event.
+    // 3. Lands as the copy arrives and fades, so the two read as one event.
     window.setTimeout(() => {
       if (!stopped) land(target, false)
-    }, flightMs * 0.86)
+    }, flightMs * landsAt)
     shrink.addEventListener('finish', stop)
     shrink.addEventListener('cancel', stop)
   })
