@@ -73,19 +73,30 @@ const fakeDatabase = () => {
     return table
   }
 
-  const mine = (name: string): Row[] => [...rowsOf(name).values()].filter((row) => row.user_id === asAccount)
+  /** Off when a test wants to know what happens if the server forgets its rules. */
+  let rowLevelSecurity = true
+
+  const mine = (name: string): Row[] =>
+    [...rowsOf(name).values()].filter((row) => !rowLevelSecurity || row.user_id === asAccount)
 
   const answer = <T>(data: T[]) =>
     failWith === null ? { data, error: null } : { data: null, error: { message: failWith } }
 
+  /** A column's value on a row, for the filters below. */
+  const valueOf = (row: Row, column: string): unknown => (row as unknown as Record<string, unknown>)[column]
+
   const client = {
     from: (name: string) => ({
       select: (columns: string) => {
-        const whole = Promise.resolve(answer(mine(name).map((row) => project(row, columns))))
-        return Object.assign(whole, {
-          in: (_column: string, ids: readonly string[]) =>
-            Promise.resolve(answer(mine(name).filter((row) => ids.includes(row.id)).map((row) => project(row, columns)))),
-        })
+        // Awaitable at any point, and narrowed by each filter in turn, which is
+        // how the real client behaves and what lets a query name its owner.
+        const query = (rows: readonly Row[]): unknown =>
+          Object.assign(Promise.resolve(answer(rows.map((row) => project(row, columns)))), {
+            eq: (column: string, value: unknown) => query(rows.filter((row) => valueOf(row, column) === value)),
+            in: (column: string, values: readonly string[]) =>
+              query(rows.filter((row) => values.includes(String(valueOf(row, column))))),
+          })
+        return query(mine(name))
       },
       upsert: (incoming: readonly Row[]) => {
         if (failWith !== null) return Promise.resolve({ error: { message: failWith } })
@@ -96,13 +107,17 @@ const fakeDatabase = () => {
         }
         return Promise.resolve({ error: null })
       },
-      delete: () => ({
-        in: (_column: string, ids: readonly string[]) => {
-          if (failWith !== null) return Promise.resolve({ error: { message: failWith } })
-          for (const row of mine(name)) if (ids.includes(row.id)) rowsOf(name).delete(row.id)
-          return Promise.resolve({ error: null })
-        },
-      }),
+      delete: () => {
+        const query = (rows: readonly Row[]): unknown => ({
+          eq: (column: string, value: unknown) => query(rows.filter((row) => valueOf(row, column) === value)),
+          in: (column: string, values: readonly string[]) => {
+            if (failWith !== null) return Promise.resolve({ error: { message: failWith } })
+            for (const row of rows) if (values.includes(String(valueOf(row, column)))) rowsOf(name).delete(row.id)
+            return Promise.resolve({ error: null })
+          },
+        })
+        return query(mine(name))
+      },
     }),
   }
 
@@ -116,6 +131,14 @@ const fakeDatabase = () => {
     },
     fail: (message: string | null) => {
       failWith = message
+    },
+    /**
+     * Serves every row to everybody, as a project whose policies were never
+     * applied would: a table rebuilt by hand, a migration half run, a restore
+     * from before the rules existed.
+     */
+    forgetRowLevelSecurity: () => {
+      rowLevelSecurity = false
     },
   }
 }
@@ -312,6 +335,58 @@ describe('bringing a browser and an account level', () => {
     expect(await sync.syncNow()).toMatchObject({ sessionsUp: 1, sessionsDown: 1 })
     expect(database.rows(SESSIONS_TABLE)).toHaveLength(2)
     expect(await sessions.getAll()).toHaveLength(2)
+  })
+
+  /*
+   * Row-level security is the only lock an attacker cannot edit, and it lives
+   * on a server nobody here can see. These say what the queries themselves do
+   * when it is not there -- see the note at the top of sync.ts.
+   *
+   * Reading is where the filter earns its place, and the first of these fails
+   * without it. Deleting was already bounded without any filter, because a row
+   * is only ever deleted when this account's own record of the last round says
+   * it was here before; the second is here to keep that true, not because it
+   * is false today.
+   */
+  describe('when the database has forgotten its own rules', () => {
+    const strangers = () => {
+      database.put(SESSIONS_TABLE, {
+        id: 'stranger-session',
+        user_id: 'somebody-else',
+        completed_at: 9000,
+        data: session('stranger-session', 9000),
+      })
+      database.forgetRowLevelSecurity()
+    }
+
+    it('does not bring a stranger’s practice into this browser', async () => {
+      strangers()
+
+      await sync.syncNow()
+
+      expect((await sessions.getAll()).map((stored) => stored.id)).not.toContain('stranger-session')
+    })
+
+    it('takes only what was deleted here, and leaves a stranger’s row where it is', async () => {
+      await sessions.save(session('mine'))
+      await sync.syncNow()
+      strangers()
+
+      await sessions.remove(sessionId('mine'))
+      await sync.syncNow()
+
+      expect(database.rows(SESSIONS_TABLE).map((row) => row.id)).toEqual(['stranger-session'])
+    })
+
+    it('still sends up what was typed here, under this account', async () => {
+      strangers()
+      await sessions.save(session('mine'))
+
+      await sync.syncNow()
+
+      const ours = database.rows(SESSIONS_TABLE).filter((row) => row.user_id === ACCOUNT.id)
+      expect(ours.map((row) => row.id)).toEqual(['mine'])
+    })
   })
 
   it('takes a test deleted here off the account, instead of downloading it again', async () => {

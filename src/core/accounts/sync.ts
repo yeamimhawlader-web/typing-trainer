@@ -5,6 +5,25 @@
  * and syncing is a second copy made afterwards. Nothing in the typing loop
  * waits for a network, and signing out leaves everything here untouched.
  *
+ * ## Whose rows these are, said twice
+ *
+ * Every query here names the account whose rows it wants, although the
+ * database is already told the same thing: row-level security scopes both
+ * tables to `auth.uid()`, so a correctly configured project would return the
+ * signed-in typist's rows and no one else's without being asked.
+ *
+ * It is said twice because one of the two is a setting on a server nobody
+ * here can see. If row-level security were ever off -- a project restored from
+ * a backup, a table rebuilt by hand, a migration half run -- then a plain
+ * `select` would quietly return every typist's sessions, and the delete that
+ * follows a local deletion would reach into strangers' rows. The filter costs
+ * a few characters and turns that from a breach into a quiet afternoon.
+ *
+ * It is not a replacement for row-level security, which is the only part of
+ * this an attacker cannot edit: anyone can open the console and run their own
+ * query against the same table. It is the second lock, not the first. See
+ * docs/SUPABASE.md.
+ *
  * ## Why a record of the last round
  *
  * Comparing what is here with what is there cannot, on its own, tell a row
@@ -196,7 +215,9 @@ export const createSyncService = ({
     // the comparison is between the two sets, not between two domains.
     const localIds = new Set<string>(local.map((session) => session.id))
     const remoteIds = new Set(
-      rowsOf<{ id: string }>(await client.from(SESSIONS_TABLE).select('id')).map((row) => row.id),
+      rowsOf<{ id: string }>(await client.from(SESSIONS_TABLE).select('id').eq('user_id', accountId)).map(
+        (row) => row.id,
+      ),
     )
 
     // Another account's, still here and not this account's: kept back. One the
@@ -222,13 +243,13 @@ export const createSyncService = ({
     })
 
     await inBatches(deletedHere, async (batch) => {
-      thrownIfFailed(await client.from(SESSIONS_TABLE).delete().in('id', [...batch]))
+      thrownIfFailed(await client.from(SESSIONS_TABLE).delete().eq('user_id', accountId).in('id', [...batch]))
     })
 
     let pulled = 0
     await inBatches(waiting, async (batch) => {
       const stored = rowsOf<{ data: unknown }>(
-        await client.from(SESSIONS_TABLE).select('data').in('id', [...batch]),
+        await client.from(SESSIONS_TABLE).select('data').eq('user_id', accountId).in('id', [...batch]),
       )
       await inSequence(stored, async (row) => {
         // This came from outside the browser, so it is checked exactly as
@@ -259,7 +280,7 @@ export const createSyncService = ({
     const local = await library.getAll()
     const localById = new Map(local.map((text) => [text.id, text]))
     const remote = rowsOf<{ id: string; updated_at: number }>(
-      await client.from(TEXTS_TABLE).select('id, updated_at'),
+      await client.from(TEXTS_TABLE).select('id, updated_at').eq('user_id', accountId),
     )
     const remoteById = new Map(remote.map((row) => [row.id, row.updated_at]))
     const withheld = [...held].filter((id) => localById.has(id) && !remoteById.has(id))
@@ -292,14 +313,16 @@ export const createSyncService = ({
     })
 
     await inBatches(deletedHere, async (batch) => {
-      thrownIfFailed(await client.from(TEXTS_TABLE).delete().in('id', [...batch]))
+      thrownIfFailed(await client.from(TEXTS_TABLE).delete().eq('user_id', accountId).in('id', [...batch]))
     })
 
     let pulled = 0
     await inBatches(
       down.map((row) => row.id),
       async (batch) => {
-        const stored = rowsOf<{ data: unknown }>(await client.from(TEXTS_TABLE).select('data').in('id', [...batch]))
+        const stored = rowsOf<{ data: unknown }>(
+          await client.from(TEXTS_TABLE).select('data').eq('user_id', accountId).in('id', [...batch]),
+        )
         await inSequence(stored, async (row) => {
           const text: LibraryText | null = parseLibraryText(row.data)
           if (text !== null) {
