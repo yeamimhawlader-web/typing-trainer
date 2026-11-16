@@ -5,11 +5,11 @@
  */
 .note {
   position: fixed;
-  right: 28px;
-  bottom: 28px;
+  right: 24px;
+  bottom: 24px;
   z-index: 800;
-  width: 290px;
-  padding: 30px 22px 16px;
+  width: 252px;
+  padding: 28px 18px 14px;
   background: var(--gg-note-paper);
   color: var(--gg-note-ink);
   border-radius: 2px 2px 14px 2px;
@@ -58,7 +58,7 @@
 .words {
   margin: 0;
   font-family: 'Caveat Variable', 'Caveat', cursive;
-  font-size: 23px;
+  font-size: 20px;
   font-weight: 500;
   line-height: 1.22;
 }

@@ -81,6 +81,11 @@
   opacity: 0.12;
 }
 
+/* A word has just landed in Golden Nuggets: its line comes forward to be seen. */
+.app[data-typing='true'] [data-recede]:has([data-nugget-landed]) {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app [data-recede] {
     transition: none;
