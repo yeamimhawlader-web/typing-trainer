@@ -96,8 +96,15 @@ export const GGGoldenNuggetsPage = ({ service = goldenNuggetService }: GGGoldenN
             <li key={nugget.id} className={styles.item}>
               <h2 className={styles.word}>{nugget.word}</h2>
               <p className={styles.facts}>
-                {/* What the word has cost, then how often, then where it got away. */}
-                <span>{times(nugget.mistakes, 'mistake', 'mistakes')}</span>
+                {/*
+                  What the word has cost, then how often, then where it got away.
+                  A word kept on its third mistake carries no count until the
+                  focus it is in ends and hands one over, and a typist who
+                  reloads or restarts before that leaves it without one. Saying
+                  "0 mistakes" of a word on a list of what costs you speed would
+                  be worse than saying nothing, so it says nothing.
+                */}
+                {nugget.mistakes > 0 && <span>{times(nugget.mistakes, 'mistake', 'mistakes')}</span>}
                 <span>Met in {times(testsOf(nugget), 'test', 'tests')}</span>
                 {nugget.timesUnresolved > 0 && (
                   <span>Let go {times(nugget.timesUnresolved, 'time', 'times')}</span>
