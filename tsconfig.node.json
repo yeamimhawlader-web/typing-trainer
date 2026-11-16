@@ -27,5 +27,11 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "src/styles/**/*.test.ts"]
+  "include": [
+    "vite.config.ts",
+    "src/styles/**/*.test.ts",
+    /* These read the source tree, .env.example and vite.config.ts off disk. */
+    "src/config/environment-documented.test.ts",
+    "src/config/every-test-runs.test.ts"
+  ]
 }

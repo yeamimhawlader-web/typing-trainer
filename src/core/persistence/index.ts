@@ -29,6 +29,12 @@ export {
 /** Storage keys in use. Centralised so collisions are visible at a glance. */
 export const STORAGE_KEYS = {
   preferences: 'preferences',
+  /**
+   * When the preferences above were last written, so the account can tell
+   * which of two browsers chose last. See @core/preferences for why it is a
+   * key of its own rather than a field inside them.
+   */
+  preferencesSaved: 'preferences-saved',
   goldenNuggets: 'golden-nuggets',
   libraryTexts: 'library-texts',
   /** What the last round of account syncing ended with. See @core/accounts. */

@@ -344,14 +344,86 @@ The decisions worth keeping:
   Sessions are immutable, so an id is the whole comparison; texts are edited,
   so the later `updatedAt` wins. Each of those four cases has a test, and each
   was checked by breaking it on purpose.
+- **A tally is joined, not chosen.** Golden Nuggets are the one thing synced
+  that both sides go on _adding to_, so where both have the same word the two
+  records are joined rather than one of them taken whole: the larger of each
+  count, the earlier first sighting, the later last one, and the most recent
+  focus described by whichever side saw the word last, with a dead heat settled
+  on the test id so two browsers cannot reach different answers. Every count in
+  a nugget only ever rises, which is what makes the larger of two the one that
+  has seen more. It is not a perfect total — both sides counting between two
+  rounds end at the larger, not the sum — and that is the trade: a true sum
+  needs a per-browser tally for every word forever, and the alternative of
+  taking the newer record does not merely approximate, it discards the other
+  side's counting. The join is commutative, idempotent and settled after one
+  pass, which is what keeps two browsers from pushing answers at each other.
+- **A nugget's id is not unique in the world.** It is `language:word`, so every
+  typist who struggles with `because` has a record called `en:because`. This
+  costs twice, in two places that look unrelated. The table's key is therefore
+  `(user_id, id)` and the upsert names both columns.
+  Keyed on the id alone, the second typist to meet a word would be writing over
+  the first one's row; the policy would refuse, and that refusal would take
+  their syncing down for every word, not only that one. There is a test for it,
+  and the fake database spells the key out rather than reading the constant the
+  code uses, which would have agreed with itself however wrong it was.
+
+  The second cost is in the withholding. Sessions and texts let a withheld id
+  go the moment the account turns out to have it, and are right to: those ids
+  come from `crypto.randomUUID`, so the account holding one is proof it is this
+  account's. A *word* on both sides proves nothing, and the same rule applied
+  to nuggets poured the previous person's count straight into the new person's
+  record of `because`. So a held word is asked about before anything else looks
+  at it, and stays held however familiar it looks; where this account has the
+  word, its own record is taken whole rather than joined.
+- **The settings needed saying separately.** Everything else synced is a list,
+  guarded id by id, so the withholding falls out of the comparison. The
+  settings are one record with nothing to compare, and simply went up — which
+  on a shared browser meant the first person's theme landing in the second
+  person's account and overwriting what they had. `startingFrom` now reports
+  the switch outright, and on a switch the account's own settings are taken
+  whatever their age and the browser's are sent nowhere.
+
+  Noticing the switch is not enough on its own, and that was the second half
+  of the same bug. A switch is visible for exactly one round — after it, the
+  record names the new account and the two agree — so a guard that watched
+  only for the switch held the first person's theme back once and sent it the
+  round after. What is withheld is therefore the *time* those settings were
+  last chosen, kept in the record beside the withheld ids. It holds for as
+  long as that time has not moved, and the moment anyone chooses anything on
+  the browser it has moved, the settings are theirs, and they go up like
+  anyone's. A time rather than a list because there is only ever one settings
+  record, and so nothing to name.
 - **Three moments, one idempotent round.** Signing in, coming back to the tab,
   and finishing a test. A round already running absorbs the others, so there is
   no coordination to get wrong, and a failure is a warning and a line on the
   account page — never an interruption.
+- **Settings follow the person.** Theme, font, sound, caret and practice length
+  are one record, not a list, so there is nothing to compare id by id: the side
+  that chose last wins outright. They were local at first, on the reasoning
+  that text size and sound belong to the machine; what decided it the other way
+  is that signing in on a laptop and finding someone else's defaults is the
+  thing a typist notices, and Monkeytype — the application people arrive here
+  having used — carries its config with the account. The time they were chosen
+  is kept in a key of its own rather than inside the record, because the record
+  is a bare `UserPreferences` object and has been since the first version;
+  wrapping it would have read as empty on the next load and reset everyone's
+  settings. A browser that has never saved one has no time and loses to
+  whatever the account holds, which is the right answer for a second machine.
+  Arriving settings are checked by exactly the code that checks the disk: the
+  account is trusted no more than local storage is.
+
+  The record says which of the two happened rather than leaving it to be
+  inferred: `write` is a choice made here and is silent, `arrive` is a record
+  from the account and tells the settings store. That used to be inferred from
+  the clock — a listener ignored anything not newer than its own last write —
+  which is wrong in exactly the case that matters, since a second person on a
+  shared browser must be given the account's settings even though the first
+  person's are newer. Whether an arriving record should win is decided once, by
+  the syncing, which is the only part that knows whose browser this was.
 - **Keystroke detail stays local.** It is the largest thing stored and is read
   only by the analyses on the machine that recorded it; the session records
-  carry every number history and statistics show. Settings stay local too: text
-  size, sound and theme belong to the machine more than to the person.
+  carry every number history and statistics show. It is the one thing an
+  account does not carry.
 
 Row-level security, not the secrecy of a key in a page, is what keeps one
 typist's rows from another's. The setup, with the SQL, is docs/SUPABASE.md.
@@ -364,6 +436,25 @@ saying so, and the form is never submitted — left alone, a form with no action
 and password in its address. Practice needs no account: everything is kept in
 the browser. Testimonials, which the component supports, are left out: there is
 nobody to quote.
+
+### Coming back from a sign-in that did not finish
+
+Both ways in leave this page and return to it, and when either fails all that
+comes back is a reason in the query string. For a while nothing read it: a
+typist who pressed Cancel at Google, or opened yesterday's link, landed on the
+same blank form they started from with nothing to say it had even been tried.
+
+`core/accounts/sign-in-return.ts` reads it and answers in a sentence — not
+Supabase's sentence, which is written for whoever set the project up and says
+things like "Unsupported provider: provider is not enabled". Each known reason
+says what happened and what is still true, which is almost always "nothing was
+lost, your practice is in this browser"; anything unrecognised gets a sensible
+fallback rather than silence. The reason is read during the first render, not
+from an effect, so it is on screen on the frame the page appears, and then
+taken off the address so it is said once rather than surviving a reload.
+
+Backing out at the provider is marked as the typist's own choice, which is why
+it is the one case that does not reach the console: it is not a fault.
 
 ### Persistence is an interface, not a database
 
@@ -711,7 +802,7 @@ is exactly the difference of the two numbers beside it. There is no fixed
 no absolute scale, and one typist is slower when tired.
 
 **Stability — slow repeatedly, not slow once.** For every session a digraph
-appears in, its session median is compared against *that session's own*
+appears in, its session median is compared against _that session's own_
 baseline. Doing the comparison inside the session removes day-to-day speed
 drift: a session where everything was slow moves everything together and proves
 nothing. `slowSessionRatio` is the fraction of sessions in which it came out
@@ -727,7 +818,7 @@ the time. Raising the bar to 0.7, which needs 6 of 8 at 14%, left only the
 planted sequence standing.
 
 **Evidence tiers — how much a row will bear.** The thresholds above make a
-sequence a *candidate*, and the audit showed that is not enough: with nothing
+sequence a _candidate_, and the audit showed that is not enough: with nothing
 slow at all, ordinary jitter produced candidates in every simulated history from
 ten sessions on, each with the same Train button as a real +49 ms slowdown. The
 more sequences are checked, the more clear a 70% bar by chance, and nothing asked
@@ -741,11 +832,11 @@ tier from two questions asked together:
   Bonferroni bound on how many sequences chance alone would produce this
   consistent.
 
-| Tier | Relative delta | Expected by chance | On screen |
-| --- | --- | --- | --- |
-| Strong evidence | ≥ 20% | ≤ 0.05 | "Clear pattern", listed first, with the Train button |
-| Possible | ≥ 10% | ≤ 0.5 | "Maybe — needs more tests", a quiet text link |
-| — | otherwise | | Not listed; counted in "We checked N" |
+| Tier            | Relative delta | Expected by chance | On screen                                            |
+| --------------- | -------------- | ------------------ | ---------------------------------------------------- |
+| Strong evidence | ≥ 20%          | ≤ 0.05             | "Clear pattern", listed first, with the Train button |
+| Possible        | ≥ 10%          | ≤ 0.5              | "Maybe — needs more tests", a quiet text link        |
+| —               | otherwise      |                    | Not listed; counted in "We checked N"                |
 
 The tiers keep their statistical names in the code and in this document, where
 they mean something exact. On screen they speak to a typist rather than to a
@@ -759,13 +850,13 @@ around them changed.
 Calibrated against the audit's simulated typist (86 ms transitions, log-normal
 jitter σ 0.3, 3% pauses, 60-word tests; forty histories per case):
 
-| Case | Before tiers | Strong | Possible or better |
-| --- | --- | --- | --- |
-| Nothing slow, 10 sessions | fake rows in 40/40 | fake in 1/40 | fake in 9/40 |
-| Nothing slow, 20 sessions | fake rows in 40/40 | fake in 0/40 | fake in 8/40 |
-| +40 ms, 6 sessions | found in 31/40 | 0/40 | 30/40 |
-| +40 ms, 10 sessions | found in 40/40 | 38/40 | 40/40 |
-| +15 ms, 20 sessions | found in 37/40 | 8/40 | 27/40 |
+| Case                      | Before tiers       | Strong       | Possible or better |
+| ------------------------- | ------------------ | ------------ | ------------------ |
+| Nothing slow, 10 sessions | fake rows in 40/40 | fake in 1/40 | fake in 9/40       |
+| Nothing slow, 20 sessions | fake rows in 40/40 | fake in 0/40 | fake in 8/40       |
+| +40 ms, 6 sessions        | found in 31/40     | 0/40         | 30/40              |
+| +40 ms, 10 sessions       | found in 40/40     | 38/40        | 40/40              |
+| +15 ms, 20 sessions       | found in 37/40     | 8/40         | 27/40              |
 
 A large persistent slowdown reaches strong at about ten sessions; a small real
 one mostly stays possible; noise almost never reaches strong. Below about eight
@@ -835,7 +926,7 @@ format anywhere.
 
 **Where the target is recorded, and why there.** On `SessionContext`, which is
 the object describing how a session was configured. Not inside the telemetry
-blob: telemetry is keyed by session id, so a keystroke log is *joined* to its
+blob: telemetry is keyed by session id, so a keystroke log is _joined_ to its
 target rather than carrying a second copy that could disagree with the first.
 `StoredTelemetry` is unchanged and needs no version bump.
 
@@ -850,7 +941,7 @@ on the statistics page either. Drill text is deliberately lopsided, so a few
 repetitions would supply most of the observations for whatever was drilled and
 drag its median towards drill performance. The comparison would quietly become
 drill-against-drill and the ranking would describe the drills rather than the
-typing that prompted them. The speed and accuracy figures *do* count drills,
+typing that prompted them. The speed and accuracy figures _do_ count drills,
 which is a different question: a drill is real typing, and how fast it was typed
 is a fair thing to record.
 
@@ -876,7 +967,7 @@ existing caveat that one drill is not proof of a lasting change stays.
 The browser run that verified this is worth recording, because it is the case
 that could have been faked. A simulated typist with a planted 55 ms penalty on
 `in` produced a ranking of `in` at 141 ms against an 87 ms baseline. Drilling it
-*while still carrying the same penalty* reported **144 ms against 141 ms, a
+_while still carrying the same penalty_ reported **144 ms against 141 ms, a
 difference of +4 ms** — the measurement declined to manufacture an improvement.
 Re-typing the same drill without the penalty reported **86 ms, −55 ms**. The
 comparison moves in both directions and only when something really changed.
@@ -918,7 +1009,7 @@ a typist whose tests are all nearly identical does not lose a slightly different
 one. **Nothing else changes**: the median, the best, every count and total and
 every chart use all sessions, and no stored measurement is altered. There is no
 WPM cap anywhere — a cap would be a claim about what speeds are possible, where
-this is only a statement about which of *this* typist's results are unlike their
+this is only a statement about which of _this_ typist's results are unlike their
 others. When a session is left out, the statistics page says so, with its speed.
 
 **Consistency is across sessions, not within one.** `1 - (standard deviation /
@@ -1107,7 +1198,7 @@ The other half of that gap was density rather than height, and it came from
 the toolbar holding two different kinds of choice. What a typist changes
 between one test and the next — how long it runs, which words it is drawn
 from, whether it is dressed with punctuation and numbers — belongs in front of
-them. How the screen is *set* — the typeface and the text size — is chosen once
+them. How the screen is _set_ — the typeface and the text size — is chosen once
 and then left, and nine of the toolbar's pills were that. They are in settings
 now, with the theme, the caret and the line scroll, which is where both of the
 tests this screen is measured against keep the same distinction: Monkeytype and
@@ -1451,7 +1542,7 @@ maps onto the theme, so they are inside it rather than beside it. Its token plan
   are held off while the new theme is written and style is recalculated, so a
   shared component that eases its own colours changes on the same frame as the
   rest of the page. No GG stylesheet transitions a colour at all; touch
-  responses are transform and opacity. What is *seen* is a crossfade: where the
+  responses are transform and opacity. What is _seen_ is a crossfade: where the
   browser has view transitions, it photographs the page, the theme is written
   instantly underneath, and the old picture fades into the new over 280ms on the
   compositor (`switchTheme`). This is not the first theme cross-fade — that one

@@ -67,13 +67,13 @@ briefly, drops back and settles. 455 ms in total.
 
 **Rules.**
 
-| Event | Effect on the word's streak |
-| --- | --- |
-| Mistake on the word | +1; the 3rd, 6th, 9th… jumps |
-| Correct letters or backspaces inside the word | none |
-| Word completed with every letter right | reset |
-| A keystroke on another word | the previous word's streak ends |
-| Restart, new test, completion | everything cleared, running jumps cancelled |
+| Event                                         | Effect on the word's streak                 |
+| --------------------------------------------- | ------------------------------------------- |
+| Mistake on the word                           | +1; the 3rd, 6th, 9th… jumps                |
+| Correct letters or backspaces inside the word | none                                        |
+| Word completed with every letter right        | reset                                       |
+| A keystroke on another word                   | the previous word's streak ends             |
+| Restart, new test, completion                 | everything cleared, running jumps cancelled |
 
 Streaks are kept per word index; one word's struggle never moves another. A
 jump earned while the word is still in the air lets the running jump finish
@@ -147,23 +147,23 @@ choose it, because a sound cannot be read, only heard. Sounds come in four
 styles, chosen beside the volume: the branches are the sounds of the style
 showing, and the tree opens on the style of the sound in use.
 
-| Style | Sound | What it sounds like |
-| --- | --- | --- |
-| Mechanical | Thock | Deep and dampened, like a heavy board on a desk mat |
-| | Cream | Smooth and rounded, a long buttery bottom-out |
-| | Click | Crisp and tactile, with a bright top to every press |
-| | Hush | Barely there, for a shared room or a late night |
-| | Typewriter | A hard strike with a little ring left behind it |
-| Neon | Woosh | A rush of air on every key, like a neon sign flickering on |
-| | Laser | A quick pew of light, pitched down as it goes |
-| | Synthwave | Detuned saw plucks through a closing filter, a note of a minor scale on every key |
-| | Hologram | A glassy shimmer, like light through a prism, in a bright scale |
-| Soft | Bubble | A small round pop, like bubbles rising |
-| | Droplet | Water dropping into a still bowl |
-| | Chime | A soft glass chime, a different note on every key |
-| Arcade | Blip | A tidy eight-bit blip |
-| | Coin | Two quick notes, the sound of a pickup |
-| | Chiptune | Square-wave notes in a major key: a tune as you type |
+| Style      | Sound      | What it sounds like                                                               |
+| ---------- | ---------- | --------------------------------------------------------------------------------- |
+| Mechanical | Thock      | Deep and dampened, like a heavy board on a desk mat                               |
+|            | Cream      | Smooth and rounded, a long buttery bottom-out                                     |
+|            | Click      | Crisp and tactile, with a bright top to every press                               |
+|            | Hush       | Barely there, for a shared room or a late night                                   |
+|            | Typewriter | A hard strike with a little ring left behind it                                   |
+| Neon       | Woosh      | A rush of air on every key, like a neon sign flickering on                        |
+|            | Laser      | A quick pew of light, pitched down as it goes                                     |
+|            | Synthwave  | Detuned saw plucks through a closing filter, a note of a minor scale on every key |
+|            | Hologram   | A glassy shimmer, like light through a prism, in a bright scale                   |
+| Soft       | Bubble     | A small round pop, like bubbles rising                                            |
+|            | Droplet    | Water dropping into a still bowl                                                  |
+|            | Chime      | A soft glass chime, a different note on every key                                 |
+| Arcade     | Blip       | A tidy eight-bit blip                                                             |
+|            | Coin       | Two quick notes, the sound of a pickup                                            |
+|            | Chiptune   | Square-wave notes in a major key: a tune as you type                              |
 
 The styles that are not keyboards were balanced against the keyboards by ear
 weighting, not by the numbers in their recipes: every voice of every sound was
@@ -206,25 +206,25 @@ page changes underneath. The branches can be chosen from the moment they appear.
 With reduced motion it is simply open or closed. Arriving at Hover Mode any other
 way — a reload, the back button — shows it already open.
 
-| | Standard | All In | Tired |
-| --- | --- | --- | --- |
-| Repetitions | One cycle of 3, clean or not | Two cycles of 3, clean or not: 6 | 3 clean; +3 for each repetition with a mistake |
-| A repetition with a mistake | Recorded; changes nothing else | Recorded; changes nothing else | Required +3, never beyond 10 (3, 6, 9, 10) |
-| Released after | The 3rd repetition | The 6th repetition — never a third cycle | Clean repetitions reach the requirement, or 20 repetitions of any kind |
-| Cleared when | All 3 were clean | The second cycle was all clean | The requirement was met before it reached 10 |
-| Rings | 3, each marked clean (dot) or with a mistake (bar) | 6 in two groups, marked the same way | One per clean repetition required; a miss adds three |
+|                             | Standard                                           | All In                                   | Tired                                                                  |
+| --------------------------- | -------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
+| Repetitions                 | One cycle of 3, clean or not                       | Two cycles of 3, clean or not: 6         | 3 clean; +3 for each repetition with a mistake                         |
+| A repetition with a mistake | Recorded; changes nothing else                     | Recorded; changes nothing else           | Required +3, never beyond 10 (3, 6, 9, 10)                             |
+| Released after              | The 3rd repetition                                 | The 6th repetition — never a third cycle | Clean repetitions reach the requirement, or 20 repetitions of any kind |
+| Cleared when                | All 3 were clean                                   | The second cycle was all clean           | The requirement was met before it reached 10                           |
+| Rings                       | 3, each marked clean (dot) or with a mistake (bar) | 6 in two groups, marked the same way     | One per clean repetition required; a miss adds three                   |
 
 **Rules at every difficulty.**
 
-| Event | Effect |
-| --- | --- |
-| A mistake, nothing focused | That word is focused |
-| A further mistake on the focused word, still in the text | Counted in its mistakes |
-| A mistake on another word, something already focused | Nothing — one focus at a time |
-| Leaving the focused word in the text | Repetitions begin; the text pauses at the next word |
-| The focus is released | The text resumes where it was left; a word that did not clear goes to Golden Nuggets |
-| The last word focused | The test stays open until it is released |
-| Restart, new text, word count or difficulty change | Everything cleared; nothing goes to Golden Nuggets |
+| Event                                                    | Effect                                                                               |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| A mistake, nothing focused                               | That word is focused                                                                 |
+| A further mistake on the focused word, still in the text | Counted in its mistakes                                                              |
+| A mistake on another word, something already focused     | Nothing — one focus at a time                                                        |
+| Leaving the focused word in the text                     | Repetitions begin; the text pauses at the next word                                  |
+| The focus is released                                    | The text resumes where it was left; a word that did not clear goes to Golden Nuggets |
+| The last word focused                                    | The test stays open until it is released                                             |
+| Restart, new text, word count or difficulty change       | Everything cleared; nothing goes to Golden Nuggets                                   |
 
 **Golden Nuggets.** A word is kept three ways: it costs five mistakes in one test,
 anywhere in GG.Typing outside Hover Mode; it is got wrong three times in Hover
@@ -245,6 +245,17 @@ it cleared or not last time. A word that clears is never added, but a word that
 is already a nugget is updated when it next comes up, cleared or not. The write
 happens as the focus ends, never on a keystroke. A plain list, most recent
 first: no ranking, no score.
+
+Signed in, the words are kept with the account as well as in the browser, so
+they are the same on every machine. Where a browser and an account both hold a
+word, the two records are joined rather than one of them taken: the larger of
+each count, the earlier first sighting, the later last one. A tally cannot take
+the newer record whole without throwing away what the other side counted.
+
+One exception, and it is deliberate: on a browser where someone else was signed
+in last, their words are never joined with the new person's. Two typists both
+struggling with `because` is the ordinary case, not evidence of a shared
+record. See docs/SUPABASE.md.
 
 **Practising them.** The Golden Nuggets page leads to `/gg/hover/nuggets`: Hover
 Mode, at the chosen difficulty, over text made of the typist's own nuggets — one in

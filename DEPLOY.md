@@ -25,7 +25,7 @@ commit → push to GitHub → Vercel builds → friends open the link
 
 3. **Import it on Vercel** (vercel.com → Add New → Project → the repository).
    Everything it asks for is already answered by `vercel.json`: Vite, `npm run
-   build`, `dist`. Nothing needs an environment variable, because nothing here
+build`, `dist`. Nothing needs an environment variable, because nothing here
    talks to anything.
 
 ## After that
@@ -54,10 +54,16 @@ people on their next visit rather than whenever their browser gives up on a stal
 copy.
 
 Every response also carries security headers. The Content-Security-Policy names
-exactly what the page may load: its own files, photographs from Unsplash, Google
-profile pictures, and Supabase for accounts. Anything new from another address
-(an analytics script, a font service, another image host) is refused until it is
-added there. The one inline script, which sets the theme before first paint, is
+exactly what the page may load: its own files, Google profile pictures, and
+Supabase for accounts. Anything new from another address (an analytics script, a
+font service, another image host) is refused until it is added there. The
+photographs are served from `public/photos`, so no image host is named at all.
+
+One thing to know before changing it: `connect-src` names
+`https://*.supabase.co`, which is where a Supabase project answers. Give the
+project a **custom auth domain** in Supabase and that stops matching, so
+sign-in fails with a blocked request and no obvious cause. Add the new host
+there at the same time. The one inline script, which sets the theme before first paint, is
 allowed by its hash; `src/styles/first-paint-csp.test.ts` fails with the new hash
 if that script changes.
 
@@ -82,8 +88,12 @@ Three things to do on the day, none of them in this repository:
 ## What friends should know
 
 - Their results are stored in **their own browser**. Clearing site data clears
-  their history; a different browser or device starts empty. Nothing is
-  uploaded, and there is no account.
+  their history, and a different browser or device starts empty — unless they
+  sign in, which is optional and off entirely until a Supabase project is
+  configured. Signed in, their history, their texts, their Golden Nuggets and
+  their settings are kept with the account and follow them between browsers;
+  the keystroke detail behind the statistics never leaves the machine that
+  recorded it.
 - **Settings → Your data** saves all of it to one file and puts it back, which
   is how a typist moves to another computer -- or follows the site to a new
   address. Restoring replaces whatever is in that browser rather than merging.

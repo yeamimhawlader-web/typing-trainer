@@ -17,19 +17,26 @@
  * - **No account service.** The form as it will look, saying so when used.
  *
  * Practice needs none of it. Sessions, Golden Nuggets, settings and your own
- * texts are kept in this browser either way; an account adds a copy elsewhere
- * so another browser has them too.
+ * texts are kept in this browser either way; an account adds a copy of all four
+ * elsewhere, so another browser signed in as you opens with them already there.
+ * The keystroke detail behind the statistics is the one thing that does not go:
+ * it is the largest thing stored and only the machine that recorded it reads it.
  *
  * The form's colours are the theme's (see src/styles/tailwind.css), and it
  * fills the page below the top bar rather than the whole window it was drawn
  * for.
  */
 
-import { useCallback, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 
 import { SignInPage } from '@/components/ui/sign-in.tsx'
 import { ROUTES } from '@app/routes.ts'
-import { accountService, type AccountService } from '@core/accounts'
+import {
+  accountService,
+  readSignInReturn,
+  withoutSignInReturn,
+  type AccountService,
+} from '@core/accounts'
 import { AccountPanel, useAccount } from '@features/accounts'
 
 import { useGGDocumentTitle } from '../layout/useGGDocumentTitle.ts'
@@ -56,10 +63,44 @@ export interface GGSignInPageProps {
 export const GGSignInPage = ({ accounts = accountService }: GGSignInPageProps = {}) => {
   const state = useAccount(accounts)
   useGGDocumentTitle(state.status === 'signed-in' ? 'Your account' : 'Sign in')
-  const [notice, setNotice] = useState<string | null>(null)
+  /*
+   * Read from the address at the first render rather than from an effect
+   * afterwards, so a failed sign-in is explained on the frame the page
+   * appears -- no empty form first, and no second render to replace it.
+   */
+  const [notice, setNotice] = useState<string | null>(
+    () => readSignInReturn(window.location.href)?.message ?? null,
+  )
 
   const say = useCallback((said: string) => {
     setNotice(said)
+  }, [])
+
+  /*
+   * Both ways in leave this page and come back to it, and when either fails
+   * the only thing that comes back is the reason, in the address. The sentence
+   * itself is already on screen -- it was read above, during the first render.
+   * What is left is to tidy up after it.
+   *
+   * A typist who cancelled at Google, or opened a link from yesterday, used to
+   * land on the blank form they started from with nothing to say whether it
+   * had been tried at all. Success needs none of this: the client finds the
+   * session in the address itself and the account panel appears.
+   */
+  useEffect(() => {
+    const came = readSignInReturn(window.location.href)
+    if (came === null) return
+
+    // Backing out at the provider is a choice, not a fault, and is not worth a
+    // line in the console; anything else is worth having there.
+    if (!came.cancelled)
+      console.warn(
+        '[accounts] the sign-in came back unfinished',
+        window.location.search,
+      )
+    // Taken off the address, so the reason is said once: left there it would
+    // survive a reload and greet whoever opened the page from history next.
+    window.history.replaceState(null, '', withoutSignInReturn(window.location.href))
   }, [])
 
   /**
@@ -131,7 +172,7 @@ export const GGSignInPage = ({ accounts = accountService }: GGSignInPageProps = 
           className="h-auto w-full min-h-[calc(100dvh-var(--gg-bar-height)-5rem)]"
           description={
             accounts.available
-              ? 'A link to your inbox, and your history follows you between browsers.'
+              ? 'A link to your inbox, and your practice follows you between browsers.'
               : 'Sign in to Hover Typing.'
           }
           passwordless={accounts.available}

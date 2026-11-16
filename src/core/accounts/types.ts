@@ -54,12 +54,24 @@ export interface AccountService {
   signOut(): Promise<void>
 }
 
+/**
+ * Which way the settings went, if either.
+ *
+ * Not a count, because there is only ever one settings record: it is the
+ * typist's one set of choices, and a round either sent it, fetched it, or
+ * found both sides already saying the same thing.
+ */
+export type SettingsMoved = 'unchanged' | 'up' | 'down'
+
 /** What one round of syncing moved, in each direction. */
 export interface SyncResult {
   readonly sessionsUp: number
   readonly sessionsDown: number
   readonly textsUp: number
   readonly textsDown: number
+  readonly nuggetsUp: number
+  readonly nuggetsDown: number
+  readonly settings: SettingsMoved
 }
 
 export const NOTHING_SYNCED: SyncResult = {
@@ -67,6 +79,9 @@ export const NOTHING_SYNCED: SyncResult = {
   sessionsDown: 0,
   textsUp: 0,
   textsDown: 0,
+  nuggetsUp: 0,
+  nuggetsDown: 0,
+  settings: 'unchanged',
 }
 
 export interface SyncService {

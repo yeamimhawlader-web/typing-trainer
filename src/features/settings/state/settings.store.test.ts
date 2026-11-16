@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { STORAGE_KEYS, createMemoryAdapter } from '@core/persistence'
 import type { StorageAdapter } from '@core/persistence'
+import { createPreferencesRecord } from '@core/preferences'
 import { DEFAULT_PREFERENCES } from '@config'
 import type { UserPreferences } from '@core/types'
 
@@ -375,5 +376,94 @@ describe('settings store', () => {
     await store.getState().hydrate()
 
     expect(store.getState().preferences).toMatchObject({ sound: 'cream', soundSamples: {} })
+  })
+})
+
+/*
+ * Settings arriving from the account, which is what happens the moment a
+ * typist signs in on a second browser. They have to land on the screen they
+ * are looking at, not on the next reload: a theme that changes when you sign
+ * in is the whole of what "your settings follow you" means, and one that
+ * changes the next time you happen to open the site is a bug report.
+ *
+ * `arrive` is how the record says "these came from the account"; `write` is a
+ * choice made here, which this store made itself and must not be told about.
+ */
+describe('settings that arrive from the account', () => {
+  const built = () => {
+    const adapter = createMemoryAdapter()
+    const record = createPreferencesRecord(adapter)
+    return { record, store: createSettingsStore(adapter, record) }
+  }
+
+  it('changes what is on screen rather than waiting for a reload', async () => {
+    const { record, store } = built()
+    await store.getState().hydrate()
+    await store.getState().setTheme('lemondrop')
+
+    await record.arrive({ ...store.getState().preferences, theme: 'lavender-sky' }, Date.now())
+
+    expect(store.getState().preferences.theme).toBe('lavender-sky')
+  })
+
+  it('checks them exactly as it checks what comes off the disk', async () => {
+    const { record, store } = built()
+    await store.getState().hydrate()
+    await store.getState().setTheme('lemondrop')
+
+    // An account written by a build that had a theme this one does not, or by
+    // somebody editing rows by hand. Neither is trusted more than the disk is.
+    await record.arrive({ theme: 'no-such-theme', practiceWordCount: 9999 }, Date.now())
+
+    // Back to the defaults for both, rather than keeping the old choice: the
+    // record arrived whole and replaced what was here, and an unreadable field
+    // in it is a missing field, not a reason to keep the previous value.
+    expect(store.getState().preferences.theme).toBe(DEFAULT_PREFERENCES.theme)
+    expect(store.getState().preferences.practiceWordCount).toBe(DEFAULT_PREFERENCES.practiceWordCount)
+  })
+
+  /*
+   * An arriving record is applied whatever its age. Whether it should have
+   * been sent at all is decided by the syncing, which is the only part that
+   * knows whose browser this was last and what the account holds -- see the
+   * settings tests in core/accounts. Judging it again here by the clock is
+   * what got a second person on a shared browser left looking at the first
+   * person's theme.
+   */
+  it('applies one that is older than what this browser has, because syncing said so', async () => {
+    const { record, store } = built()
+    await store.getState().hydrate()
+    await store.getState().setTheme('lemondrop')
+
+    await record.arrive({ theme: 'lavender-sky' }, 1)
+
+    expect(store.getState().preferences.theme).toBe('lavender-sky')
+  })
+
+  it('is not told about a choice made here, so it cannot undo one', async () => {
+    const { record, store } = built()
+    await store.getState().hydrate()
+    let told = 0
+    record.subscribe(() => {
+      told += 1
+    })
+
+    await store.getState().setTheme('lemondrop')
+    await store.getState().setStreamFont('mono')
+
+    expect(told).toBe(0)
+    expect(store.getState().preferences).toMatchObject({ theme: 'lemondrop', streamFont: 'mono' })
+  })
+
+  it('writes a local choice to the record so that syncing can find it', async () => {
+    const { record, store } = built()
+    await store.getState().hydrate()
+
+    await store.getState().setTheme('lemondrop')
+
+    const stored = await record.read()
+    expect((stored.data as { theme: string }).theme).toBe('lemondrop')
+    // Stamped, or syncing has no way to tell which side chose last.
+    expect(stored.updatedAt).toBeGreaterThan(0)
   })
 })

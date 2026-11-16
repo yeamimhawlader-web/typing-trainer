@@ -13,7 +13,12 @@ import { useStore } from 'zustand'
 import { createStore, type StoreApi } from 'zustand/vanilla'
 
 import { DEFAULT_PREFERENCES } from '@config'
-import { STORAGE_KEYS, storage, type StorageAdapter } from '@core/persistence'
+import { storage, type StorageAdapter } from '@core/persistence'
+import {
+  createPreferencesRecord,
+  preferencesRecord,
+  type PreferencesRecord,
+} from '@core/preferences'
 import {
   HOVER_DIFFICULTIES,
   OPENINGS,
@@ -169,13 +174,45 @@ const validPreferences = (stored: unknown): Partial<UserPreferences> => {
   return result
 }
 
-export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsState> =>
+/**
+ * @param adapter where preferences are kept.
+ * @param record the stored preferences and the moment they were last chosen.
+ *   The application passes the one shared record, because account syncing
+ *   writes through the same object and this store listens to it; a test gets
+ *   its own over its own adapter, which is all a test needs.
+ */
+export const createSettingsStore = (
+  adapter: StorageAdapter,
+  record: PreferencesRecord = createPreferencesRecord(adapter),
+): StoreApi<SettingsState> =>
   createStore<SettingsState>()((set, get) => {
     const persist = async (preferences: UserPreferences): Promise<void> => {
       // Update first: the UI should never wait on a disk write to repaint.
       set({ preferences })
-      await adapter.write(STORAGE_KEYS.preferences, preferences)
+      // A local choice, so the record keeps it quietly: this store already
+      // knows, having just set it above.
+      await record.write(preferences, Date.now())
     }
+
+    /*
+     * Settings arriving from the account, which happens when a typist signs in
+     * on a second browser. Applied as they land, so the theme changes under
+     * them rather than on the next reload -- which is the whole point of
+     * settings following a typist about.
+     *
+     * Applied, not judged: whether an arriving record should win is decided by
+     * the syncing, which is the only part of this that knows whose browser
+     * this was last and what the account holds. This store once judged it by
+     * the clock, and got the case that matters most wrong -- a second person
+     * signing in on a shared browser was left looking at the first person's
+     * theme, because theirs was older.
+     *
+     * Checked exactly as a record off disk is: it came from outside, and the
+     * account is no more trusted than the disk.
+     */
+    record.subscribe((stored) => {
+      set({ preferences: { ...DEFAULT_PREFERENCES, ...validPreferences(stored.data) } })
+    })
 
     return {
       preferences: DEFAULT_PREFERENCES,
@@ -187,12 +224,12 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
         set({ status: 'loading' })
 
         try {
-          const stored = await adapter.read<unknown>(STORAGE_KEYS.preferences)
+          const stored = await record.read()
 
           // Merged over defaults rather than replacing them, so a preference added
           // in a later version is present even in a record written before it.
           set({
-            preferences: { ...DEFAULT_PREFERENCES, ...validPreferences(stored) },
+            preferences: { ...DEFAULT_PREFERENCES, ...validPreferences(stored.data) },
             status: 'ready',
           })
         } catch (error) {
@@ -246,7 +283,7 @@ export const createSettingsStore = (adapter: StorageAdapter): StoreApi<SettingsS
     }
   })
 
-export const settingsStore = createSettingsStore(storage)
+export const settingsStore = createSettingsStore(storage, preferencesRecord)
 
 /**
  * Hydrated as soon as this module loads, not from an effect after the first

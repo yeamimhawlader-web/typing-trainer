@@ -110,3 +110,75 @@ describe('refusing a file it cannot restore', () => {
     expect(await storage.read('preferences')).toEqual({ caret: 'block' })
   })
 })
+
+/*
+ * Now that signing in is possible, a backup file is a file that could carry a
+ * session token -- and these files get emailed to oneself, dropped in cloud
+ * folders and handed between machines. Anyone holding one would be signed in
+ * as the person who made it.
+ *
+ * It cannot, because the storage this reads through is scoped to this
+ * application's own prefix and the sign-in library keeps its token outside it.
+ * That is worth a test rather than a comment: it is one decorator away from
+ * being untrue, and nothing else in the file would notice.
+ */
+describe('what a backup must never carry', () => {
+  /** The real thing: supabase-js keys its session `sb-<project ref>-auth-token`. */
+  const SUPABASE_KEYS = {
+    'sb-abcdefghijkl-auth-token': {
+      access_token: 'a-real-session',
+      refresh_token: 'and-its-refresh',
+    },
+    'sb-abcdefghijkl-auth-token-code-verifier': 'the-pkce-verifier',
+  }
+
+  const browserWith = async (
+    ours: Readonly<Record<string, unknown>>,
+  ): Promise<{
+    readonly whole: StorageAdapter
+    readonly ours: StorageAdapter
+  }> => {
+    const whole = createMemoryAdapter()
+    const scoped = withNamespace(whole, { namespace: 'typing-trainer', schemaVersion: VERSION })
+    // oxlint-disable-next-line no-await-in-loop
+    for (const [key, value] of Object.entries(SUPABASE_KEYS)) await whole.write(key, value)
+    // oxlint-disable-next-line no-await-in-loop
+    for (const [key, value] of Object.entries(ours)) await scoped.write(key, value)
+    return { whole, ours: scoped }
+  }
+
+  it('leaves the sign-in token out of the file entirely', async () => {
+    const browser = await browserWith({ preferences: { caret: 'bar' } })
+
+    const file = await packStored(
+      browser.ours,
+      VERSION,
+      () => new Date('2026-11-16T10:00:00Z'),
+    )
+
+    expect(Object.keys(file.entries)).toEqual(['preferences'])
+    // Searched as text as well, so a token nested inside some other value
+    // would be caught too, not only one under a key of its own.
+    expect(JSON.stringify(file)).not.toContain('a-real-session')
+    expect(JSON.stringify(file)).not.toContain('the-pkce-verifier')
+  })
+
+  it('does not sign the typist out when a file is restored over their browser', async () => {
+    const browser = await browserWith({ preferences: { caret: 'bar' } })
+    const file = await packStored(
+      browser.ours,
+      VERSION,
+      () => new Date('2026-11-16T10:00:00Z'),
+    )
+
+    await restoreStored(
+      readTransferFile(JSON.parse(JSON.stringify(file)), VERSION),
+      browser.ours,
+    )
+
+    // Restoring clears first; it must clear this application's keys and stop.
+    expect(await browser.whole.read('sb-abcdefghijkl-auth-token')).toEqual(
+      SUPABASE_KEYS['sb-abcdefghijkl-auth-token'],
+    )
+  })
+})

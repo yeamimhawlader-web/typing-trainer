@@ -42,7 +42,11 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
-  /* Reads files from disk, so it is type-checked by tsconfig.node.json
+  /* These read files from disk, so they are type-checked by tsconfig.node.json
      instead — keeping node globals out of the browser type space. */
-  "exclude": ["src/styles/**/*.test.ts"]
+  "exclude": [
+    "src/styles/**/*.test.ts",
+    "src/config/environment-documented.test.ts",
+    "src/config/every-test-runs.test.ts"
+  ]
 }

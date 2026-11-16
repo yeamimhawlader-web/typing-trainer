@@ -15,7 +15,9 @@ import type { SupabaseClient, User } from '@supabase/supabase-js'
 
 import { createTypingEngine } from '@core/engine'
 import { createLibraryService, type LibraryService, type LibraryText } from '@core/library'
+import { createGoldenNuggetService, type GoldenNugget, type GoldenNuggetService } from '@core/nuggets'
 import { createMemoryAdapter, type StorageAdapter } from '@core/persistence'
+import { createPreferencesRecord, type PreferencesRecord } from '@core/preferences'
 import {
   createSessionServiceOver,
   createTypingSession,
@@ -28,7 +30,8 @@ import { createTelemetryServiceOver } from '@core/telemetry'
 import { createHistoryDeletion } from '@core/history'
 
 import { accountOf, createAccountService, createUnavailableAccountService } from './service.ts'
-import { createSyncService, SESSIONS_TABLE, TEXTS_TABLE } from './sync.ts'
+import { createSyncService, NUGGETS_TABLE, PREFERENCES_TABLE, SESSIONS_TABLE, TEXTS_TABLE } from './sync.ts'
+import type { SyncOptions } from './sync.ts'
 import type { AccountService, AccountState } from './types.ts'
 
 // --- A database, in memory ---------------------------------------------
@@ -36,11 +39,30 @@ import type { AccountService, AccountState } from './types.ts'
 const ACCOUNT_ID = 'account-1'
 
 interface Row {
-  readonly id: string
+  /** Absent on the preferences table, whose row is the account itself. */
+  readonly id?: string
   readonly user_id: string
   readonly completed_at?: number
   readonly updated_at?: number
+  readonly last_seen_at?: number
   readonly data: unknown
+}
+
+/**
+ * What makes a row unique in each table, as docs/supabase-setup.sql declares it.
+ *
+ * Not the same in all four, and the differences are the point. A session or a
+ * text has an id from `crypto.randomUUID`, so the id alone is enough. A
+ * Golden Nugget's id is `language:word` -- every typist who struggles with
+ * `because` has a row called `en:because` -- so the key is the pair, and a
+ * fake that kept them by id alone would let one typist's word quietly stand in
+ * for another's and never notice the collision this table exists to survive.
+ * The preferences are one row per account, so the account is the key.
+ */
+const keyOf = (table: string, row: Row): string => {
+  if (table === PREFERENCES_TABLE) return row.user_id
+  if (table === NUGGETS_TABLE) return JSON.stringify([row.user_id, row.id])
+  return row.id ?? ''
 }
 
 /** Only the columns this application asks for. */
@@ -56,6 +78,8 @@ const fakeDatabase = () => {
   const tables = new Map<string, Map<string, Row>>([
     [SESSIONS_TABLE, new Map()],
     [TEXTS_TABLE, new Map()],
+    [NUGGETS_TABLE, new Map()],
+    [PREFERENCES_TABLE, new Map()],
   ])
   /** Set to make the next request fail, as a network does. */
   let failWith: string | null = null
@@ -98,12 +122,39 @@ const fakeDatabase = () => {
           })
         return query(mine(name))
       },
-      upsert: (incoming: readonly Row[]) => {
+      upsert: (
+        incoming: readonly Row[],
+        options?: { readonly onConflict?: string },
+      ) => {
         if (failWith !== null) return Promise.resolve({ error: { message: failWith } })
+        /*
+         * Postgres resolves a conflict against the columns it is given, and
+         * defaults to the primary key. A table whose key is more than the id
+         * must say so, or the write is matched on the wrong thing: for the
+         * nuggets that would mean trying to overwrite whichever typist got to
+         * `en:because` first, which the policies refuse -- and the refusal
+         * would break every round of syncing from then on rather than once.
+         * So the fake refuses it here, loudly, where a test can see it.
+         */
+        const conflict = options?.onConflict ?? 'id'
+        // Written out, not read from the constant the code under test uses:
+        // comparing that constant with itself would agree however wrong it was.
+        // These are the keys docs/supabase-setup.sql actually declares.
+        const needed =
+          name === NUGGETS_TABLE
+            ? 'user_id,id'
+            : name === PREFERENCES_TABLE
+              ? 'user_id'
+              : 'id'
+        if (conflict !== needed) {
+          return Promise.resolve({
+            error: { message: `upsert on ${name} must conflict on ${needed}` },
+          })
+        }
         for (const row of incoming) {
           // The insert policy's check: a row may only be written as its owner.
           if (row.user_id !== asAccount) return Promise.resolve({ error: { message: 'row-level security' } })
-          rowsOf(name).set(row.id, row)
+          rowsOf(name).set(keyOf(name, row), row)
         }
         return Promise.resolve({ error: null })
       },
@@ -112,7 +163,9 @@ const fakeDatabase = () => {
           eq: (column: string, value: unknown) => query(rows.filter((row) => valueOf(row, column) === value)),
           in: (column: string, values: readonly string[]) => {
             if (failWith !== null) return Promise.resolve({ error: { message: failWith } })
-            for (const row of rows) if (values.includes(String(valueOf(row, column)))) rowsOf(name).delete(row.id)
+            for (const row of rows) {
+              if (values.includes(String(valueOf(row, column)))) rowsOf(name).delete(keyOf(name, row))
+            }
             return Promise.resolve({ error: null })
           },
         })
@@ -124,7 +177,9 @@ const fakeDatabase = () => {
   return {
     client: client as unknown as SupabaseClient,
     rows: (name: string) => [...rowsOf(name).values()],
-    put: (name: string, row: Row) => rowsOf(name).set(row.id, row),
+    put: (name: string, row: Row) => rowsOf(name).set(keyOf(name, row), row),
+    /** Taken off the account, as a deletion on another browser would. */
+    remove: (name: string, row: Row) => rowsOf(name).delete(keyOf(name, row)),
     /** Whose request it is from here on, as signing in as someone else would be. */
     signedInAs: (id: string) => {
       asAccount = id
@@ -174,7 +229,33 @@ const session = (id: string, completedAt = 1000): TypingSession => ({
   id: sessionId(id),
 })
 
-const text = (id: string, updatedAt: number, body = 'a passage worth typing'): LibraryText => ({
+/**
+ * A word that has been costing mistakes. Every field is filled in: the record
+ * is checked field by field on the way back off the network, exactly as one
+ * read off disk is, and a fixture missing one would be silently dropped and
+ * the test would pass for the wrong reason.
+ */
+const nugget = (word: string, over: Partial<GoldenNugget> = {}): GoldenNugget => ({
+  id: `en:${word}`,
+  word,
+  language: 'en',
+  timesUnresolved: 1,
+  hoverSessions: 1,
+  tests: 1,
+  mistakes: 3,
+  firstSeenAt: 1_000,
+  lastSeenAt: 2_000,
+  lastDifficulty: 'standard',
+  lastOutcome: 'unresolved',
+  lastTestId: 'test-1',
+  ...over,
+})
+
+const text = (
+  id: string,
+  updatedAt: number,
+  body = 'a passage worth typing',
+): LibraryText => ({
   id,
   title: `Text ${id}`,
   body,
@@ -283,13 +364,20 @@ describe('bringing a browser and an account level', () => {
   let storage: StorageAdapter
   let sessions: SessionService
   let library: LibraryService
+  let nuggets: GoldenNuggetService
+  let preferences: PreferencesRecord
   let sync: ReturnType<typeof createSyncService>
 
-  const build = (accounts: AccountService = signedIn()) => {
+  const build = (accounts: AccountService = signedIn(), over: Partial<SyncOptions> = {}) => {
     const adapter = createMemoryAdapter()
     storage = createMemoryAdapter()
     sessions = createSessionServiceOver(adapter)
     library = createLibraryService(adapter)
+    // Over this test's own adapter, not the application's. Left to default
+    // they would be the real ones, and every test in the file would be
+    // practising on the same list of words.
+    nuggets = createGoldenNuggetService(adapter)
+    preferences = createPreferencesRecord(adapter)
     const telemetry = createTelemetryServiceOver(adapter)
     sync = createSyncService({
       client: Promise.resolve(database.client),
@@ -297,7 +385,10 @@ describe('bringing a browser and an account level', () => {
       storage,
       sessions,
       library,
+      nuggets,
+      preferences,
       deletion: createHistoryDeletion(sessions, telemetry),
+      ...over,
     })
   }
 
@@ -473,6 +564,267 @@ describe('bringing a browser and an account level', () => {
     expect(await sync.syncNow()).toMatchObject({ sessionsUp: 1 })
   })
 
+  /*
+   * Golden Nuggets. Unlike a session, which is written once, and unlike a
+   * text, which is replaced whole, a nugget is a tally that both sides go on
+   * adding to -- so the case that matters most is the one where both sides
+   * have the same word and neither of them is simply right.
+   */
+  describe('the words that keep costing mistakes', () => {
+    const rowFor = (word: string, over: Partial<GoldenNugget> = {}) => {
+      const record = nugget(word, over)
+      return {
+        id: record.id,
+        user_id: ACCOUNT.id,
+        last_seen_at: record.lastSeenAt,
+        data: record,
+      }
+    }
+
+    const wordsHere = async (): Promise<string[]> =>
+      (await nuggets.getAll()).map((kept) => kept.id).toSorted()
+    const wordsThere = (): string[] =>
+      database
+        .rows(NUGGETS_TABLE)
+        .map((row) => row.id ?? '')
+        .toSorted()
+
+    it('merges both sides the first time, as it does with everything else', async () => {
+      await nuggets.put(nugget('because'))
+      database.put(NUGGETS_TABLE, rowFor('rhythm'))
+
+      expect(await sync.syncNow()).toMatchObject({ nuggetsUp: 1, nuggetsDown: 1 })
+      expect(await wordsHere()).toEqual(['en:because', 'en:rhythm'])
+      expect(wordsThere()).toEqual(['en:because', 'en:rhythm'])
+    })
+
+    it('joins a word both sides know rather than choosing one of them', async () => {
+      // Both have been counting since they last met: this browser has seen
+      // more mistakes, the account has seen the word more recently.
+      await nuggets.put(nugget('because', { mistakes: 9, tests: 4, lastSeenAt: 2_000 }))
+      database.put(
+        NUGGETS_TABLE,
+        rowFor('because', {
+          mistakes: 2,
+          tests: 1,
+          lastSeenAt: 7_000,
+          lastTestId: 'later',
+          lastOutcome: 'cleared',
+        }),
+      )
+
+      expect(await sync.syncNow()).toMatchObject({ nuggetsUp: 1, nuggetsDown: 1 })
+
+      const here = (await nuggets.getAll())[0]
+      const there = database.rows(NUGGETS_TABLE)[0]?.data as GoldenNugget
+      // Neither side's counting thrown away, and the later focus described.
+      expect(here).toMatchObject({
+        mistakes: 9,
+        tests: 4,
+        lastSeenAt: 7_000,
+        lastOutcome: 'cleared',
+      })
+      expect(there).toEqual(here)
+    })
+
+    it('sends a word met since the last round, and brings back one met elsewhere', async () => {
+      await sync.syncNow()
+
+      await nuggets.put(nugget('queue'))
+      database.put(NUGGETS_TABLE, rowFor('answer'))
+
+      expect(await sync.syncNow()).toMatchObject({ nuggetsUp: 1, nuggetsDown: 1 })
+      expect(await wordsHere()).toEqual(['en:answer', 'en:queue'])
+    })
+
+    it('takes a word off this browser when it was taken off the account', async () => {
+      await nuggets.put(nugget('because'))
+      await sync.syncNow()
+
+      database.remove(NUGGETS_TABLE, {
+        id: 'en:because',
+        user_id: ACCOUNT.id,
+        data: null,
+      })
+
+      await sync.syncNow()
+      expect(await wordsHere()).toEqual([])
+    })
+
+    it('takes a word off the account when it was taken off this browser', async () => {
+      await nuggets.put(nugget('because'))
+      await sync.syncNow()
+      expect(wordsThere()).toEqual(['en:because'])
+
+      await nuggets.clear()
+
+      await sync.syncNow()
+      expect(wordsThere()).toEqual([])
+    })
+
+    /*
+     * The test the table's shape exists for.
+     *
+     * A nugget's id is `language:word`, so two typists who both struggle with
+     * `because` both have a record called `en:because`. Keyed on the id alone,
+     * the second one to sync would be writing over the first one's row, and
+     * the policy would refuse -- taking that typist's syncing down with it,
+     * for every word, not only this one.
+     */
+    it('lets two typists struggle with the same word without colliding', async () => {
+      await nuggets.put(nugget('because', { mistakes: 5 }))
+      expect(await sync.syncNow()).toMatchObject({ nuggetsUp: 1 })
+
+      const OTHER = { ...ACCOUNT, id: 'account-2', email: 'someone@example.com' }
+      database.signedInAs(OTHER.id)
+      build({ ...signedIn(), state: () => ({ status: 'signed-in', account: OTHER }) })
+      await nuggets.put(nugget('because', { mistakes: 2 }))
+
+      // Nothing refused, and nothing of the first typist's touched.
+      expect(await sync.syncNow()).toMatchObject({ nuggetsUp: 1, nuggetsDown: 0 })
+
+      const rows = database.rows(NUGGETS_TABLE)
+      expect(rows).toHaveLength(2)
+      expect(rows.map((row) => (row.data as GoldenNugget).mistakes).toSorted()).toEqual(
+        [2, 5],
+      )
+    })
+
+    it('passes over a row it cannot read, and writes a good one over it', async () => {
+      await nuggets.put(nugget('because', { mistakes: 5 }))
+      database.put(NUGGETS_TABLE, {
+        id: 'en:because',
+        user_id: ACCOUNT.id,
+        last_seen_at: 1,
+        data: { ruined: true },
+      })
+      database.put(NUGGETS_TABLE, {
+        id: 'en:rhythm',
+        user_id: ACCOUNT.id,
+        last_seen_at: 1,
+        data: null,
+      })
+
+      await sync.syncNow()
+
+      const mended = database.rows(NUGGETS_TABLE).find((row) => row.id === 'en:because')
+        ?.data as GoldenNugget
+      // The unreadable row for a word this browser has is written over; the
+      // one for a word it has not is left alone rather than deleted.
+      expect(mended.mistakes).toBe(5)
+      expect(await wordsHere()).toEqual(['en:because'])
+      expect(wordsThere()).toEqual(['en:because', 'en:rhythm'])
+    })
+  })
+
+  /*
+   * The settings, which are one record and not a list: there is nothing to
+   * compare id by id, so the side that chose last wins outright.
+   */
+  describe('the settings a typist types under', () => {
+    const theirs = (): unknown => database.rows(PREFERENCES_TABLE)[0]?.data
+
+    it('sends them up when the account has none', async () => {
+      await preferences.write({ theme: 'flow-mint' }, 5_000)
+
+      expect(await sync.syncNow()).toMatchObject({ settings: 'up' })
+      expect(theirs()).toEqual({ theme: 'flow-mint' })
+    })
+
+    it("brings the account's down when they were chosen more recently", async () => {
+      await preferences.write({ theme: 'flow-mint' }, 5_000)
+      database.put(PREFERENCES_TABLE, {
+        user_id: ACCOUNT.id,
+        updated_at: 9_000,
+        data: { theme: 'paper' },
+      })
+
+      expect(await sync.syncNow()).toMatchObject({ settings: 'down' })
+      expect(await preferences.read()).toEqual({
+        data: { theme: 'paper' },
+        updatedAt: 9_000,
+      })
+    })
+
+    it('leaves both sides alone when they already agree', async () => {
+      await preferences.write({ theme: 'flow-mint' }, 5_000)
+      database.put(PREFERENCES_TABLE, {
+        user_id: ACCOUNT.id,
+        updated_at: 5_000,
+        data: { theme: 'flow-mint' },
+      })
+
+      expect(await sync.syncNow()).toMatchObject({ settings: 'unchanged' })
+    })
+
+    it('says nothing moved when neither side has any', async () => {
+      expect(await sync.syncNow()).toMatchObject({ settings: 'unchanged' })
+      expect(database.rows(PREFERENCES_TABLE)).toEqual([])
+    })
+
+    /*
+     * A browser that has never saved a preference -- nothing changed on it, or
+     * a record written before the time was kept -- loses to whatever the
+     * account holds. That is what a typist signing in on a second machine
+     * wants: the settings they have been using, not that machine's leftovers.
+     */
+    it('lets the account win over a browser that has never chosen anything', async () => {
+      database.put(PREFERENCES_TABLE, {
+        user_id: ACCOUNT.id,
+        updated_at: 9_000,
+        data: { theme: 'paper' },
+      })
+
+      expect(await sync.syncNow()).toMatchObject({ settings: 'down' })
+      expect((await preferences.read()).data).toEqual({ theme: 'paper' })
+    })
+
+    /*
+     * A round takes as long as the network does, and a typist is free to
+     * change the theme in the middle of one. Their choice is the newer one and
+     * has to stand, or the account quietly undoes a setting they watched
+     * themselves change a second ago.
+     */
+    it('does not replace a choice made while the round was in flight', async () => {
+      database.put(PREFERENCES_TABLE, { user_id: ACCOUNT.id, updated_at: 9_000, data: { theme: 'paper' } })
+
+      // Reads the record as it was when the round began, then as the typist
+      // left it a moment later.
+      let reads = 0
+      const arrived: unknown[] = []
+      const racing: PreferencesRecord = {
+        read: () => {
+          reads += 1
+          return Promise.resolve(
+            reads === 1
+              ? { data: { theme: 'flow-mint' }, updatedAt: 5_000 }
+              : { data: { theme: 'lemondrop' }, updatedAt: 20_000 },
+          )
+        },
+        write: () => Promise.resolve(),
+        arrive: (data) => {
+          arrived.push(data)
+          return Promise.resolve()
+        },
+        subscribe: () => () => undefined,
+      }
+      build(signedIn(), { preferences: racing })
+
+      expect(await sync.syncNow()).toMatchObject({ settings: 'unchanged' })
+      // Nothing from the account landed on top of what they had just chosen.
+      expect(arrived).toEqual([])
+    })
+
+    it('stamps an unstamped record on the way up, so it is not sent again every round', async () => {
+      // As a version from before the time was kept would have left it.
+      await preferences.write({ theme: 'flow-mint' }, 0)
+
+      expect(await sync.syncNow()).toMatchObject({ settings: 'up' })
+      expect((await preferences.read()).updatedAt).toBeGreaterThan(0)
+      expect(await sync.syncNow()).toMatchObject({ settings: 'unchanged' })
+    })
+  })
+
   describe('when someone else signs in on the same browser', () => {
     const OTHER = { id: 'account-2', email: 'someone@example.com', name: 'Someone Else', pictureUrl: null }
     let who = ACCOUNT
@@ -486,7 +838,9 @@ describe('bringing a browser and an account level', () => {
       database
         .rows(table)
         .filter((row) => row.user_id === account.id)
-        .map((row) => row.id)
+        // Every table this is asked about has ids; the preferences row, which
+        // does not, is read by the tests that care about it directly.
+        .map((row) => row.id ?? '')
         .toSorted()
 
     const idsHere = async (): Promise<string[]> => (await sessions.getAll()).map((stored) => stored.id).toSorted()
@@ -495,6 +849,121 @@ describe('bringing a browser and an account level', () => {
       who = ACCOUNT
       database = fakeDatabase()
       build({ ...signedIn(), state: () => ({ status: 'signed-in', account: who }) })
+    })
+
+    /*
+     * The same rule, for the two things added when the account started
+     * carrying more than history: the words a typist struggles with, and the
+     * settings they type under. Neither belongs to whoever signs in next.
+     */
+    it("never sends the first account's Golden Nuggets to the second", async () => {
+      await nuggets.put(nugget('because'))
+      await sync.syncNow()
+      expect(database.rows(NUGGETS_TABLE)).toHaveLength(1)
+
+      signInAs(OTHER)
+      await sync.syncNow()
+
+      // Still on the browser, where its counting lives, and on nobody else's
+      // account.
+      expect((await nuggets.getAll()).map((kept) => kept.id)).toEqual(['en:because'])
+      expect(idsOn(NUGGETS_TABLE, OTHER)).toEqual([])
+      expect(idsOn(NUGGETS_TABLE, ACCOUNT)).toEqual(['en:because'])
+    })
+
+    /*
+     * The same rule where the two people struggle with the *same word*, which
+     * is not a corner case at all: `because` and `rhythm` are what Golden
+     * Nuggets is mostly made of.
+     *
+     * This is the one place where a nugget id being `language:word` rather
+     * than something unique bites twice. For a session or a text, the account
+     * holding the same id proves the id is this account's -- they come from
+     * `crypto.randomUUID` and two people cannot land on one. For a word it
+     * proves nothing: two typists struggling with `because` is the ordinary
+     * case, and treating the match as proof would pour the first person's
+     * count into the second person's record.
+     */
+    it("does not pour the first account's count into the second's record of the same word", async () => {
+      await nuggets.put(nugget('because', { mistakes: 40 }))
+      await sync.syncNow()
+
+      // The second person has their own record of the same word, from their
+      // own practice on their own machine.
+      database.put(NUGGETS_TABLE, {
+        id: 'en:because',
+        user_id: OTHER.id,
+        last_seen_at: 3_000,
+        data: { ...nugget('because', { mistakes: 2, lastSeenAt: 3_000 }) },
+      })
+      signInAs(OTHER)
+      await sync.syncNow()
+
+      const theirs = database.rows(NUGGETS_TABLE).find((row) => row.user_id === OTHER.id)?.data as GoldenNugget
+      expect(theirs.mistakes).toBe(2)
+      // And this browser now shows the second person their own record.
+      expect((await nuggets.getAll())[0]?.mistakes).toBe(2)
+    })
+
+    it("never sends the first account's settings to the second", async () => {
+      await preferences.write({ theme: 'flow-mint' }, 5_000)
+      await sync.syncNow()
+
+      signInAs(OTHER)
+      await sync.syncNow()
+
+      expect(database.rows(PREFERENCES_TABLE).filter((row) => row.user_id === OTHER.id)).toEqual([])
+    })
+
+    /*
+     * And goes on not sending them. The switch is noticed once, by comparing
+     * the account on the record with the one signing in; every round after
+     * that the record says the new account, so a guard that only looked at
+     * the switch would hold the first person's settings back for exactly one
+     * round and then send them.
+     */
+    it("still does not send them on the rounds after the switch", async () => {
+      await preferences.write({ theme: 'flow-mint' }, 5_000)
+      await sync.syncNow()
+
+      signInAs(OTHER)
+      await sync.syncNow()
+      await sync.syncNow()
+      await sync.syncNow()
+
+      expect(database.rows(PREFERENCES_TABLE).filter((row) => row.user_id === OTHER.id)).toEqual([])
+    })
+
+    it("sends the second person's own settings as soon as they choose one", async () => {
+      await preferences.write({ theme: 'flow-mint' }, 5_000)
+      await sync.syncNow()
+
+      signInAs(OTHER)
+      await sync.syncNow()
+      // The second person picks a theme. From here it is theirs, and goes up.
+      await preferences.write({ theme: 'lemondrop' }, 30_000)
+      expect(await sync.syncNow()).toMatchObject({ settings: 'up' })
+
+      expect(database.rows(PREFERENCES_TABLE).find((row) => row.user_id === OTHER.id)?.data).toEqual({
+        theme: 'lemondrop',
+      })
+    })
+
+    it("does not let the first account's settings overwrite the second's", async () => {
+      await preferences.write({ theme: 'flow-mint' }, 5_000)
+      await sync.syncNow()
+
+      // The second person has settings of their own, chosen on another machine
+      // and longer ago. Being older must not mean being replaced by a stranger.
+      database.put(PREFERENCES_TABLE, { user_id: OTHER.id, updated_at: 1_000, data: { theme: 'paper' } })
+      signInAs(OTHER)
+      await sync.syncNow()
+
+      expect(database.rows(PREFERENCES_TABLE).find((row) => row.user_id === OTHER.id)?.data).toEqual({
+        theme: 'paper',
+      })
+      // And the second person gets their own back on this browser.
+      expect((await preferences.read()).data).toEqual({ theme: 'paper' })
     })
 
     it("never sends the first account's history to the second", async () => {

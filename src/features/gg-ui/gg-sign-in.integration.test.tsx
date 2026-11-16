@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ROUTES } from '@app/routes.ts'
 import { DEFAULT_PREFERENCES } from '@config'
+import { NOTHING_SYNCED } from '@core/accounts'
 import type { Account, AccountService, AccountState, SyncResult, SyncService } from '@core/accounts'
 import { settingsStore } from '@features/settings/state/settings.store.ts'
 
@@ -372,7 +373,7 @@ describe('Sign in, with accounts switched on', () => {
     expect(screen.getByRole('button', { name: 'Syncing…' })).toBeDisabled()
 
     act(() => {
-      announce({ sessionsUp: 1, sessionsDown: 2, textsUp: 0, textsDown: 0 }, null)
+      announce({ ...NOTHING_SYNCED, sessionsUp: 1, sessionsDown: 2 }, null)
     })
     expect(screen.getByRole('status')).toHaveTextContent('1 test sent, 2 tests brought back.')
 
@@ -381,5 +382,100 @@ describe('Sign in, with accounts switched on', () => {
     })
     expect(screen.getByRole('status')).toHaveTextContent('Nothing was lost')
     expect(accounts.asked).toEqual([])
+  })
+})
+
+/*
+ * Coming back from a sign-in that did not finish.
+ *
+ * Google and the emailed link both leave this page and return to it, and when
+ * either fails the only thing that comes back is a reason in the address bar.
+ * The page has to read it. These drive the real thing: the address is changed
+ * the way a redirect changes it, and the page is rendered against it.
+ */
+describe('Sign in, coming back from a sign-in that failed', () => {
+  const at = (query: string): void => {
+    window.history.replaceState(null, '', `${ROUTES.ggSignIn}${query}`)
+  }
+
+  beforeEach(() => {
+    at('')
+  })
+
+  afterEach(() => {
+    at('')
+  })
+
+  /*
+   * One state object and one service, not a fresh one per call. React compares
+   * what the account service hands back with what it handed back last time, so
+   * a new object each call is a change each call -- and renders without end.
+   * See the same note on UNAVAILABLE in core/accounts/service.ts.
+   */
+  const SIGNED_OUT: AccountState = { status: 'signed-out' }
+  const ACCOUNTS_ON: AccountService = {
+    available: true,
+    googleOffered: true,
+    state: () => SIGNED_OUT,
+    subscribe: () => () => undefined,
+    signInWithEmail: () => Promise.resolve(),
+    signInWithGoogle: () => Promise.resolve(),
+    signOut: () => Promise.resolve(),
+  }
+
+  const show = () =>
+    render(
+      <MemoryRouter initialEntries={[ROUTES.ggSignIn]}>
+        <Routes>
+          <Route
+            path={ROUTES.ggSignIn}
+            element={<GGSignInPage accounts={ACCOUNTS_ON} />}
+          />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+  it('says the sign-in was cancelled, rather than showing an empty form', () => {
+    at('?error=access_denied&error_description=The+user+denied+the+request')
+
+    show()
+
+    // On screen at the first render: there is no frame of blank form first.
+    expect(screen.getByRole('status')).toHaveTextContent(/cancelled/i)
+    expect(screen.getByRole('status')).toHaveTextContent(/this browser/i)
+  })
+
+  it('tells someone with a stale email link to ask for a fresh one', () => {
+    at('?error=access_denied&error_code=otp_expired')
+
+    show()
+
+    expect(screen.getByRole('status')).toHaveTextContent(/expired/i)
+  })
+
+  it('takes the reason off the address, so a reload does not say it again', () => {
+    at('?error=access_denied&error_code=otp_expired')
+
+    show()
+
+    expect(window.location.search).toBe('')
+  })
+
+  it('says nothing at all when the address carries no failure', () => {
+    at('?code=an-authorisation-code')
+
+    show()
+
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  })
+
+  it('lets the typist dismiss it', async () => {
+    const user = userEvent.setup()
+    at('?error=access_denied')
+
+    show()
+    await user.click(screen.getByRole('button', { name: 'Dismiss' }))
+
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
 })

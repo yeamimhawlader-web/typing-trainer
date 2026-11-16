@@ -63,9 +63,9 @@ export const AccountPanel = ({ account, onSignOut, sync = defaultSync }: Account
       </div>
 
       <p className={styles.text}>
-        Your test history and your own texts are kept with this account, and are the
-        same in every browser you sign in to. Settings and the keystroke detail behind
-        the statistics stay on the machine you typed them on.
+        Your test history, your own texts, your Golden Nuggets and your settings are
+        kept with this account, and are the same in every browser you sign in to. The
+        keystroke detail behind the statistics stays on the machine you typed it on.
       </p>
 
       <div className={styles.actions}>

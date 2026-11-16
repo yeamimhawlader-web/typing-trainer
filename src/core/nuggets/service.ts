@@ -29,6 +29,17 @@ export interface GoldenNuggetService {
    * nugget.
    */
   recordFocus(outcome: HoverFocusOutcome): Promise<GoldenNugget | null>
+  /**
+   * Writes one record whole, replacing any record for the same word.
+   *
+   * For syncing, which carries whole records between a browser and an account
+   * rather than describing what happened. Hover Mode never calls this: a focus
+   * that has just ended is an event, and `recordFocus` is what turns an event
+   * into a record.
+   */
+  put(nugget: GoldenNugget): Promise<void>
+  /** Takes one word off the list, for a word removed on another browser. */
+  remove(id: string): Promise<void>
   clear(): Promise<void>
 }
 
@@ -90,6 +101,23 @@ export const createGoldenNuggetService = (storage: StorageAdapter): GoldenNugget
         const { nuggets, changed } = applyFocusOutcome(await read(), outcome)
         if (changed !== null) await storage.write(STORAGE_KEYS.goldenNuggets, nuggets)
         return changed
+      }),
+
+    put: (nugget) =>
+      serialise(async () => {
+        const nuggets = await read()
+        const without = nuggets.filter((kept) => kept.id !== nugget.id)
+        await storage.write(STORAGE_KEYS.goldenNuggets, [...without, nugget])
+      }),
+
+    remove: (id) =>
+      serialise(async () => {
+        const nuggets = await read()
+        const kept = nuggets.filter((nugget) => nugget.id !== id)
+        // Nothing to do rather than a write that changes nothing: this runs
+        // once per word when a list is cleared on another browser.
+        if (kept.length !== nuggets.length)
+          await storage.write(STORAGE_KEYS.goldenNuggets, kept)
       }),
 
     clear: () => serialise(() => storage.remove(STORAGE_KEYS.goldenNuggets)),

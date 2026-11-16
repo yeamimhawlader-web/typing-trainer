@@ -77,26 +77,70 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { historyDeletion, type HistoryDeletion } from '@core/history'
 import { libraryService, parseLibraryText, type LibraryService, type LibraryText } from '@core/library'
+import {
+  goldenNuggetService,
+  mergeNuggets,
+  parseGoldenNugget,
+  sameNugget,
+  type GoldenNugget,
+  type GoldenNuggetService,
+} from '@core/nuggets'
 import { STORAGE_KEYS, type StorageAdapter } from '@core/persistence'
+import { preferencesRecord, type PreferencesRecord } from '@core/preferences'
 import { parseTypingSession, sessionService, type SessionService, type TypingSession } from '@core/sessions'
 import { sessionId } from '@core/types'
 
-import type { AccountService, SyncResult, SyncService } from './types.ts'
+import type { AccountService, SettingsMoved, SyncResult, SyncService } from './types.ts'
 
 /** The tables the application expects; created by docs/SUPABASE.md. */
 export const SESSIONS_TABLE = 'sessions'
 export const TEXTS_TABLE = 'texts'
+export const NUGGETS_TABLE = 'nuggets'
+export const PREFERENCES_TABLE = 'preferences'
+
+/**
+ * The columns a nugget row is identified by.
+ *
+ * Said explicitly because, alone among these tables, a nugget's id is not
+ * unique in the world: it is `language:word`, so every typist who struggles
+ * with `because` has a row whose id is `en:because`. The table's key is
+ * therefore the pair, and an upsert has to name the pair or it would try to
+ * overwrite a stranger's row -- which row-level security would refuse,
+ * failing every round of syncing from then on. See docs/supabase-setup.sql.
+ */
+export const NUGGET_KEY = 'user_id,id'
 
 /** Rows in one request. Small enough to stay well inside any limit. */
 const BATCH = 200
 
-/** Ids on this browser that belong to another account, and are never sent to this one. */
-interface Withheld {
+/** Ids that were on both sides at the end of a round, per kind. */
+interface Known {
   readonly sessions: readonly string[]
   readonly texts: readonly string[]
+  /** Absent from records written before Golden Nuggets were kept with an account. */
+  readonly nuggets: readonly string[]
 }
 
-const NOTHING_WITHHELD: Withheld = { sessions: [], texts: [] }
+const NOTHING_KNOWN: Known = { sessions: [], texts: [], nuggets: [] }
+
+/** What on this browser belongs to another account, and is never sent to this one. */
+interface Withheld extends Known {
+  /**
+   * The settings on this browser are the previous person's, and this is the
+   * moment they were last chosen; null when they are nobody else's.
+   *
+   * A time rather than a list, because there is only ever one settings
+   * record and so nothing to name. It is what makes the holding *last*: the
+   * switch itself is visible for exactly one round -- after it, the record
+   * names the new account and the two agree -- so a guard that watched only
+   * for the switch would hold the first person's theme back once and send it
+   * the round after. Holding the time instead means it stays held until the
+   * moment it changes, which is the moment somebody chooses something here.
+   */
+  readonly settingsAt: number | null
+}
+
+const NOTHING_WITHHELD: Withheld = { ...NOTHING_KNOWN, settingsAt: null }
 
 /** What the last round ended with, for the account it ended with. */
 interface SyncRecord {
@@ -104,6 +148,14 @@ interface SyncRecord {
   /** On both sides at the end of the round. */
   readonly sessions: readonly string[]
   readonly texts: readonly string[]
+  /**
+   * Absent from every record written before Golden Nuggets were kept with an
+   * account, which reads as "none known" -- so the first round after this
+   * version arrives merges the two sides rather than reading either side's
+   * words as deletions. That is the same rule a genuine first round follows,
+   * and it is the only safe reading of a record that cannot speak for them.
+   */
+  readonly nuggets: readonly string[]
   /** Here only, and another account's. Absent from records written before there was a switch to guard. */
   readonly withheld: Withheld
 }
@@ -120,9 +172,20 @@ const parseRecord = (value: unknown): SyncRecord | null => {
   const withheld = record['withheld'] as Record<string, unknown> | undefined
   const held =
     withheld !== undefined && isStrings(withheld['sessions']) && isStrings(withheld['texts'])
-      ? { sessions: withheld['sessions'], texts: withheld['texts'] }
+      ? {
+          sessions: withheld['sessions'],
+          texts: withheld['texts'],
+          nuggets: isStrings(withheld['nuggets']) ? withheld['nuggets'] : [],
+          settingsAt: typeof withheld['settingsAt'] === 'number' ? withheld['settingsAt'] : null,
+        }
       : NOTHING_WITHHELD
-  return { accountId: record['accountId'], sessions: record['sessions'], texts: record['texts'], withheld: held }
+  return {
+    accountId: record['accountId'],
+    sessions: record['sessions'],
+    texts: record['texts'],
+    nuggets: isStrings(record['nuggets']) ? record['nuggets'] : [],
+    withheld: held,
+  }
 }
 
 /**
@@ -134,17 +197,28 @@ const parseRecord = (value: unknown): SyncRecord | null => {
 const startingFrom = (
   previous: SyncRecord | null,
   accountId: string,
-): { readonly known: Withheld; readonly withheld: Withheld } => {
-  if (previous === null) return { known: NOTHING_WITHHELD, withheld: NOTHING_WITHHELD }
+): { readonly known: Known; readonly withheld: Withheld; readonly switched: boolean } => {
+  if (previous === null) return { known: NOTHING_KNOWN, withheld: NOTHING_WITHHELD, switched: false }
   if (previous.accountId === accountId) {
-    return { known: { sessions: previous.sessions, texts: previous.texts }, withheld: previous.withheld }
+    return {
+      known: { sessions: previous.sessions, texts: previous.texts, nuggets: previous.nuggets },
+      withheld: previous.withheld,
+      switched: false,
+    }
   }
   return {
-    known: NOTHING_WITHHELD,
+    known: NOTHING_KNOWN,
     withheld: {
       sessions: [...previous.sessions, ...previous.withheld.sessions],
       texts: [...previous.texts, ...previous.withheld.texts],
+      nuggets: [...previous.nuggets, ...previous.withheld.nuggets],
+      // Whatever is on this browser now is the previous person's; which
+      // moment that is cannot be read here, so syncPreferences fills it in.
+      settingsAt: null,
     },
+    // Someone else was signed in here last. Lists are guarded id by id, above;
+    // the settings are one record and need saying separately.
+    switched: true,
   }
 }
 
@@ -185,6 +259,8 @@ export interface SyncOptions {
   /** Injectable for tests; default to the application's own. */
   readonly sessions?: SessionService
   readonly library?: LibraryService
+  readonly nuggets?: GoldenNuggetService
+  readonly preferences?: PreferencesRecord
   readonly deletion?: HistoryDeletion
 }
 
@@ -194,6 +270,8 @@ export const createSyncService = ({
   storage,
   sessions = sessionService,
   library = libraryService,
+  nuggets = goldenNuggetService,
+  preferences = preferencesRecord,
   deletion = historyDeletion,
 }: SyncOptions): SyncService => {
   const listeners = new Set<(result: SyncResult | null, error: Error | null) => void>()
@@ -338,9 +416,235 @@ export const createSyncService = ({
     return { textsUp: up.length, textsDown: pulled, withheld }
   }
 
+  /**
+   * Golden Nuggets, which are neither written once like a session nor replaced
+   * whole like a text: they are tallies that both sides go on adding to.
+   *
+   * So where a word is on one side only this works exactly as the two above
+   * do -- added here, deleted there, and so on, read against the record of the
+   * last round. Where a word is on *both* sides the two records are joined
+   * rather than one of them chosen, and whichever side the join differs from
+   * is written. See mergeNuggets for why a tally cannot simply take the newer
+   * record.
+   *
+   * Every row is fetched with its contents, not just its id. A typist's
+   * nuggets are a few dozen short records -- smaller together than one test's
+   * keystrokes -- and fetching the lot means the join never has to assume that
+   * two records with the same date are the same record.
+   */
+  const syncNuggets = async (
+    client: SupabaseClient,
+    accountId: string,
+    known: ReadonlySet<string>,
+    held: ReadonlySet<string>,
+  ): Promise<
+    Pick<SyncResult, 'nuggetsUp' | 'nuggetsDown'> & {
+      readonly withheld: readonly string[]
+    }
+  > => {
+    const local = await nuggets.getAll()
+    const localById = new Map(local.map((nugget) => [nugget.id, nugget]))
+
+    const rows = rowsOf<{ id: string; data: unknown }>(
+      await client.from(NUGGETS_TABLE).select('id, data').eq('user_id', accountId),
+    )
+    const remoteById = new Map<string, GoldenNugget>()
+    /*
+     * A row that will not parse is passed over the way a bad row off disk is.
+     * Its id is remembered so it is not then read as a word deleted here and
+     * deleted there: it is already unreadable, and taking it away would be a
+     * second loss on top of the first. If this browser has the same word, the
+     * upload below writes over it, which quietly repairs it.
+     */
+    const unreadable = new Set<string>()
+    for (const row of rows) {
+      const nugget = parseGoldenNugget(row.data)
+      if (nugget === null) unreadable.add(row.id)
+      else remoteById.set(nugget.id, nugget)
+    }
+
+    const up: GoldenNugget[] = []
+    const down: GoldenNugget[] = []
+    const withheld: string[] = []
+    const deleteThere: string[] = []
+    const deleteHere: string[] = []
+
+    for (const [id, here] of localById) {
+      const there = remoteById.get(id)
+
+      /*
+       * Another account's word, still on this browser. Asked first, before
+       * anything else looks at it, because every other branch below would
+       * send it somewhere: uploaded, or -- worse -- joined with this
+       * account's record of the same word and the two counts added together.
+       *
+       * This is where a nugget id being `language:word` costs a second time.
+       * A session or a text found on both sides is proof the id is this
+       * account's: ids come from `crypto.randomUUID` and two people cannot
+       * land on one, which is why those two let a held id go the moment the
+       * account turns out to have it. A *word* found on both sides proves
+       * nothing at all -- two typists struggling with `because` is the
+       * ordinary case -- so a held word stays held however familiar it looks.
+       *
+       * Where this account has the word, its own record is taken and fills
+       * the one slot the browser keeps per word; the previous person's is not
+       * lost by that, since a held word is by definition one their account
+       * already has. Where it does not, the record stays on the browser
+       * untouched and goes to nobody.
+       */
+      if (held.has(id)) {
+        if (there === undefined) withheld.push(id)
+        else if (!sameNugget(there, here)) down.push(there)
+        continue
+      }
+
+      if (there !== undefined) {
+        // On both sides and ours: joined, and written wherever it says more.
+        const merged = mergeNuggets(here, there)
+        if (!sameNugget(merged, here)) down.push(merged)
+        if (!sameNugget(merged, there)) up.push(merged)
+        continue
+      }
+      // A row that would not parse: this browser's copy is written over it,
+      // which quietly repairs it. See `unreadable` above.
+      if (unreadable.has(id)) up.push(here)
+      else if (known.has(id)) deleteHere.push(id)
+      else up.push(here)
+    }
+
+    for (const [id, there] of remoteById) {
+      if (localById.has(id)) continue
+      if (known.has(id)) deleteThere.push(id)
+      else down.push(there)
+    }
+
+    await inBatches(up, async (batch) => {
+      thrownIfFailed(
+        await client.from(NUGGETS_TABLE).upsert(
+          batch.map((nugget) => ({
+            id: nugget.id,
+            user_id: accountId,
+            last_seen_at: nugget.lastSeenAt,
+            data: nugget,
+          })),
+          // The pair, not the id: see NUGGET_KEY.
+          { onConflict: NUGGET_KEY },
+        ),
+      )
+    })
+
+    await inBatches(deleteThere, async (batch) => {
+      thrownIfFailed(
+        await client
+          .from(NUGGETS_TABLE)
+          .delete()
+          .eq('user_id', accountId)
+          .in('id', [...batch]),
+      )
+    })
+
+    await inSequence(down, (nugget) => nuggets.put(nugget))
+    await inSequence(deleteHere, (id) => nuggets.remove(id))
+
+    return { nuggetsUp: up.length, nuggetsDown: down.length, withheld }
+  }
+
+  /**
+   * The settings, which are one record rather than a list, so there is nothing
+   * to compare id by id: the side that chose last wins outright.
+   *
+   * A browser that has never saved a preference has no time against its
+   * record -- either because nothing has been changed on it, or because it was
+   * written by a version from before the time was kept. Such a record loses to
+   * anything the account holds, which is the answer a typist signing in on a
+   * second machine expects: the settings they have been using, not whatever
+   * that machine was left on. Where the account holds nothing at all, this
+   * browser's record goes up and is stamped with the moment it went, so the
+   * next round has something to compare.
+   *
+   * The record is moved without being understood. What a valid theme or sound
+   * pack is belongs to the settings themselves, which check whatever they are
+   * given, from this account or from this disk, with the same code.
+   */
+  const syncPreferences = async (
+    client: SupabaseClient,
+    accountId: string,
+    /** Whether the last round on this browser belonged to a different account. */
+    switched: boolean,
+    /** The settings time the last round held back, if it held one. */
+    heldAt: number | null,
+  ): Promise<{ readonly moved: SettingsMoved; readonly settingsAt: number | null }> => {
+    const here = await preferences.read()
+    const rows = rowsOf<{ updated_at: number; data: unknown }>(
+      await client
+        .from(PREFERENCES_TABLE)
+        .select('updated_at, data')
+        .eq('user_id', accountId),
+    )
+    const there = rows[0]
+
+    const send = async (at: number): Promise<SettingsMoved> => {
+      thrownIfFailed(
+        await client
+          .from(PREFERENCES_TABLE)
+          .upsert([{ user_id: accountId, updated_at: at, data: here.data }], {
+            onConflict: 'user_id',
+          }),
+      )
+      // Stamped here too, so an unstamped record is not sent again every round.
+      if (at !== here.updatedAt) await preferences.write(here.data, at)
+      return 'up'
+    }
+
+    /*
+     * Whose settings are on this browser. On the round where the account
+     * changed, they are plainly the previous person's; after that, they are
+     * still theirs for as long as nothing here has been chosen since -- which
+     * is exactly what "the time has not moved" says.
+     */
+    const held = switched ? here.updatedAt : heldAt
+    const theirs = held !== null && here.updatedAt === held
+
+    /*
+     * Someone else's, so they are not sent anywhere, exactly as their history
+     * is not. The account's own settings are taken whatever their age: being
+     * older than a stranger's is no reason to be replaced by them. Where the
+     * account has none, nothing happens at all and the browser goes on looking
+     * as the last person left it -- as it does for everything else until this
+     * person types something. The moment they choose anything, the time moves,
+     * these stop being withheld, and their choice goes up like anyone's.
+     */
+    if (theirs) {
+      if (there === undefined) return { moved: 'unchanged', settingsAt: held }
+      await preferences.arrive(there.data, there.updated_at)
+      return { moved: 'down', settingsAt: null }
+    }
+
+    if (there === undefined) {
+      // Nothing chosen on this browser either: there is nothing to send.
+      if (here.data === null || here.data === undefined) return { moved: 'unchanged', settingsAt: null }
+      return { moved: await send(here.updatedAt > 0 ? here.updatedAt : Date.now()), settingsAt: null }
+    }
+
+    if (here.updatedAt > there.updated_at) return { moved: await send(here.updatedAt), settingsAt: null }
+    if (here.updatedAt === there.updated_at) return { moved: 'unchanged', settingsAt: null }
+
+    /*
+     * Read once more before writing. A round takes as long as the network
+     * does, and a typist who changes the theme while one is in flight would
+     * otherwise have it quietly replaced by what the account held when the
+     * round began. Their choice is the newer one; it stands.
+     */
+    const now = await preferences.read()
+    if (now.updatedAt >= there.updated_at) return { moved: 'unchanged', settingsAt: null }
+
+    await preferences.arrive(there.data, there.updated_at)
+    return { moved: 'down', settingsAt: null }
+  }
+
   const round = async (accountId: string): Promise<SyncResult> => {
     const client = await arriving
-    const { known, withheld } = startingFrom(
+    const { known, withheld, switched } = startingFrom(
       parseRecord(await storage.read<unknown>(STORAGE_KEYS.accountSync)),
       accountId,
     )
@@ -357,6 +661,13 @@ export const createSyncService = ({
       new Set(known.texts),
       new Set(withheld.texts),
     )
+    const { withheld: nuggetsHeld, ...nuggetsMoved } = await syncNuggets(
+      client,
+      accountId,
+      new Set(known.nuggets),
+      new Set(withheld.nuggets),
+    )
+    const settings = await syncPreferences(client, accountId, switched, withheld.settingsAt)
 
     // What both sides now hold, read back rather than worked out, so a record
     // that was refused or trimmed by storage is not remembered as kept. What is
@@ -364,14 +675,21 @@ export const createSyncService = ({
     // is never mistaken next round for something deleted from the account.
     const holdingSessions = new Set(sessionsHeld)
     const holdingTexts = new Set(textsHeld)
+    const holdingNuggets = new Set(nuggetsHeld)
     await storage.write(STORAGE_KEYS.accountSync, {
       accountId,
       sessions: (await sessions.getAll()).map((session) => session.id).filter((id) => !holdingSessions.has(id)),
       texts: (await library.getAll()).map((text) => text.id).filter((id) => !holdingTexts.has(id)),
-      withheld: { sessions: sessionsHeld, texts: textsHeld },
+      nuggets: (await nuggets.getAll()).map((nugget) => nugget.id).filter((id) => !holdingNuggets.has(id)),
+      withheld: {
+        sessions: sessionsHeld,
+        texts: textsHeld,
+        nuggets: nuggetsHeld,
+        settingsAt: settings.settingsAt,
+      },
     } satisfies SyncRecord)
 
-    return { ...sessionsMoved, ...textsMoved }
+    return { ...sessionsMoved, ...textsMoved, ...nuggetsMoved, settings: settings.moved }
   }
 
   return {

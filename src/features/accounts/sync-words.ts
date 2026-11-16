@@ -10,6 +10,7 @@ import type { SyncResult } from '@core/accounts'
 
 const tests = (count: number): string => `${count} ${count === 1 ? 'test' : 'tests'}`
 const texts = (count: number): string => `${count} ${count === 1 ? 'text' : 'texts'}`
+const words = (count: number): string => `${count} ${count === 1 ? 'word' : 'words'}`
 
 export const movedInWords = (result: SyncResult): string => {
   const parts = [
@@ -17,6 +18,12 @@ export const movedInWords = (result: SyncResult): string => {
     result.sessionsDown > 0 ? `${tests(result.sessionsDown)} brought back` : null,
     result.textsUp > 0 ? `${texts(result.textsUp)} sent` : null,
     result.textsDown > 0 ? `${texts(result.textsDown)} brought back` : null,
+    // Said as words rather than as Golden Nuggets: what moved is the record of
+    // a word, and "2 words sent" sits in the same sentence as the rest.
+    result.nuggetsUp > 0 ? `${words(result.nuggetsUp)} sent` : null,
+    result.nuggetsDown > 0 ? `${words(result.nuggetsDown)} brought back` : null,
+    result.settings === 'up' ? 'settings sent' : null,
+    result.settings === 'down' ? 'settings brought back' : null,
   ].filter((part): part is string => part !== null)
 
   return parts.length === 0 ? 'Up to date.' : `${parts.join(', ')}.`

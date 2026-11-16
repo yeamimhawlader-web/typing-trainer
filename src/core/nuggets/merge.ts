@@ -76,3 +76,77 @@ export const applyFocusOutcome = (nuggets: readonly GoldenNugget[], outcome: Hov
 
 /** Most recently seen first. */
 export const byLastSeen = (a: GoldenNugget, b: GoldenNugget): number => b.lastSeenAt - a.lastSeenAt
+
+/**
+ * One word's record as held in two places, joined into the record that keeps
+ * everything both of them know.
+ *
+ * Used when a browser and an account both have a record for the same word,
+ * which is the ordinary case the moment a typist practises on two machines.
+ *
+ * ## Why not simply take the newer one
+ *
+ * Because a nugget is a tally, not a document. Take the newer record whole and
+ * the older one's counting is thrown away: a laptop that logged six mistakes
+ * on `because` offline, and a desktop that logged two a minute later, would
+ * end up saying two.
+ *
+ * Every count here only ever rises — `applyFocusOutcome` adds and never
+ * subtracts — so the larger of two counts is the one that has seen more, and
+ * taking the larger of each can never report less than either side already
+ * knew. It is still not a perfect total: both sides counting separately
+ * between two rounds of syncing ends at the larger, not the sum, so a word
+ * worked on in two browsers at once can be undercounted. That is a deliberate
+ * trade. Counting the true sum needs each browser to keep its own running
+ * tally for every word forever, which is a great deal of machinery for a
+ * number that says "this word keeps costing you" — and the alternative of
+ * taking the newer record is not merely imprecise but actively loses work.
+ *
+ * The dates are treated as what they are: the first sighting is the earlier of
+ * the two, the last is the later.
+ *
+ * ## Why the tie is broken on the test id
+ *
+ * The fields that describe the most recent focus — how it ended, at what
+ * difficulty, in which test — have to be taken from one side or the other,
+ * since averaging them means nothing. They come from whichever side saw the
+ * word last. Two records with the same `lastSeenAt` to the millisecond are
+ * vanishingly unlikely but not impossible, and if the answer depended on which
+ * side happened to be passed first, two browsers merging the same pair could
+ * reach different records and then sync them back and forth forever. Comparing
+ * the test ids settles it the same way on every machine.
+ */
+/**
+ * The side whose record describes the more recent focus, with a dead heat
+ * settled on the test id so that two browsers joining the same pair cannot
+ * reach different answers and then push them at each other forever.
+ */
+const laterOf = (a: GoldenNugget, b: GoldenNugget): GoldenNugget => {
+  if (a.lastSeenAt !== b.lastSeenAt) return a.lastSeenAt > b.lastSeenAt ? a : b
+  return a.lastTestId >= b.lastTestId ? a : b
+}
+
+export const mergeNuggets = (a: GoldenNugget, b: GoldenNugget): GoldenNugget => {
+  return {
+    ...laterOf(a, b),
+    timesUnresolved: Math.max(a.timesUnresolved, b.timesUnresolved),
+    hoverSessions: Math.max(a.hoverSessions, b.hoverSessions),
+    tests: Math.max(testsOf(a), testsOf(b)),
+    mistakes: Math.max(a.mistakes, b.mistakes),
+    firstSeenAt: Math.min(a.firstSeenAt, b.firstSeenAt),
+    lastSeenAt: Math.max(a.lastSeenAt, b.lastSeenAt),
+  }
+}
+
+/** Whether two records say the same thing, so an unchanged one is not written. */
+export const sameNugget = (a: GoldenNugget, b: GoldenNugget): boolean =>
+  a.id === b.id &&
+  a.timesUnresolved === b.timesUnresolved &&
+  a.hoverSessions === b.hoverSessions &&
+  testsOf(a) === testsOf(b) &&
+  a.mistakes === b.mistakes &&
+  a.firstSeenAt === b.firstSeenAt &&
+  a.lastSeenAt === b.lastSeenAt &&
+  a.lastDifficulty === b.lastDifficulty &&
+  a.lastOutcome === b.lastOutcome &&
+  a.lastTestId === b.lastTestId

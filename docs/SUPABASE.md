@@ -2,8 +2,9 @@
 
 Everything in Hover Typing works without an account, and always will: tests,
 Golden Nuggets, settings and your own texts are kept in the browser. An account
-adds one thing: a copy of your **test history** and **your own texts** kept with
-you, so another browser signed in as you has them too.
+adds one thing: a copy of your **test history**, **your own texts**, your
+**Golden Nuggets** and your **settings**, kept with you — so another browser
+signed in as you opens with your theme, your font and your words already there.
 
 The application only offers it when this build has been given a Supabase
 project. Without the two values below there is no account service, nothing is
@@ -48,50 +49,32 @@ Keep those two for Part 4.
 ## Part 2 — The tables (about 2 minutes)
 
 7. Left sidebar: **SQL Editor** → **New query**.
-8. Open `docs/supabase-setup.sql`, copy the whole file, paste it here and press
-   **Run** (or Ctrl+Enter). It is the same thing as the block below, in one
-   file, so there is nothing to pick out of the page:
+8. Open `docs/supabase-setup.sql`, copy the whole file, paste it here and
+   press **Run** (or Ctrl+Enter).
 
-```sql
--- Finished tests. Written once and never edited, so the id is the whole story.
-create table if not exists public.sessions (
-  id           text primary key,
-  user_id      uuid not null references auth.users (id) on delete cascade,
-  completed_at bigint not null,
-  data         jsonb not null,
-  synced_at    timestamptz not null default now()
-);
+   It is not reproduced here on purpose: two copies of the same SQL drift, and
+   the one you run should be the one the application is actually written
+   against. What it makes is four tables, each of them one person's practice:
 
--- Your own texts: quotes, goals, word lists. Edited, so the time matters.
-create table if not exists public.texts (
-  id         text primary key,
-  user_id    uuid not null references auth.users (id) on delete cascade,
-  updated_at bigint not null,
-  data       jsonb not null,
-  synced_at  timestamptz not null default now()
-);
+   | Table         | What it holds                              |
+   | ------------- | ------------------------------------------ |
+   | `sessions`    | Finished tests                             |
+   | `texts`       | Quotes, goals and word lists you wrote     |
+   | `nuggets`     | The words that keep costing you mistakes   |
+   | `preferences` | Theme, font, sound, caret, practice length |
 
-create index if not exists sessions_user_idx on public.sessions (user_id, completed_at desc);
-create index if not exists texts_user_idx on public.texts (user_id, updated_at desc);
+   Then it switches row-level security on for all four and gives each one the
+   same rule: you reach your own rows and nobody else's.
 
--- Row-level security: each person reaches their own rows and nobody else's.
--- This, not the secrecy of the key in the page, is what keeps them apart.
-alter table public.sessions enable row level security;
-alter table public.texts enable row level security;
+   It should say **Success. No rows returned**. Running it again is safe.
 
-drop policy if exists "own sessions" on public.sessions;
-create policy "own sessions" on public.sessions
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+9. Check it landed: **Table Editor** in the sidebar now lists `sessions`,
+   `texts`, `nuggets` and `preferences`, all empty.
 
-drop policy if exists "own texts" on public.texts;
-create policy "own texts" on public.texts
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-```
-
-It should say **Success. No rows returned**. Running it again is safe.
-
-9. Check it landed: **Table Editor** in the sidebar now lists `sessions` and
-   `texts`, both empty.
+> **Already had a project before Golden Nuggets and settings were kept with an
+> account?** Run the file again. Every statement in it checks whether it has
+> already been done, so it adds the two new tables and leaves your existing
+> rows exactly as they are.
 
 10. **Prove the lock is on**, which is the part worth doing properly. With your
     project URL and public key in `.env.local`, run:
@@ -114,13 +97,13 @@ It should say **Success. No rows returned**. Running it again is safe.
 
 ## Part 3 — Where the link is allowed to land (about 1 minute)
 
-10. Left sidebar: **Authentication** → **URL Configuration**.
-11. **Site URL**: the address the site is actually served from, with no
+11. Left sidebar: **Authentication** → **URL Configuration**.
+12. **Site URL**: the address the site is actually served from, with no
     trailing slash. Today that is `https://typing-trainer-1bvi.vercel.app`; on
     a custom domain it is that domain instead, and this has to be changed on
     the day the domain goes live or the email link will send people to the old
     address.
-12. **Redirect URLs** → **Add URL**, once for each address the site answers on:
+13. **Redirect URLs** → **Add URL**, once for each address the site answers on:
     - `<site url>/gg/sign-in`
     - `http://localhost:5173/gg/sign-in` (so it can be tried locally)
 
@@ -141,24 +124,24 @@ project; there is no provider to switch on.
 
 ### On Vercel, for the live site
 
-13. Open the project on **[vercel.com](https://vercel.com)** → **Settings** →
+14. Open the project on **[vercel.com](https://vercel.com)** → **Settings** →
     **Environment Variables**. Add two, ticking **Production**, **Preview** and
     **Development** for each:
 
-    | Name | Value |
-    | --- | --- |
-    | `VITE_SUPABASE_URL` | `https://<your-project>.supabase.co` |
-    | `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` |
+    | Name                            | Value                                |
+    | ------------------------------- | ------------------------------------ |
+    | `VITE_SUPABASE_URL`             | `https://<your-project>.supabase.co` |
+    | `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…`                   |
 
     (If your project gave you an `anon` key instead, name the second one
     `VITE_SUPABASE_ANON_KEY`. Either works.)
 
-14. **Deployments** → the most recent → **⋯** → **Redeploy**. The values are
+15. **Deployments** → the most recent → **⋯** → **Redeploy**. The values are
     read when the site is built, so it has to be built again to know about them.
 
 ### Locally, if you want to try it on your own machine
 
-15. Make a file called `.env.local` beside `package.json`:
+16. Make a file called `.env.local` beside `package.json`:
 
     ```
     VITE_SUPABASE_URL=https://<your-project>.supabase.co
@@ -176,14 +159,17 @@ until the first sign-in.
 
 ## Part 5 — Check it works
 
-16. Open `/gg/sign-in`. It should show an address field and **Email me a link**,
+17. Open `/gg/sign-in`. It should show an address field and **Email me a link**,
     rather than saying accounts are not switched on.
-17. Type your address and press it. The page says the link is on its way.
-18. Open the link from your inbox. You land back on the same page, the top bar
+18. Type your address and press it. The page says the link is on its way.
+19. Open the link from your inbox. You land back on the same page, the top bar
     shows your name, and the page shows **Your account**.
-19. Type a test. In Supabase, **Table Editor** → `sessions`: one row.
-20. Open the site in another browser, sign in the same way, and look at
+20. Type a test. In Supabase, **Table Editor** → `sessions`: one row.
+21. Open the site in another browser, sign in the same way, and look at
     **History** and **Your texts**. Everything is there.
+22. Still in that second browser: the theme, font and practice length you set
+    in the first one should already be applied, and **Golden Nuggets** should
+    list the same words. That is the settings and the nuggets arriving.
 
 ---
 
@@ -215,16 +201,35 @@ this, and the two dashboards below have to agree with each other exactly.
      **supabase.co** address, not the Hover Typing one. This is the single most
      common mistake.
    - **Create**, then copy the **Client ID** and **Client secret**.
-7. Back on the Supabase Google page: paste both, **Save**.
+7. Back on the Supabase Google page: paste both, **Save**. Google can take a
+   few minutes to notice a change to a client; a `redirect_uri_mismatch` that
+   appears right after saving is worth one retry before hunting for it.
 8. **Last step, and the button will not appear without it.** Add one more
    environment variable in Vercel, the same way you added the other two
    (Settings -> Environment Variables), then redeploy:
 
-    | Name | Value |
-    | --- | --- |
-    | `VITE_SUPABASE_GOOGLE` | `true` |
+   | Name                   | Value  |
+   | ---------------------- | ------ |
+   | `VITE_SUPABASE_GOOGLE` | `true` |
 
 The redirect URLs from Part 3 already cover where Google sends people back to.
+
+### Before anyone but you uses it
+
+While the Google app is in **Testing**, only the addresses under **Test users**
+can sign in — everyone else is turned away — and there is a hard limit of 100 of
+them. So publish it: **Google Auth Platform → Audience → Publish app**.
+
+The reassuring part: this application asks only for `openid`, `email` and
+`profile`, which Google treats as non-sensitive. Publishing with only those
+takes effect immediately and needs no review, no demonstration video and no
+privacy-policy audit. The verification process people warn about is for the
+sensitive scopes — reading someone's mail or their files — and none of them are
+asked for here.
+
+If a sign-in ever fails, the page now says why in plain words rather than
+returning you to an empty form; `src/core/accounts/sign-in-return.ts` holds the
+sentences, and anything it has not met gets a sensible fallback.
 
 **Why the extra variable.** Until you have done the seven steps above, your
 project has no Google client, and Supabase answers anyone who presses the
@@ -237,30 +242,40 @@ which is the way in that needs none of this.
 
 ## When something goes wrong
 
-| What you see | What it usually is |
-| --- | --- |
-| "Accounts aren't switched on yet" | The build has no values: not set, or the site was not redeployed after setting them (step 14). |
-| The link never arrives | Check spam. Then **Authentication → Logs** in Supabase: its own mail server allows a handful an hour and says so there. |
-| The link opens, then you are signed out again | The address it landed on is not in **Redirect URLs** (Part 3). |
-| Signed in, but history stays empty | The tables or the policies are missing. Run Part 2 again and check **Table Editor**. |
-| Google says **redirect_uri_mismatch** | The redirect URI is not exactly the Supabase callback. It ends `/auth/v1/callback`. |
-| Google says the app is **not verified** | Your address is not in **Test users**. |
-| There is no **Continue with Google** button | `VITE_SUPABASE_GOOGLE` is not set to `true`, or the site was not redeployed after setting it (step 8). |
-| The page refuses to load at all | Only one of the two values is set. The browser console names which. |
+| What you see                                                        | What it usually is                                                                                                          |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| "Accounts aren't switched on yet"                                   | The build has no values: not set, or the site was not redeployed after setting them (step 15).                              |
+| The link never arrives                                              | Check spam. Then **Authentication → Logs** in Supabase: its own mail server allows a handful an hour and says so there.     |
+| The link opens, then you are signed out again                       | The address it landed on is not in **Redirect URLs** (Part 3).                                                              |
+| Signed in, but history stays empty                                  | The tables or the policies are missing. Run Part 2 again and check **Table Editor**.                                        |
+| History syncs, but nuggets or settings do not                       | `nuggets` and `preferences` came later. Run `docs/supabase-setup.sql` again; it adds them and leaves everything else alone. |
+| Signing in replaced the settings on this browser                    | Working as intended: settings follow the person. Change them here and they go back up.                                      |
+| A sign-in that fails now says why                                   | It always should. If a failed sign-in ever lands on a silent form again, that is a bug, not a setting.                      |
+| Google says **redirect_uri_mismatch**                               | The redirect URI is not exactly the Supabase callback. It ends `/auth/v1/callback`.                                         |
+| Google says the app is **not verified**                             | Your address is not in **Test users**, or the app is still in Testing and should be published.                              |
+| There is no **Continue with Google** button                         | `VITE_SUPABASE_GOOGLE` is not set to `true`, or the site was not redeployed after setting it (step 8).                      |
+| Google sign-in fails with nothing in the page but a blocked request | The project has a custom auth domain that `connect-src` in `vercel.json` does not name. See DEPLOY.md.                      |
+| The page refuses to load at all                                     | Only one of the two values is set. The browser console names which.                                                         |
 
 ## What is kept, and what is not
 
-| | Where |
-| --- | --- |
-| Test history | This browser **and** your account |
-| Your own texts | This browser **and** your account |
-| Keystroke detail behind the statistics | This browser only |
-| Settings, themes, sound | This browser only |
-| Golden Nuggets | This browser only |
+|                                        | Where                             |
+| -------------------------------------- | --------------------------------- |
+| Test history                           | This browser **and** your account |
+| Your own texts                         | This browser **and** your account |
+| Golden Nuggets                         | This browser **and** your account |
+| Settings, themes, sound                | This browser **and** your account |
+| Keystroke detail behind the statistics | This browser only                 |
 
 Keystroke detail is by far the largest thing stored and is only ever read by the
 analyses on the machine that recorded it; the session records carry every number
 the history and statistics pages show.
+
+Settings follow the person rather than the machine, which is what a typist
+signing in on a laptop expects and what Monkeytype does. The one consequence
+worth knowing: sign in on a browser you had set up differently and the
+account's settings replace that browser's. They are not merged — there is no
+sensible way to merge two themes.
 
 ## How syncing behaves
 
@@ -270,7 +285,15 @@ the history and statistics pages show.
 - **Merging.** The first round after signing in merges: everything on either
   side ends up on both. After that, each round is compared against what the last
   one ended with, so a test deleted on one browser is deleted on the other
-  rather than coming back. For a text edited in two places, the later edit wins.
+  rather than coming back. For a text edited in two places, the later edit wins,
+  and for settings chosen in two places the later choice wins.
+- **Golden Nuggets are added up, not replaced.** A nugget is a tally, so where
+  both sides have the same word the two records are joined: the larger of each
+  count, the earlier first sighting, the later last one. Taking the newer record
+  whole would throw away the other side's counting. It is still not a perfect
+  total — practise the same word on two machines between syncs and you end on
+  the larger count rather than the sum — which is a deliberate trade, and
+  nothing is ever lost by it.
 - **Failure.** A round that cannot get through changes nothing, says so on the
   account page, and is tried again next time.
 - **Signing out** leaves everything in the browser exactly as it is, and deletes
@@ -284,12 +307,27 @@ person's account. It stays on the browser, untouched — their keystroke detail
 lives only there — and if they sign back in, it is still theirs. The second
 person's own history comes down as usual.
 
-Practice typed on a browser before *anyone* has signed in on it still goes up
+The same holds for the two things an account carries besides history:
+
+- **Golden Nuggets.** The first person's words are not sent up, and — the part
+  that takes care — they are not merged into the second person's record of the
+  same word either. Two typists both struggling with `because` is the ordinary
+  case, not a coincidence, so the second person's own record is taken whole
+  rather than added to. Their count stays their count.
+- **Settings.** The first person's theme, font and sound are not sent up, and
+  do not replace the second person's. Where the second person's account has
+  settings, those are taken, however much older; being older than a stranger's
+  is no reason to be replaced by them. Where the account has none, nothing
+  happens and the browser goes on looking as it did — and goes on not sending
+  them, round after round, until the second person changes something. The
+  moment they do, the settings are theirs and go up like anyone's.
+
+Practice typed on a browser before _anyone_ has signed in on it still goes up
 with the first sign-in, which is how your practice from before you signed up
 reaches your account.
 
 What is not separated: while the second person is signed in, the History page
-on that browser still *shows* the first person's tests, because everything is
+on that browser still _shows_ the first person's tests, because everything is
 kept in the browser first. That is no more than it showed before anyone signed
 in; it is never uploaded to the wrong account.
 
@@ -297,5 +335,6 @@ in; it is never uploaded to the wrong account.
 
 Comfortably inside the free plan. A stored test measures about 650 bytes, so the
 500 MB free database holds roughly 800,000 of them: two hundred years at ten
-tests a day. Free projects pause after a week with no requests, and opening the
+tests a day. The nuggets and the settings do not move that figure — a few dozen
+short records and one row per person between them. Free projects pause after a week with no requests, and opening the
 application wakes it.

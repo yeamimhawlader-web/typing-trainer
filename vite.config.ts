@@ -90,6 +90,7 @@ export default defineConfig({
             'src/core/persistence/**/*.test.ts',
             'src/core/sessions/**/*.test.ts',
             'src/core/nuggets/**/*.test.ts',
+            'src/core/preferences/**/*.test.ts',
             'src/core/library/**/*.test.ts',
             'src/core/accounts/**/*.test.ts',
             'src/app/**/*.test.{ts,tsx}',

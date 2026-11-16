@@ -19,10 +19,12 @@ import { createAccountClient, createAccountService, createUnavailableAccountServ
 import { createSyncService } from './sync.ts'
 import type { AccountService, SyncResult, SyncService } from './types.ts'
 
-export type { Account, AccountService, AccountState, SyncResult, SyncService } from './types.ts'
+export type { Account, AccountService, AccountState, SettingsMoved, SyncResult, SyncService } from './types.ts'
 export { NOTHING_SYNCED } from './types.ts'
 export { accountOf, createAccountClient, createAccountService, createUnavailableAccountService } from './service.ts'
-export { createSyncService, SESSIONS_TABLE, TEXTS_TABLE } from './sync.ts'
+export { createSyncService, NUGGETS_TABLE, NUGGET_KEY, PREFERENCES_TABLE, SESSIONS_TABLE, TEXTS_TABLE } from './sync.ts'
+export { readSignInReturn, withoutSignInReturn } from './sign-in-return.ts'
+export type { SignInReturn } from './sign-in-return.ts'
 export type { SyncOptions } from './sync.ts'
 
 /** Nothing to sync to: every round resolves as "nobody is signed in". */

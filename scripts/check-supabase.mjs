@@ -20,7 +20,28 @@
 
 import { readFileSync } from 'node:fs'
 
-const TABLES = ['sessions', 'texts']
+/**
+ * Every table, and the one row each would need if anybody were allowed to
+ * write one. They differ: the preferences are one row per person and have no
+ * id of their own, and each of the others stamps its own kind of time.
+ */
+const TABLES = [
+  { name: 'sessions', id: true, time: 'completed_at' },
+  { name: 'texts', id: true, time: 'updated_at' },
+  { name: 'nuggets', id: true, time: 'last_seen_at' },
+  { name: 'preferences', id: false, time: 'updated_at' },
+]
+
+/** A row shaped for the table, which the database should refuse outright. */
+const refusableRow = (table) => ({
+  // Every table is owned by a user that cannot exist, so even an unguarded
+  // database has a second reason to say no -- and which reason it gives is
+  // exactly what this is reading.
+  ...(table.id ? { id: `rls-check-${Date.now()}` } : {}),
+  user_id: '00000000-0000-0000-0000-000000000000',
+  [table.time]: 0,
+  data: {},
+})
 
 /** Reads .env.local the way Vite does, without needing Vite. */
 const fromEnvFile = () => {
@@ -63,12 +84,14 @@ const main = async () => {
   let open = 0
   let missing = 0
 
-  // One table at a time, on purpose: the output reads top to bottom, and two
+  // One table at a time, on purpose: the output reads top to bottom, and four
   // tables are not worth the parallelism.
   /* oxlint-disable no-await-in-loop */
-  for (const table of TABLES) {
+  for (const entry of TABLES) {
+    const table = entry.name
     // 1. Read, as a stranger. A locked table answers with an empty list.
-    const read = await fetch(`${url}/rest/v1/${table}?select=id&limit=5`, { headers })
+    // user_id, not id: it is the one column all four tables have.
+    const read = await fetch(`${url}/rest/v1/${table}?select=user_id&limit=5`, { headers })
     const body = await read.text()
     const rows = read.ok ? JSON.parse(body) : null
 
@@ -92,12 +115,7 @@ const main = async () => {
     const write = await fetch(`${url}/rest/v1/${table}`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        id: `rls-check-${Date.now()}`,
-        user_id: '00000000-0000-0000-0000-000000000000',
-        [table === 'sessions' ? 'completed_at' : 'updated_at']: 0,
-        data: {},
-      }),
+      body: JSON.stringify(refusableRow(entry)),
     })
     const refusal = await write.text()
 
