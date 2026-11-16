@@ -32,3 +32,18 @@ dist-ssr
 
 # Test coverage
 coverage
+
+# Claude Code's launch configuration. It was tracked once, with a single entry
+# for this project's own dev server, and then it filled up with entries for
+# whatever else happened to be open on the machine -- each one a full path
+# through a home directory. This repository is public, so it is kept out of it.
+# Nothing is lost: Claude Code writes the file again the first time it needs
+# one, and the entry it needs is three lines.
+.claude/launch.json
+
+# Brand work that lives beside the project rather than in it: logo candidates,
+# colour sets, a guidelines PDF. Several megabytes of workings that no build
+# reads, and that would otherwise sit in `git status` forever waiting to be
+# swept into a commit by a stray `git add -A`.
+brand-kit/
+brandkit/
