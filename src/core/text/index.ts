@@ -47,3 +47,4 @@ export type { DrillOptions, DrillPlan, DrillProvider } from './drill.ts'
 
 export { COMMON_WORDS } from './word-list.ts'
 export { ADVANCED_WORDS } from './advanced-words.ts'
+export { TIRED_WORDS } from './tired-words.ts'

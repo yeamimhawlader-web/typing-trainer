@@ -9,11 +9,21 @@
 import type { GoldenNuggetService } from '@core/nuggets'
 import type { SessionService } from '@core/sessions'
 import type { TelemetryService } from '@core/telemetry'
-import type { TextProvider } from '@core/text'
+import { createCommonWordsProvider, TIRED_WORDS, type TextProvider } from '@core/text'
 import { useSettingsStore } from '@features/settings/state/settings.store.ts'
 
 import { useGGDocumentTitle } from '../layout/useGGDocumentTitle.ts'
 import { GGTypingScreen } from '../screen/GGTypingScreen.tsx'
+
+/**
+ * The words the tired difficulty types, and only that difficulty.
+ *
+ * Tired is the one that stays with a word longest, so what it is spent on
+ * matters more than elsewhere: it is a chosen set (tired-words.ts), not the
+ * frequency list the other difficulties draw from. Built once, outside the
+ * component, because it never varies.
+ */
+const tiredProvider = createCommonWordsProvider({ words: TIRED_WORDS })
 
 export interface GGHoverPageProps {
   /** Injectable for tests; default to the application's own. */
@@ -39,7 +49,8 @@ export const GGHoverPage = ({ provider, service, telemetry, goldenNuggets }: GGH
         void rememberDifficulty(next)
       }}
       {...(goldenNuggets === undefined ? {} : { goldenNuggets })}
-      provider={provider}
+      // A provider handed in wins, so a test still chooses its own words.
+      provider={provider ?? (difficulty === 'tired' ? tiredProvider : undefined)}
       service={service}
       telemetry={telemetry}
       wordCountPreference={{

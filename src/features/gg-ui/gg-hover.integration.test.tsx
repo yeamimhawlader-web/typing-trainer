@@ -23,7 +23,8 @@ import { createMemoryAdapter, type StorageAdapter } from '@core/persistence'
 import { createGoldenNuggetService, type GoldenNuggetService } from '@core/nuggets'
 import { createSessionServiceOver, type SessionService } from '@core/sessions'
 import { createTelemetryServiceOver, type TelemetryService } from '@core/telemetry'
-import type { TextProvider } from '@core/text'
+import { TIRED_WORDS, type TextProvider } from '@core/text'
+import { COMMON_WORDS } from '@core/text'
 import type { HoverDifficulty } from '@core/types'
 import { settingsStore } from '@features/settings/state/settings.store.ts'
 
@@ -664,5 +665,64 @@ describe('Hover Mode on the GG.Typing screen', () => {
       await settle()
       expect(await storedNuggets()).toEqual([])
     })
+  })
+})
+
+
+/*
+ * The words the tired difficulty gets.
+ *
+ * Tired is the difficulty that stays with a word longest, so it is given a
+ * chosen set rather than the frequency list the others draw from. Every test
+ * above hands the screen a provider of its own, which is exactly what must go
+ * on working, so these render the page without one -- the only way to see what
+ * it picks when nobody tells it.
+ */
+describe('the words the tired difficulty types', () => {
+  const renderWithoutProvider = (difficulty: HoverDifficulty) => {
+    preferDifficulty(difficulty)
+    return render(
+      <MemoryRouter initialEntries={[ROUTES.ggHover]}>
+        <Routes>
+          <Route path={ROUTES.gg} element={<GGLayout />}>
+            <Route
+              path={ROUTES.ggHover}
+              element={<GGHoverPage service={sessions} telemetry={telemetry} goldenNuggets={nuggets} />}
+            />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  const wordsOnScreen = (): string[] =>
+    (stream().textContent ?? '').trim().split(/\s+/).filter(Boolean)
+
+  it('draws every one of them from the chosen list', async () => {
+    renderWithoutProvider('tired')
+    await screen.findByRole('region', { name: 'Words to type' })
+
+    const shown = wordsOnScreen()
+    expect(shown.length).toBeGreaterThan(5)
+    // Named rather than counted: a stray word should say which it was.
+    expect(shown.filter((word) => !TIRED_WORDS.includes(word))).toEqual([])
+  })
+
+  it('still lets a test hand it words of its own', async () => {
+    // Every other test in this file depends on this, so it is said once here
+    // rather than left to be noticed when they all break at once.
+    await openHover('tired')
+
+    expect(wordsOnScreen()).toEqual(TEXT.split(' '))
+  })
+
+  it('is a chosen set, not a copy of the frequent words', async () => {
+    // Guards the list itself: were it only the common vocabulary under another
+    // name, the first test would pass and mean nothing.
+    const onlyHere = TIRED_WORDS.filter((word) => !COMMON_WORDS.includes(word))
+
+    expect(onlyHere.length).toBeGreaterThan(10)
+    expect(TIRED_WORDS).toContain('eye')
+    expect(COMMON_WORDS).not.toContain('eye')
   })
 })
